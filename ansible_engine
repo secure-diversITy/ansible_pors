@@ -1,0 +1,1241 @@
+#!/bin/bash
+########################################################################################
+#
+# Description:
+# Forget about all the stuff needed to know like: use playbook X to do A and Z to do B
+#
+# Copyright (2017): Thomas Fischer <mail -at- sedi DOT one>
+# Licensed under the LGPL v3:
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+VERSION=20170721
+###############################################################################################################
+
+
+# engine bin and working directory
+BIN=${0##*/}
+WORKDIR=".$(echo ${BIN/.sh}|tr -d _)"
+[ ! -d "$WORKDIR" ]&& mkdir -p $WORKDIR
+
+# normally we want to have 1 instance running the same time. This avoids dozens of problems which could occur.
+KICKUSER=N
+
+EXECBIT=$WORKDIR/.inuse
+[ -f $EXECBIT ]&& echo -e "\n\nWARNING: It seems ansible-engine is already opened?!\nIf you feel this is an error remove >$EXECBIT< and start again. or..." && read -p "....do you want ME to override, delete the execbit and continue anyways (no risk no fun heh?)? (y/N)" KICKUSER
+
+[ -f $EXECBIT ]&&[ "$KICKUSER" != "y" ] && exit
+
+> $EXECBIT
+
+ABIN=ansible-playbook
+
+# if you want you can run another ansible version by specifying the A2xx vars:
+A2PATH=/opt/splunk/ansible-git
+A2BIN=$A2PATH/bin/ansible-playbook
+
+
+LOG=$WORKDIR/${BIN}.log
+EDITBIN=/usr/bin/vim	# editor for conf file editing
+PBDIR="$PWD"
+
+SHOWAPPS=show_app_deploymentstate.sh
+PBNEWAPP=add_app.yml
+PBENAPP=enable_app_action.yml
+PBDEPLAPP=deploy_apps.yml
+PBDEPLSYSC=deploy_systemconfigs.yml
+PBGETTARGETS=get_targets.yml
+PBUPGRADE=upgrade_splunk.yml
+
+# default splunk API admin
+DEFSPLAPIADMIN=admin
+
+# default filename where your hosts defined. can be changed interactive
+DEFHOSTFILE=hosts_production
+
+# local repository definition configuration file for tgz's	
+REPODEF=group_vars/all/splunk_repository
+
+# gitlab authentication file
+GLABSETTINGS=$WORKDIR/gitlab.auth
+
+#################################################################################################
+# NO CHANGES BEHIND THIS POINT
+#################################################################################################
+
+# clear the running bit
+F_ENDSESS(){
+	echo "$FUNCNAME started" >> $LOG
+	rm -vf $EXECBIT >> $LOG
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+F_EXIT(){
+	echo "$FUNCNAME started" >> $LOG
+	
+	if [ "$1" == "NOSESSEXIT" ];then
+		echo "$FUNCNAME: No session exit" >> $LOG
+	else
+		# clear the execbit
+		F_ENDSESS
+		echo "$FUNCNAME finished" >> $LOG
+	fi
+	# finally terminate
+	exit 0
+}
+
+# catch ctrl+c !! to terminate cleanly..
+trap F_EXIT SIGINT
+
+# extract repo dir for apps
+REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")/apps"
+
+# check requirements first
+dialog --version >> /dev/null 2>&1
+if [ $? -ne 0 ];then
+	echo -e "\nplease install the software <dialog> first!\n"
+else
+    $ABIN --version >> /dev/null 2>&1
+    if [ $? -ne 0 ];then
+        echo -e "\nReally?? You want to use ansible deployment without ansible??! Coooool.. Install ansible and try again..\n"
+	F_EXIT
+    fi
+    for i in $(echo $SHOWAPPS $PBNEWAPP $PBDEPLAPP $PBDEPLSYSC);do
+	if [ ! -r $i ];then 
+	    echo -e "\n\tERROR. Please ensure you've done chmod +r $i first and that $i exists!\n"
+	    F_EXIT
+	fi
+    done
+fi
+
+echo "Starting new log - $(date +%Y-%m-%d_%T)" >$LOG
+
+# function to start A2BIN takes all args without any proof / verification!
+# TODO: parse args and do a basic validation?!
+F_A2BIN(){
+	# returns error code of the playbook run
+	#
+	# requires these parameters:
+	A2HOSTFILE="$1" # the ansible hostfile
+	A2PB="$2"	# the ansible playbook
+	BOXTITLE="$3"	# the title for the progressbox of the playbook run
+
+	# optional:
+	# ansible extra args. space separated parameters like -e 'var1=moo var2=cow' need to be defined in JSON format!!
+	# e.g.: F_A2BIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
+	A2ARGS="$4"	
+
+	F_LOG $FUNCNAME started
+	F_LOG $FUNCNAME "ARGS: $A2RGS"
+	
+	if [ -z "$A2HOSTFILE" ]||[ -z "$A2PB" ];then
+		F_DIAERR 3 "INTERNAL ERROR: Missing ARGS for $FUNCNAME!"
+		F_EXIT
+	fi
+
+	F_LOG $FUNCNAME PBUPGRADE $PBUPGRADE
+	F_LOG $FUNCNAME "$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB"
+	F_LOG $FUNCNAME "before run: $PYTHONPATH"
+	export PYTHONPATH=${A2PATH}/lib
+	$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 40 200
+	A2ERR="${PIPESTATUS[0]}"
+	F_LOG $FUNCNAME "after run: $PYTHONPATH"
+	F_LOG $FUNCNAME finished
+	return $A2ERR
+}
+
+# logging in a specific format
+F_LOG(){
+	# takes 2 args:
+	#  $1 = the calling function
+	#  $2 = the message to be logged
+
+	CALLER="$1"
+	MSG="$2"
+	if [ -z "$MSG" ]||[ -z "$CALLER" ];then
+		F_DIAERR 2 "INTERNAL ERROR: $FUNCNAME requires an arg"
+	else
+		PREFIX="$(date '+%F_%T') ($CALLER) -"
+		echo "$PREFIX $MSG" >> $LOG
+	fi
+}
+
+# main dialog form
+F_DIALOG(){
+	dialog --title "Ansible wrapper for splunk> (v$VERSION)" "$@"
+}
+
+# really you want to read a comment for this function?
+F_HELP(){
+	echo
+	echo -e "\tUSAGE/HELP for $BIN"
+	echo
+	echo -e "\tAvailable options:\n"
+	echo -e "\t[no argument]		Will show the normal GUI\n"
+	echo -e "\t--help			This output"
+	echo -e "\t--advanced		Will enable/show advanced option menu"
+	echo -e "\t--testing		Unfinished menu options"
+	echo -e "\n\t--noninteractive	UNFINISHED! Enables full automated way of actions with these available sub args:\n"
+	echo
+}
+
+# show app deployment state
+F_SHOWAPPS(){
+	echo "$FUNCNAME started" >> $LOG
+	SEL="$1"
+	[ -z $SEL ]&& echo ERROR missing arg for F_SHOWAPPS
+	if [ "$SEL" == "ALL" ];then
+		./$SHOWAPPS
+	else
+		./$SHOWAPPS "$SEL"
+	fi
+	echo "************************************************"
+	read -p "To continue press ENTER" DUMMY
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# do you wanna see all or choose
+F_SELECTOR(){
+	echo "$FUNCNAME started" >> $LOG
+	SELECTION=$(F_DIALOG --menu "\nChoose an option:" \
+			15 76 14 \
+			ALL "" \
+			Choose "" \
+			3>&1 1>&2 2>&3)
+	echo "$SELECTION"
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# show current apps deployment
+F_GOAPPS(){
+	echo "$FUNCNAME started" >> $LOG
+	if [ "$SELECTION" == "ALL" ];then
+		F_SHOWAPPS "ALL"
+	else
+		if [ "$SELECTION" == "Choose" ];then
+			OPTIONS=($(for i in $(find group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#group_vars/##g);do echo $i $i off;done))
+			SELECTION=$(F_DIALOG --checklist "Select options:" 22 76 16 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+			if [ -z $SELECTION ];then
+			F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30 
+			else
+				F_SHOWAPPS "$SELECTION"
+			fi
+		else
+			echo ERROR no selection made 
+		fi
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# ask for hosts filename (will list all hosts* files as well)
+# returns either the hostfile or ABORTED if the user cancels
+F_HOSTFILE(){
+	echo "$FUNCNAME started" >> $LOG
+	STARTOVER=1
+	ABORT=0
+	while [ $STARTOVER -eq 1 ];do
+		unset OPTIONS SELECTION HOSTFILE
+		# detect available host files
+		while [ -z "$HOSTFILE" ];do
+			OPTIONS=($(for i in $(find . -maxdepth 1 -type f -name "hosts*" |grep -v template);do echo ${i##*/} file;done))
+			HOSTFILE=$(F_DIALOG --menu "Select a hosts file:" 22 76 16 "${OPTIONS[@]}" manually "type in a path" 2>&1 >/dev/tty)
+			[ $? -ne 0 ] && HOSTFILE="ABORTED" && F_ABORTMAINMENU 
+		done
+		if [ "$HOSTFILE" == "manually" ];then
+			HOSTFILE=$(F_DIALOG --inputbox 'Type in your hosts filename' 20 100 $DEFHOSTFILE 2>&1 >/dev/tty)
+		fi
+		if [ ! -r "$HOSTFILE" ];then
+			F_DIALOG --msgbox "\n\nERROR: $HOSTFILE does not exist or is not readable" 10 80
+			STARTOVER=1
+		else
+			STARTOVER=0
+		fi
+	done
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# identify the available targets
+F_TARGETS(){
+	echo "$FUNCNAME started" >> $LOG
+	OPTIONS=($(for i in $(egrep "^\[" $HOSTFILE |tr -d "[" |tr -d "]"|grep -v ":vars");do echo $i $i off;done))
+	if [ -z "$1" ];then 
+		echo -e "\n\nERROR! Missing F_TARGETS arg!! Cannot continue...\n" && F_EXIT
+	else
+		DOPT="$1"
+	fi
+        HOSTSELECTION=$(F_DIALOG --${DOPT} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+	HERR=$?
+	echo "$FUNCNAME: HERR was $HERR"  >> $LOG
+	if [ "$HERR" != "0" ];then
+		echo "ABORTED"
+	else
+		echo "$HOSTSELECTION"
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# group_vars dir check and initiate if needed
+F_GVARDIR(){
+	echo "$FUNCNAME started" >> $LOG
+	INIT=0
+	TG=$1
+	TDIR=group_vars/$TG
+	[ -z "$TG" ]&& echo "Missing arg for $FUNCNAME!! ABORTED" && F_EXIT
+	if [ -d "$TDIR" ];then
+		echo "$TDIR" exists >> $LOG
+		if [ -f "$TDIR/deployment" ];then 
+			echo already initialized >> $LOG
+		else
+			INIT=1
+		fi
+	else
+		INIT=1
+	fi
+	if [ "$INIT" -eq 1 ];then
+		echo creating $TDIR >>$LOG
+		mkdir $TDIR >>/dev/null 2>&1
+		ERRC=0
+		while [ -z "$DEPL" ]&&[ "$ERRC" -eq 0 ];do
+			DEPL=$(F_DIALOG --inputbox "Initializing of <$TDIR> required\nPlease type in where you want to deploy apps for >$TG<.\n\nJust type <apps>, <deployment-apps>,<shcluster/apps>, etc and not the full path:" 15 100 2>&1 >/dev/tty)
+			ERRC=$?
+		done
+		if [ $ERRC -eq 0 ];then
+			echo "will create deployment file with: $DEPL as target dir" >> $LOG
+			# creating deployment file:
+			cat >> $TDIR/deployment <<EOF_DEPL
+---
+#####################################################################################################################
+# Configurations for Splunk deployment directory
+# Keep in mind to replace "-" and "/" with an underscore "_"
+#####################################################################################################################
+
+deployment:
+    dir: $DEPL
+EOF_DEPL
+		fi
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# deploy system/local configs
+F_DEPLSYSC(){
+	echo "$FUNCNAME started" >> $LOG
+	F_HOSTFILE
+	SELECTION="$1"
+	if [ "$SELECTION" == "Choose" ];then
+	     unset HOSTSELECT HOSTSELECTION
+	     while [ -z "$HOSTSELECT" ];do
+		HOSTSELECTION=$(F_TARGETS checklist)
+		[ $HOSTSELECTION == "ABORTED" ] && ABORTED=1 && break
+	         if [ -z "$HOSTSELECTION" ];then
+                     F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30 
+                 else
+                     HOSTSELECT=1
+		     ABORTED=0
+                 fi
+	     done
+	     if [ "$ABORTED" -ne 0 ];then
+                echo "DEBUG: aborted by user."
+	     else
+		  F_DIALOG --yesno "\nAre you sure you want to continue?\n\nThis will deploy the system/local configs to:\n\n$HOSTSELECTION" 15 80
+		  if [ $? -eq 1 ];then
+			ABORTED=1 
+		  else
+		     # TODO: optimize playbook exec to just exec on group instead of for each host
+			unset HOSTSELEXPANDED
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION")
+			# host 1,2,3,... of shcmember
+			for hex in $HOSTSELEXPANDED;do
+			     echo "processing host >$hex<" >>$LOG
+			     for hgroup in $HOSTSELECTION;do
+				echo "processing $hex in >$hgroup<" >>$LOG
+				# for shcmember, ...
+				#F_GVARDIR "$hgroup"
+				# update task etc stuff first
+				F_TPLUPDATE "roles/system" "$hgroup/$hex"
+				echo -e "Will play:\n$ABIN -i $HOSTFILE $PBDEPLSYSC -e \"target=$hgroup exp_host=$hex\"" >> $LOG
+				$ABIN -i $HOSTFILE $PBDEPLSYSC -e "target=$hgroup exp_host=$hex"
+				ERR=$?
+				F_DIAERR "$ERR" "on \Zb\Z1<$hex>\Zn"
+				[ $ERR -ne 0 ]&& F_MSG "ERROR: ABORTED deployment!" && break 2 >>$LOG
+			done
+		     done
+		  fi
+	     fi
+	else
+		F_DIALOG --msgbox "ERROR: Deploying to ALL is not supported yet" 10 100
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# let the user choose to either catch existing conf from another host or locally
+F_SSHORNOT(){
+	echo "$FUNCNAME started" >> $LOG
+	unset ANS
+	while [ -z "$ANS" ];do
+		#ANS=$(F_DIALOG --radiolist "\nDo you want to active pull the current config or use a local copy instead?\n(use the space-bar to select)" 15 80 3 Pull "Pull existing conf from a host (copy by SCP)" on Local "Choose a local dir for importing conf" off Skip "Use the local copy (POTENTIAL DANGEROUS. Will overwrite remote changes if any)" off 2>&1 >/dev/tty)
+		ANS=$(F_DIALOG --radiolist "\nDo you want to active pull the current config or use a local copy instead?\n(use the space-bar to select)" 15 100 5 Pull "(RECOMMENDED) Pull current active conf" on ---- "--------------------------------------" off DANGEROUS-Import "OVERWRITES REMOTE! Import configs from a LOCAL directory" off DANGEROUS-Skip "OVERWRITES REMOTE! Just use the LOCAL(!!) existing files" off 2>&1 >/dev/tty)
+		ERR=$?
+		echo "$FUNCNAME: err was $ERR" >> $LOG
+		if [ $ERR -ne 0 ];then
+			echo "$FUNCNAME: err was $ERR" >> $LOG
+			ANS="ABORTED"
+		fi
+		# reset ans when the user has selected the hint text...
+		[ "$ANS" == "----" ]&&unset ANS
+	done
+	echo "$FUNCNAME finished" >> $LOG
+	echo $ANS
+}
+
+# import by ssh from an existing host
+F_DIMPORT(){
+	echo "$FUNCNAME started" >> $LOG
+	SSHHOST="$1"
+	SSHPATH="$2"
+	LOCTMP="$3"
+	[ -d $LOCTMP ]&& rm -R $LOCTMP
+	mkdir $LOCTMP
+	scp ${SSHHOST}:${SSHPATH}/*.conf $LOCTMP/
+
+	# return errorcode to calling function
+	echo $?
+
+#	SIMP=$(F_DIALOG --inputbox "$TPLMSG\nNow initialize the deployment directory by copying your initial config files you want to deploy.\n\n\nWhere should I copy the initial configs from:" 15 80 2>&1 >/dev/tty)
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# file browser
+F_DBROWSE(){
+	echo "$FUNCNAME started" >> $LOG
+	unset SDIR
+        SDIR=$(F_DIALOG --colors --inputbox "\nSource path (full path) where to copy the initial configs from\n(on host \Zb\Z1<$1>\Zn):" 15 80 $2 2>&1 >/dev/tty)
+	if [ $? -ne 0 ];then
+            SDIR=999
+        fi
+	echo $SDIR
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# define local repo dir + filename
+F_LOCSRC(){
+	echo "$FUNCNAME started" >> $LOG
+	unset SDIR OPTIONS
+	[ ! -d "$REPODIR" ]&& echo "Cannot determine repo dir <$REPODIR>!! ABORTED" && F_EXIT
+
+	OPTIONS=($(for tgz in $(find $REPODIR -type f |grep -v "/splunk/"|egrep "(tar|tgz|spl)");do echo ${tgz##*/} "file" off; done))
+	SDIR=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 22 80 16 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+        if [ $? -ne 0 ];then
+            SDIR=999
+        fi
+        echo "$SDIR"
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# expands a target group to a list of hostnames/ips defined in the users host file
+# returns a space delimited list with the expanded list of hostnames
+F_EXPANDHOSTS(){
+	echo "$FUNCNAME started" >> $LOG
+	unset RET
+	TGROUP=$1
+	TGFILE="$WORKDIR/expanded_${HOSTFILE}_${TGROUP}"
+	if [ -z "$HOSTSELECTION" ];then
+		F_HOSTFILE
+	fi
+	# get all hosts via playbook (will expand groups in groups etc)
+	$ABIN -i $HOSTFILE $PBGETTARGETS -e "target=$TGROUP expandfile=$TGFILE" |sort 2>&1>> $LOG
+
+	# parse the resulted FILE and massage its content
+        if [ -r "$TGFILE" ];then
+              # filter ansible stuff:
+	      RET=$(sed "s/,//g;s/\[//g;s/]//g;s/'//g" $TGFILE)
+        else
+	      # bark an error to the calling function plus an error message in log
+	      echo "ERROR"
+              echo "ERROR cant read/find $TGFILE!!!">> $LOG
+              F_EXIT
+        fi
+	echo "$RET"
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# validate a dir if it contains conf files
+F_VALCONF(){
+	echo "$FUNCNAME started" >> $LOG
+	find $1 -type f |grep -q "\.conf"
+	if [ $? -ne 0 ];then
+		F_DIALOG --msgbox "ERROR:\n\nThe path >$1< contains no single conf file!" 10 50
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# delete empty conf files
+F_CLEANCONF(){
+	echo "$FUNCNAME started" >> $LOG
+	CDIR=$1
+	for cfile in $(find $CDIR -type f -name *.conf);do
+		[ ! -s "$cfile" ]&& echo "$cfile is empty! Will remove it" >> $LOG && rm -v "$cfile" >> $LOG
+	done
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# dialog box providing errorcde
+F_DIAERR(){
+	echo "$FUNCNAME started" >> $LOG
+	ERRC="$1"
+	TASK="$2"
+
+	[ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
+
+	if [ "$ERRC" != "0" ];then
+		F_DIALOG --colors --msgbox "ERROR:\n\nTask $TASK ended with errorcode >$ERRC<!" 10 50
+		# TODO: option to abort completely?
+	else
+		F_DIALOG --colors --msgbox "SUCCESS:\n\nTask $TASK ended successfully" 10 50
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# dialog box very similar to F_DIAERR but givin an option to display a given logfile
+F_ERRLOG(){
+        echo "$FUNCNAME started" >> $LOG
+        ERRC="$1"
+        TASK="$2"
+	DLOG="$3"
+
+        [ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
+
+        if [ "$ERRC" != "0" ];then
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask $TASK ended with errorcode >$ERRC<!" 10 50
+                # TODO: option to abort completely?
+		exit_status=$?
+        else
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask $TASK ended successfully" 10 50
+		exit_status=$?
+        fi
+	if [ $exit_status -eq 3 ]; then
+		F_DIALOG --colors --textbox "$DLOG" 30 200
+	fi
+        echo "$FUNCNAME finished" >> $LOG
+
+}
+
+# enable an app for a host/target
+F_ENAPP(){
+	echo "$FUNCNAME started" >> $LOG
+	unset HOSTFILE
+	F_HOSTFILE
+	unset HOSTSELEXPANDED ABORTED HTARGETS HOSTSELECT OPTIONS
+        while [ -z "$HOSTSELECT" ];do
+                HOSTSELECTION=$(F_TARGETS radiolist)
+		[ $HOSTSELECTION == "ABORTED" ] && ABORTED=1 && break
+                 if [ -z "$HOSTSELECTION" ];then
+                     F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30
+                 else
+                     HOSTSELECT=1
+                     ABORTED=0
+                 fi
+        done
+        if [ "$ABORTED" -ne 0 ];then
+                echo "DEBUG: aborted by user."
+        else
+		#HOSTSELEXPANDED="$(F_EXPANDHOSTS "$HOSTSELECTION")"
+		#F_SHOWHOSTS "checklist" "$HOSTSELEXPANDED"
+
+		# LOCAL or GIT
+		ENSRC=$(F_DIALOG --menu "\nChoose an option:" \
+                        15 76 14 \
+                        gitlab "(define an available app within your gitlab server)" \
+                        local "(define and push a local file on this server to a target)" \
+                        3>&1 1>&2 2>&3)
+		
+		case $ENSRC in
+			local)
+			unset SELAPPS
+			# TODO: select apps then choose hosts
+			SELAPPS=$(F_LOCSRC)
+			
+			# atm we have to use group otherwise we have to switch group_vars to targetgroup/host/ as well	
+                	#SELHOSTS=$(F_SHOWHOSTS "checklist" "$HOSTSELEXPANDED")
+	               	#HOSTSELEXPANDED="$(F_EXPANDHOSTS "$HOSTSELECTION")"
+			# enable app for each target group
+			for tapp in $SELAPPS;do
+				app_fulldir=$(find $REPODIR -type f -name $tapp |grep -v "/splunk/"|egrep "(tar|tgz|spl)")
+				app_dir=${app_fulldir%/*}
+				app_name=${app_dir##*/}
+				for tgroup in $HOSTSELECTION;do
+					F_GVARDIR $tgroup
+					echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''\":\n" >>$LOG
+					$ABIN -i $HOSTFILE $PBENAPP -e "app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG
+					F_DIAERR "$?"
+				done
+			done
+			;;
+			gitlab)
+			unset SELAPPS
+			# check if settings are done already:
+			if [ -f $GLABSETTINGS ];then
+				. $GLABSETTINGS
+			else
+				F_SETUP_GITLAB
+			fi
+			# get gitlab projects
+			SELAPPS=$(F_GITLABSRC|sort)
+			unset OPTIONS
+        		OPTIONS=($(for gapp in $SELAPPS;do echo ${gapp##*/} "GIT-Project" off; done; echo "CUSTOM GIT-Project off"))
+		        GLABAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 22 80 16 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+                        for gapp in $GLABAPP;do
+				if [ "$gapp" == "CUSTOM" ];then
+					gapp=$(F_DIALOG --inputbox '\nType in the gitlab project name (only the name):\n' 15 100 2>&1 >>/dev/tty)
+				fi
+				F_GITLABSRC | grep $gapp >>/dev/null
+				if [ $? -ne 0 ];then
+					F_MSG "ERROR: > $gapp < does not exists on gitlab! Please create the repository first. This app will be SKIPPED."
+				else
+	                                app_full=$(echo "$SELAPPS" |tr " " "\n" |egrep "/${gapp}$")
+	       	                        app_dir=${app_full%/*}
+	       	                        app_namespace=${app_dir##*/}
+	       	                        for tgroup in $HOSTSELECTION;do
+                                        F_GVARDIR $tgroup
+						# TODO: may have an option for choosing branch?!
+	                                        echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
+	                                        $ABIN -i $HOSTFILE $PBENAPP -e "app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch='master'" >> $LOG
+	                                        F_DIAERR "$?" "<linking $gapp to $tgroup>"
+	                                done
+				fi
+                        done
+			;;
+			*)
+			echo NO SELECTION MADE..
+			;;
+		esac
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# ask user and write settings to local file
+F_SETUP_GITLAB(){
+	echo "$FUNCNAME started" >> $LOG
+	# ask for server
+	# ask for personal token
+	# write config if all is fine (only)
+	unset GLABHOST PTOKEN ERRHOST ERRTOK
+	F_DIALOG --msgbox "\n(Re-)Initializing gitlab authentication!\n" 10 80
+
+	while [ -z "$GLABHOST" ];do
+		GLABHOST=$(F_DIALOG --inputbox '\nType the FQDN/IP of your gitlab server here (no URL!):\n' 15 100 2>&1 >>/dev/tty)
+		ERRHOST=$?
+		[ "$ERRHOST" -ne 0 ]&& break
+	done
+	while [ -z "$PTOKEN" ]&&[ "$ERRHOST" -eq 0 ];do
+		PTOKEN=$(F_DIALOG --inputbox '\nOpen your gitlab web GUI\n -> Open your profile settings\n -> Create a personal Access Token\n -> type that token here:\n' 25 100 2>&1 >>/dev/tty)
+		ERRTOK=$?
+		[ "$ERRTOK" -ne 0 ]&& break
+	done
+	# error out or write the config if not
+	if [ "$ERRHOST" -ne 0 ]||[ "$ERRTOK" -ne 0 ];then
+		F_DIAERR "host var: $ERRHOST,token var: $ERRTOK"
+	else
+		echo -e "GLABHOST=\"$GLABHOST\"\nPTOKEN=\"$PTOKEN\"" > $GLABSETTINGS
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+
+# get all available gitlab projects for the current user
+# this does not work with other git servers (think of ssh git@git-server info for those supporting this)
+F_GITLABSRC(){
+	echo "$FUNCNAME started" >> $LOG
+	# check of required vars are set
+	# build gitlab URL
+	# curl with the private token 
+	# parse the result with python and grep for the wanted project URLs
+	unset ERRC
+	if [ ! -z "$PTOKEN" ]&&[ ! -z "$GLABHOST" ];then
+		# TODO: check for curl as a req
+		# TODO: check for python and python module json.tool as a req
+
+		# I'm not that happy with this URL because it seems to be so unflexible for future changes (besides that parsing grep)
+		# ... but: it works atm..
+		# page=1 and per_page are required otherwise you will see the per page setting in the users settings only (default 20)
+		GLABURL="https://$GLABHOST/api/v3/projects?simple=true&page=1&per_page=1000"
+
+		# I prefer to use the private token instead of oauth
+		curl -s --header "PRIVATE-TOKEN: $PTOKEN" "$GLABURL" | python -mjson.tool | sed 's/[\",]//g' | egrep "web_url:" |sed 's/\s*web_url:\s*//g'
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# Just showing a simple message box with some dynamic info
+F_MSG(){
+	echo "$FUNCNAME started" >> $LOG
+	# required arg: message
+	MSG="$1"
+	[ -z "$MSG" ]&& echo "FATAL: missing req arg in $FUNCNAME! ABORTED!" && F_EXIT
+	F_DIALOG --msgbox "$MSG" 10 100
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# updating target dirs based on the template dir
+# this ensures consistent tasks for all config folders
+F_TPLUPDATE(){
+	echo "$FUNCNAME started" >> $LOG
+	# required argument: targetgroup/hostname
+	unset ROLEPATH
+	
+	FRPATH="$1"
+	ROLEPATH="$2"
+
+	if [ -z "$ROLEPATH" ]||[ ! -d "$FRPATH" ];then
+		echo "FATAL: missing req arg in $FUNCNAME! $ROLEPATH and $FRPATH. ABORTED!" && F_EXIT
+	fi
+
+	if [ -d $FRPATH/$ROLEPATH ];then
+		for i in $ROLEPATH;do
+			cp -av $FRPATH/template/* $FRPATH/$i/ >>$LOG
+			[ $? -ne 0 ]&&echo "FATAL: Cannot copy template to $FRPATH/$i/ !" && F_EXIT
+		done
+	else
+		F_MSG "\nERROR: cannot find specified path: $ROLEPATH!"
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# updating target dirs based on the APP template dir
+# this ensures consistent tasks for all config folders
+F_APPTPLUPDATE(){
+        echo "$FUNCNAME started" >> $LOG
+        # required argument: targetgroup/hostname
+        unset ROLEPATH FRPATH
+
+        FRPATH="$1" # roles/apps/app.template
+        ROLEPATH="$2" # roles/apps/TA-xxxxxxxxxxxxxxxxxx-dsl
+
+        #FRPATH="roles/system"
+
+        if [ -z "$ROLEPATH" ]||[ ! -d "$FRPATH" ];then
+                echo "FATAL: missing req arg in $FUNCNAME! $ROLEPATH and $FRPATH. ABORTED!" && F_EXIT
+        fi
+
+        cp -av $FRPATH/* $ROLEPATH/ >>$LOG
+        [ $? -ne 0 ] && echo "FATAL: Cannot copy template to $ROLEPATH/ !" && F_EXIT
+        echo "$FUNCNAME finished" >> $LOG
+}
+
+# pull system/local configs for remote server
+F_PULLSYSC(){
+	echo "$FUNCNAME started" >> $LOG
+	ABORTED=0
+	AUTO="$1"
+	if [ -z "$AUTO" ];then
+		[ -z "$HOSTFILE" ]&& F_HOSTFILE
+		unset HOSTSELEXPANDED ABORTED SYScDIR HOSTSELECT HOSTSELECTION
+       		while [ -z "$HOSTSELECT" ];do
+			HOSTSELECTION=$(F_TARGETS radiolist)
+			[ $HOSTSELECTION == "ABORTED" ] && ABORTED=1 && break
+       	        	if [ -z "$HOSTSELECTION" ];then
+       	              		F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30
+       	          	else
+       	              		HOSTSELECT=1
+			     	ABORTED=0
+       	          	fi
+        	done
+	fi
+
+	if [ "$ABORTED" -ne 0 ];then
+		echo "$FUNCNAME: aborted by user." >>$LOG
+		echo ABORTED
+	else
+		if [ -z "$AUTO" ];then
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION")
+			[ "$HOSTSELEXPANDED" == "ERROR" ]&& echo "FATAL: problem with expanding hosts for $HOSTSELECTION" && F_EXIT
+		else
+			HOSTSELEXPANDED="$AUTO"
+		fi
+
+		ANS=$(F_SSHORNOT)
+
+		case "$ANS" in
+			ABORTED)
+			# return abort state
+			echo ABORTED
+			break
+			;;
+			DANGEROUS-Skip)
+			echo SKIPPED
+			;;
+			DANGEROUS-Import|Pull)
+	  		    for host in $HOSTSELEXPANDED;do
+				OWNDIR=$HOSTSELECTION/$host
+				SYScDIR=roles/system/$OWNDIR
+				if [ ! -d "$SYScDIR/files" ];then
+				    mkdir -p "$SYScDIR"
+		    		    TPLMSG="Base directory structure created!"
+				else
+				    TPLMSG="Target dir exists already. Skipped copying template skeleton!"
+				fi
+	
+				# this initiates the template files but also ensures that we keep all tasks and stuff current!
+				F_TPLUPDATE "roles/system" $OWNDIR
+	
+				# do stuff based on user selection
+				if [ "$ANS" == "DANGEROUS-Import" ];then
+				   SELDIR=$(F_DBROWSE "$host" /TYPE-IN-LOCAL-DIR)
+				   [ "$SELDIR" == "999" ] && echo "breakout!" && break
+				   while [ ! -d "$SELDIR" ]&&[ "$SELDIR" -ne 999 ];do
+					F_DIALOG --msgbox "ERROR:\n\nThe path you entered is not a directory!" 10 50
+					SELDIR=$(F_DBROWSE $host /TYPE-IN-LOCAL-DIR)
+				   done
+				   [ "$SELDIR" == "999" ] && break
+				else
+				    if [ ! -z "$REMDIR" ];then
+					REMPATH="$REMDIR"
+				    else
+					REMPATH="/opt/splunk/etc/system/local"
+				    fi
+				    REMDIR=$(F_DBROWSE "$host" "$REMPATH")
+				    echo "$FUNCNAME remdir: $REMDIR" >> $LOG
+				    if [ "$REMDIR" == "999" ];then
+					echo "$FUNCNAME: aborted!" >> $LOG
+					ABORTED=1
+				    else
+					    SELDIR="/tmp/$host"
+					    SCPERR=$(F_DIMPORT $host "$REMDIR" "$SELDIR")
+					    echo "$FUNCNAME: SCPERR was $SCPERR" >> $LOG
+					    [ $SCPERR -ne 0 ]&& F_MSG "ERROR: Problem while importing from >$host<"
+				    fi
+				fi
+				if [ "$ABORTED" != "1" ];then
+					F_VALCONF "$SELDIR"
+					F_CLEANCONF "$SELDIR"
+					# again! because clean could had cleaned all..
+					F_VALCONF "$SELDIR"
+					cp -v $SELDIR/*.conf $SYScDIR/system_local_configs/files/system/local/ >> $LOG
+					CPERR=$?
+					echo "$FUNCNAME: CPERR was $CPERR" >> $LOG
+					# ask if you want to manage all files or a subset only
+					#F_ASKMANAGE "$SYScDIR"
+				fi
+			    done
+			    if [ "$SELDIR" != "999" ]&&[ "$ABORTED" != "1" ];then
+				echo "$FUNCNAME: not aborted" >> $LOG
+				if [ $CPERR -eq 0 ]&&[ $SCPERR -eq 0 ] ;then
+					echo "$FUNCNAME: all files copied fine" >> $LOG
+					#F_DIALOG --msgbox "DONE:\n\nAll files copied successfully." 15 80
+				else
+					echo "$FUNCNAME: ERROR: A problem occurred while copying your source files" >> $LOG
+					echo "ERROR"
+					#F_DIALOG --msgbox "ERROR:\n\nA problem occurred while copying your source files!" 10 50
+				fi
+			    else
+				echo "$FUNCNAME: ABORTED" >> $LOG
+				echo "ABORTED"
+			    fi
+			;;
+			*) # this should never happen
+			echo "$FUNCNAME - ERROR: No valid arg for case ($ANS)" >> $LOG
+			echo "$FUNCNAME:ERROR"
+			F_EXIT
+			;;
+		esac
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# show hostnames in an expanded target group
+F_SHOWHOSTS(){
+	F_LOG $FUNCNAME "started"
+	unset OPTIONS HTARGETS HOSTSELEXPANDED host ABORTED DIAOPT
+	DIAOPT="$1"
+	HOSTSELEXPANDED="$2"
+	[ -z "$DIAOPT" ]&& echo "ABORTED! Missing arg for dialog in $FUNCNAME!" && F_EXIT
+	[ -z "$HOSTSELEXPANDED" ]&& echo "ABORTED! Missing arg for target group in $FUNCNAME!" && F_EXIT
+
+	OPTIONS=($(for host in $HOSTSELEXPANDED;do echo "$host $host off";done))
+
+        while [ -z "$HTARGETS" ];do
+	      ABORTED=0
+              HTARGETS=$(F_DIALOG --${DIAOPT} "\nThe following are members of the choosen target group(s)\n<$HOSTSELECTION>\n\nMake your selection:" 30 80 50 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+              [ $? -eq 1 ] && ABORTED=1 && break
+	      F_LOG $FUNCNAME "HTARGETS (while): >$HTARGETS<"
+        done
+	F_LOG $FUNCNAME "HTARGETS (end): $HTARGETS"
+	F_LOG $FUNCNAME "finished"
+	# return host objects to the calling function
+	[ "$ABORTED" -eq 0 ] && echo "$HTARGETS"
+}
+
+# manage local conf files 
+F_EDITSYSC(){
+	echo "$FUNCNAME started" >> $LOG
+        unset HOSTSELEXPANDED ABORTED SYScDIR HOSTSELECT EDITHOST host
+	F_HOSTFILE
+        while [ -z "$HOSTSELECT" ];do
+                HOSTSELECTION=$(F_TARGETS radiolist)
+		if [ "$HOSTSELECTION" == "ABORTED" ];then
+			ABORTED=1 && break
+		else
+                 	if [ -z "$HOSTSELECTION" ];then
+                     		F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                 	else
+                     		HOSTSELECT=1
+                     		ABORTED=0
+                 	fi
+		fi
+        done
+        if [ "$ABORTED" -eq 1 ];then
+                echo "$FUNCNAME: aborted by user." >> $LOG
+        else
+		HABORTED=0
+		while [ $HABORTED -ne 1 ];do
+			#TODO: ask if the user want to edit/open a path or manage previously pulled conf files
+			# e.g. to say for the shc group do not manage authorize.conf
+
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION")
+			EDITHOST="$(F_SHOWHOSTS radiolist "$HOSTSELEXPANDED")"
+			[ $? -eq 1 ] && HABORTED=1 && break
+
+			PERR=$(F_PULLSYSC $EDITHOST)
+			[ "$PERR" == "ABORTED" -o "$PERR" == "ERROR" ] && HABORTED=1 && unset SELECTION &&break 
+			
+			echo "$FUNCNAME: Continuing after pull selection ($PERR)" >> $LOG
+
+			SYSDIR=roles/system/$HOSTSELECTION/$EDITHOST/system_local_configs/files/system/local
+			unset OPTIONS
+       			OPTIONS=($(for hostfile in $(find $SYSDIR -type f) ;do echo "${hostfile##*/}" "file";done|sort -f))
+		        while [ -z "$FTARGET" ];do
+				unset DIROPENED
+        	      		FTARGET=$(F_DIALOG --colors --extra-button --extra-label "Open directory" --cancel-label "Finish" --menu "\nThe following are files currently active for the given host\n\n\Zb\Z1<$EDITHOST>\Zn\n\nChoose one file for editing:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+				FERR=$?
+				if [ $FERR -eq 1 ];then
+					ABORTED=1
+					unset FTARGET && break
+				else
+					# if the user uses the extra button we open a dir on CLI
+					if [ $FERR -eq 3 ];then
+						DIROPENED=1
+						unset FTARGET
+						clear
+						echo -e "\n\nSwitching to directory: $SYSDIR"
+						echo -e "\n***********************************************************************"
+						echo -e "** Go back by typing <exit> or <CTRL+D>"
+						echo -e "***********************************************************************\n"
+						bash --rcfile <(echo "PS1=\"$EDITHOST/system/local \$>\";cd $SYSDIR/ && ls -la")
+					else
+						if [ -z "$FTARGET" ];then
+               	           		      F_DIALOG --msgbox "ERROR: no selection made. Choose a file." 10 30
+			                                ABORTED=1
+               				        else
+               	             			#FTARGET=1
+			                                ABORTED=0
+               	 		        fi
+					fi
+				fi
+				# open file for editing
+				if [ "$ABORTED" -eq 0 ]&&[ -z "$DIROPENED" ]&&[ "$HABORTED" -ne 1 ];then
+					if [ -f $SYSDIR/${FTARGET} ];then
+						$EDITBIN $SYSDIR/${FTARGET}
+					else
+						F_DIALOG --msgbox "NO FILES THERE?! Directory seems to be empty try a pull first" 10 30
+						break
+					fi
+					unset FTARGET
+				fi	
+        		done
+		done
+	fi
+	echo "$FUNCNAME finished" >> $LOG
+}
+
+# abort current menu and go back to MAIN dialog
+F_ABORTMAINMENU(){
+	$MAINMENU	
+}
+
+# upgrading splunk
+F_UPGRADESPL(){
+	# Prepare new version?
+	# -> Setup the configs
+	# -> Download new version
+	# Ask for hostfile
+	# Ask for hosts OR/AND target groups?
+	# Use upgrade playbook
+        echo "$FUNCNAME started" >> $LOG
+        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
+        F_HOSTFILE
+        while [ -z "$HOSTSELECT" ];do
+                HOSTSELECTION=$(F_TARGETS checklist)
+                if [ "$HOSTSELECTION" == "ABORTED" ];then
+                        ABORTED=1 && break
+			[ $? -ne 0 ] && F_ABORTMAINMENU
+                else
+                        if [ -z "$HOSTSELECTION" ];then
+                                F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                        else
+                                HOSTSELECT=1
+                                ABORTED=0
+                        fi
+                fi
+        done
+	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+
+# TODO: download splunk ?
+#	group_vars/all/splunk_installation:
+#		globversion: "6.5.5"
+#		globhash: "586c3ec08cfb"
+	#$ABIN -i $HOSTFILE download_splunk.yml
+
+	# ask for splunk_user and splunk_password vars
+	PLPW=""
+	SPLPWR=fail
+
+	while [ "$SPLPW" != "$SPLPWR" ];do
+		[ -z "$PREUSR" ] && PREUSR=$DEFSPLAPIADMIN
+
+		SPLUSR=$(F_DIALOG --inputbox '\n\nADMIN username for splunk API\n(only required for Indexer peer nodes - leave empty otherwise)' 20 100 $PREUSR 2>&1 >/dev/tty)
+		[ $? -ne 0 ] && F_ABORTMAINMENU
+		PREUSR=$SPLUSR
+		SPLPW=$(F_DIALOG --inputbox '\n\nADMIN password for splunk API\n(supports only these special chars for sure: -,_,%,@)' 20 100 2>&1 >/dev/tty)
+		[ $? -ne 0 ] && F_ABORTMAINMENU
+		SPLPWR=$(F_DIALOG --inputbox '\n\nRe-type ADMIN password for splunk API' 20 100 2>&1 >/dev/tty)
+		[ $? -ne 0 ] && F_ABORTMAINMENU
+		[ "$SPLPW" != "$SPLPWR" ] && F_DIAERR "3" "ERROR: Passwords doesn't match!"
+	done
+
+	[ -z "$SPLPW" ]&& SPLPW=undefined
+
+	# ask for specific hosts or target group?
+	unset HOSTLIST['expanded']
+		F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
+	for hostlist in $HOSTSELECTION;do
+		if [ -z "${HOSTLIST['expanded']}" ];then
+			HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist)"
+		else
+			HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist)"
+		fi
+	done
+
+	unset EDITHOST	
+	while [ -z "$EDITHOST" ];do
+	        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
+		if [ -z "$EDITHOST" ];then
+			F_DIALOG --yesno "No selection made! Retry?" 10 40
+			[ $? -ne 0 ] && F_ABORTMAINMENU
+		fi
+	done
+
+	# make host list unique to avoid duplicated upgrades when a host is in multiple groups
+	# number each entry,sort by name and remove dups, sort by num
+	UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
+	UPGRADEHOSTST="$(echo $UPGRADEHOSTS| sed 's/ /\\n/g')"
+
+	F_LOG "$FUNCNAME" "Will upgrade <$UPGRADEHOSTS>"
+	F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 10 100
+	[ $? -ne 0 ] && F_ABORTMAINMENU
+
+ 	F_LOG $FUNCNAME "F_A2BIN $HOSTFILE $PBUPGRADE '--limit \'$UPGRADEHOSTS\' -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\""
+	F_A2BIN "$HOSTFILE" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit $UPGRADEHOSTS -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
+	F_DIAERR "$?" "Upgrade for:\n$UPGRADEHOSTS\n"
+}
+
+# Deploy Apps to specified targets
+F_DEPLOYAPP(){
+	# Ask for hostfile
+	# update all apps based on template
+	# re-create deploy playbook to reflect manual changes like deleting an app
+	# Ask for target group(s) to deploy
+	# Deploy
+        echo "$FUNCNAME started" >> $LOG
+        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
+        F_HOSTFILE
+        while [ -z "$HOSTSELECT" ];do
+                HOSTSELECTION=$(F_TARGETS checklist)
+                if [ "$HOSTSELECTION" == "ABORTED" ];then
+                        ABORTED=1 && break
+                else
+                        if [ -z "$HOSTSELECTION" ];then
+                                F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                        else
+                                HOSTSELECT=1
+                                ABORTED=0
+                        fi
+                fi
+        done
+	if [ "$ABORTED" -eq 0 ];then
+		for rolesapp in $(find roles/apps -maxdepth 1 -type d |egrep -v "(template|file|vars|tasks)");do
+			F_APPTPLUPDATE "roles/apps/app.template/tasks" "$rolesapp/tasks"
+		done
+		echo -e "\nRe-creating deployment playbook to reflect any manual changes.. :\n"
+		CPBLOG=$WORKDIR/pb.log
+		echo starting ... > $CPBLOG
+
+		$ABIN -i $HOSTFILE ae_recreate_deploy.yml
+
+		for tgroup in $HOSTSELECTION;do
+			# do not buffer stdout!!
+			export PYTHONUNBUFFERED=1
+			$ABIN -i $HOSTFILE ae_deploy_apps.yml -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $CPBLOG
+			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$CPBLOG"
+		done
+	fi
+}
+
+# the main menu window in regular mode
+F_MENUMAIN(){
+ 	    while [ "$MENUDONE" == "0" ]; do
+		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" \
+			--menu "\nStart the ansible engine\n\nSelect an option:" \
+			35 76 35 \
+			______________ "MANAGE APPS  ______________" \
+			"" "" \
+			Link-app "Link an app (local file or git project) to a group" \
+			Show-apps "Show all already linked apps" \
+			Deploy-apps "Deploy all active apps for a target group" \
+			"" "" \
+			______________ "MANAGE system/local/*.conf  ______________" \
+			"" "" \
+			Edit-SYSC "Fetch/Edit/Show/Manage remote conf files" \
+			Deploy-SYSC "Deploy enabled system configs"\
+			"" "" \
+			"" "" \
+			3>&1 1>&2 2>&3)
+		if [ "$?" != "0" ]; then
+		    MENUDONE=1
+		    echo "$0: finished."
+		    F_EXIT
+		fi
+		case "$SELECTION" in
+			New-app)
+			;;
+			Link-app)
+			F_ENAPP
+			;;
+			Deploy-apps)
+			F_DEPLOYAPP
+			;;
+			Disable-app)
+			;;
+			Show-apps)
+			SELECTION=$(F_SELECTOR)
+			F_GOAPPS
+			;;
+			Edit-SYSC)
+			F_EDITSYSC
+			;;
+			Pull-SYSC)
+			F_PULLSYSC
+			;;
+			Deploy-SYSC)
+			#SELECTION=$(F_SELECTOR)
+			F_DEPLSYSC "$(F_SELECTOR)"
+			;;
+			Upgrade)
+			F_UPGRADESPL
+			;;
+			gitlab)
+			F_SETUP_GITLAB
+			;;
+		esac
+	     done
+}
+
+# the main menu window in testing mode
+F_MENUTESTING(){
+	    while [ "$MENUDONE" == "0" ]; do
+		SELECTION=$(F_DIALOG --colors --ok-label "Select Entry" --cancel-label "Exit" \
+			--menu "\nStart the ansible engine\n\n\Zb\Z1TESTING AREA - TESTING AREA - TESTING AREA\Zn\n\nSelect an option:" \
+			25 76 25 \
+			______________ "MANAGE APPS  ______________" \
+			"" "" \
+			New-local-app "UNFINISHED: Add a new splunk> app to the local repo" \
+			Disable-app "UNFINISHED: Disable an app for a target group" \
+			"" "" \
+			______________ "MANAGE splunk>  ______________" \
+			"" "" \
+		Upgrade	"UNFINISHED: Upgrade existing splunk> instance(s)" \
+			"" "" \
+			3>&1 1>&2 2>&3)
+		if [ "$?" != "0" ]; then
+		    MENUDONE=1
+		    echo "$0: finished."
+		    F_EXIT
+		fi
+		case "$SELECTION" in
+			New-app)
+			;;
+			Disable-app)
+			;;
+			Upgrade)
+			F_UPGRADESPL
+			;;
+		esac
+	     done
+
+}
+
+# the main menu window in advanced mode
+F_MENUADVANCED(){
+	while [ "$MENUDONE" == "0" ]; do
+                SELECTION=$(F_DIALOG --colors --ok-label "Select Entry" --cancel-label "Exit" \
+                        --menu "\nStart the ansible engine\n\n\Zb\Z1ADVANCED AREA - ADVANCED AREA - ADVANCED AREA\Zn\n\nSelect an option:" \
+                        20 76 20 \
+                        ______________ "ADVANCED (no daily business)  ______________" \
+                        "" "" \
+                        Pull-SYSC "Fetch config for a target (if Edit-SYSC fails)"\
+                        gitlab  "(Re-)Initialize gitlab server authentication"\
+                        3>&1 1>&2 2>&3)
+                if [ "$?" != "0" ]; then
+                    MENUDONE=1
+                    echo "$0: finished."
+		    F_EXIT
+                fi
+                case "$SELECTION" in
+                        Pull-SYSC)
+                        F_PULLSYSC
+                        ;;
+                       gitlab)
+                        F_SETUP_GITLAB
+                        ;;
+                esac
+	done	
+}
+
+# ugly but efficient
+echo "$@" |grep -q "\-\-help"
+[ $? -eq 0 ]&& F_HELP && F_EXIT
+
+echo "$@" |grep -q "noninteractive"
+	if [ $? -eq 0 ];then
+    # automatic mode
+    echo "automatic mode is not READY YET!!"
+    F_EXIT
+else
+    # interactive mode
+    MENUDONE=0
+
+    case $1 in
+	--advanced)
+	MAINMENU=F_MENUADVANCED
+	;;
+	--testing)
+	MAINMENU=F_MENUTESTING
+	;;
+	*)
+	MAINMENU=F_MENUMAIN
+	;;
+    esac
+    $MAINMENU
+fi
+
