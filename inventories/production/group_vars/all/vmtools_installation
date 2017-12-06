@@ -1,0 +1,11 @@
+---
+#####################################################################################################################
+# Installation Variables
+#####################################################################################################################
+
+vmtools_installation:
+  splunk_home_path: /opt/splunk
+  package_format: rpm
+  remote_package_temp_path: /tmp
+  delete_package_after_install: true
+  remote_app_temp_path: /tmp

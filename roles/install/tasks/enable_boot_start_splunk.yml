@@ -1,0 +1,24 @@
+---
+
+# check for existence of splunk init file
+- stat: path=/etc/init.d/splunk
+  register: splunkinitfile
+
+# file attr doesnt work and is available in ansible version >= v2.3 only
+- name: Remove protection from splunk init.d script
+  shell: chattr -i /etc/init.d/splunk
+  when: splunkinitfile is defined and splunkinitfile.stat.exists and run_in_docker.rc == 1
+
+- name: Remove existing init.d script
+  file: path=/etc/init.d/splunk
+        state=absent
+
+- name: Enable Splunk boot-start
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt"
+
+- name: Reload init.d conf
+  shell: systemctl daemon-reload
+  when: 
+    - "run_in_docker.rc == 1"
+    - "splunk_optimize.initd == true | default(false)"
+

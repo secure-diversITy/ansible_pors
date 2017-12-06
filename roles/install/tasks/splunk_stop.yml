@@ -1,0 +1,110 @@
+---
+# check for existence of splunk init file
+- name: Check Splunk init existence
+  stat: path=/etc/init.d/splunk
+  register: splunkinitfile
+
+# check for existence of splunk bin file
+- stat: path="{{ splunk_installation.splunk_home_path }}/bin/splunk"
+  register: splunkbin
+  ignore_errors: yes
+
+# check for running splunk daemon (independent from systemd, init etc!!)
+- name: Status Splunk
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  register: splunk_state
+  failed_when: splunk_state.rc == 0
+  ignore_errors: yes
+
+# check if this is an indexer peer and take offline if (will fail after 30 min >retries< wait time)
+- name: Take Splunk offline (indexer cluster peer)
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth {{ splunk_user }}:{{ splunk_password }}"
+  #shell: "sleep 6s && {{ splunk_installation.splunk_home_path }}/bin/splunk stop"
+  become: yes
+  become_user: splunk
+  async: 1800
+  poll: 0
+  register: splunk_ix_is_stopped
+  when:
+        - "'peernodes' in group_names"
+        - splunk_state.rc == 0
+
+# to catch the job id we need to become the same user than the offline cmd uses
+- name: ... is Splunk offline (indexer cluster peer)?
+  async_status: jid={{ splunk_ix_is_stopped.ansible_job_id }}
+  register: splunk_ix_is_stopped_result
+  until: splunk_ix_is_stopped_result.finished
+  become: yes
+  become_user: splunk
+  retries: 360
+  when: 
+        - "'peernodes' in group_names"
+        - splunk_ix_is_stopped is defined
+
+# handle non-indexers either by init if found or by using splunk binary if not (will fail after 30 min >retries< wait time)
+- name: Stop Splunk by init
+  service: name=splunk
+           state=stopped
+  async: 1800
+  poll: 0
+  register: splunk_stopped_by_init
+  when: 
+        - splunk_state.rc == 0
+        - splunkinitfile is defined
+        - splunkinitfile.stat.exists == True
+        - "'peernodes' not in group_names"
+        - splunk_ix_is_stopped.skipped
+
+- name: ... is Splunk by init stopped?
+  async_status: jid={{ splunk_stopped_by_init.ansible_job_id }}
+  register: splunk_init_stopped_result
+  until: splunk_init_stopped_result.finished
+  retries: 360
+  when: 
+        - splunk_state.rc == 0
+        - "'peernodes' not in group_names"
+        - splunkinitfile is defined
+        - splunkinitfile.stat.exists == True
+
+- name: Re-check Splunk Status (after init)
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  register: splunk_restate
+  failed_when: splunk_restate.rc == 0
+  ignore_errors: yes
+  when: 
+        - splunk_state.rc == 0
+        - splunkinitfile is defined
+        - splunkinitfile.stat.exists == True
+
+- name: Stop Splunk by binary (fallback)
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk stop"
+  async: 1800
+  poll: 0
+  register: splunk_stopped_by_bin
+  when:
+        - splunk_state.rc == 0 
+        - splunk_restate.rc is not defined
+        - "'peernodes' not in group_names"
+        - splunk_stopped_by_init.skipped
+        - splunkbin is defined and splunkbin.stat.exists == True
+
+#- debug: msg="{{ splunk_restate }} . {{ splunk_stopped_by_bin}} ."
+
+- name: ... is Splunk by bin stopped (non-indexers only)?
+  async_status: jid={{ splunk_stopped_by_bin.ansible_job_id }}
+  register: splunk_bin_stopped_result
+  until: splunk_bin_stopped_result.finished
+  retries: 360
+  when: 
+        - splunk_state.rc == 0
+        - splunk_stopped_by_init.skipped is defined and splunk_stopped_by_init.skipped == True
+        - splunk_stopped_by_bin.changed is defined and splunk_stopped_by_bin.changed == True
+        - "'peernodes' not in group_names"
+        - splunk_stopped_by_init.skipped
+
+# ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
+- name: Re-Check Splunk Status
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  register: splunk_laststate
+  failed_when: splunk_laststate.rc == 0
+

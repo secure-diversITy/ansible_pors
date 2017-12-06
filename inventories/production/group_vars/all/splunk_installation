@@ -1,0 +1,44 @@
+---
+#####################################################################################################################
+# Installation Variables
+#####################################################################################################################
+
+# change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
+globversion: "6.5.6"
+globhash: "44f873cfa227"
+
+# construct the full file name
+tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
+
+splunk_installation:
+  splunk_home_path: /opt/splunk
+  version: "{{ globversion }}"
+  ssh_public_key: xxxxxxxxxxxxxxxxxx
+
+  package_format: tgz
+
+  package_file: "{{ tgzname }}"
+  remote_package_temp_path: /tmp
+  delete_package_after_install: false
+
+  remote_app_temp_path: /tmp
+
+  admin_password: xxxxxxxxxxxxxxxxxx
+
+  splunk_xxxxxxxxxxxxxxxxxx
+
+splunk_optimize:
+  initd: True
+  selinux: disabled
+  tuned: True
+
+  # tuned profile. highly recommended to enable one of the following to achieve all splunk optimizations.
+  # choose one of the three methods ONLY - not multiple!! ;)
+  install_tuned_git: no
+  tuned_git_url: git@xxxxxxxxxxxxxxxxxxggit02.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunkinfra/tuned_profile.git
+  
+  install_tuned_tgz: no
+  tuned_tgz_url: https://xxxxxxxxxxxxxxxxxxggit02.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com/splunkinfra/tuned_profile/repository/archive.tar.gz?ref=master
+
+  install_tuned_ansible: yes
+  tuned_ansible_repo: "{{ splunk_repository.repository_root }}/splunk_tuned.tgz"

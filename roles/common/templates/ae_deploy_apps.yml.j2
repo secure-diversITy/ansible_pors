@@ -1,0 +1,6 @@
+- name: Deploy Apps
+  hosts: "{{ '{{' }} target {{ '}}' }}"
+  user: splunk
+  
+  roles:
+{{ app_roles.stdout_lines | link_app_list | to_nice_yaml | indent(4, true) }}

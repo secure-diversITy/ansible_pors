@@ -1,0 +1,19 @@
+---
+# check for existence of splunk init file
+- stat: path=/etc/init.d/splunk
+  register: splunkinitfile
+
+# check for existence of splunk bin file
+- stat: path="{{ splunk_installation.splunk_home_path }}/bin/splunk"
+  register: splunkbin
+
+- name: systemctl reload
+  shell: systemctl daemon-reload
+  ignore_errors: yes
+  
+- name: Start Splunk by init
+  service: name=splunk
+           state=started
+  register: splunk_is_started
+  when: splunkinitfile is defined and splunkinitfile.stat.exists and splunkbin is defined and splunkbin.stat.exists
+

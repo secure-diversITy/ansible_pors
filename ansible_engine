@@ -21,14 +21,34 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-VERSION=20170721
+#
+# bashrc setup:
+# -----------------------
+# # call ansible engine
+# F_CALLAE(){
+#        ARGS="$@"
+#        (cd /opt/ansible-playbooks/splunk;./_ansible-engine.sh $ARGS)
+# }
+# alias ansible-engine="F_CALLAE $@"
+#
+#
+#################
+VERSION=20171206
 ###############################################################################################################
 
+# do not buffer stdout!!
+export PYTHONUNBUFFERED=1
 
 # engine bin and working directory
 BIN=${0##*/}
 WORKDIR=".$(echo ${BIN/.sh}|tr -d _)"
 [ ! -d "$WORKDIR" ]&& mkdir -p $WORKDIR
+
+# we resist on the bashrc alias so using pwd is fine here
+ADIR=${PWD}
+
+# the path where your inventories (with their subdirs like development, production) are in
+AINVENTORY=$ADIR/inventories
 
 # normally we want to have 1 instance running the same time. This avoids dozens of problems which could occur.
 KICKUSER=N
@@ -51,22 +71,21 @@ LOG=$WORKDIR/${BIN}.log
 EDITBIN=/usr/bin/vim	# editor for conf file editing
 PBDIR="$PWD"
 
-SHOWAPPS=show_app_deploymentstate.sh
+# Playbooks
 PBNEWAPP=add_app.yml
 PBENAPP=enable_app_action.yml
-PBDEPLAPP=deploy_apps.yml
+PBDEPLAPP=ae_deploy_apps.yml
 PBDEPLSYSC=deploy_systemconfigs.yml
 PBGETTARGETS=get_targets.yml
 PBUPGRADE=upgrade_splunk.yml
+PBSHINSTALL=install_shelper.yml
+SHOWAPPS=show_app_deploymentstate.sh
 
 # default splunk API admin
 DEFSPLAPIADMIN=admin
 
 # default filename where your hosts defined. can be changed interactive
-DEFHOSTFILE=hosts_production
-
-# local repository definition configuration file for tgz's	
-REPODEF=group_vars/all/splunk_repository
+DEFHOSTFILE=hosts
 
 # gitlab authentication file
 GLABSETTINGS=$WORKDIR/gitlab.auth
@@ -98,9 +117,6 @@ F_EXIT(){
 
 # catch ctrl+c !! to terminate cleanly..
 trap F_EXIT SIGINT
-
-# extract repo dir for apps
-REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")/apps"
 
 # check requirements first
 dialog --version >> /dev/null 2>&1
@@ -149,7 +165,7 @@ F_A2BIN(){
 	F_LOG $FUNCNAME "$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB"
 	F_LOG $FUNCNAME "before run: $PYTHONPATH"
 	export PYTHONPATH=${A2PATH}/lib
-	$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 40 200
+	$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB | tee -a $LOG #| F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
 	A2ERR="${PIPESTATUS[0]}"
 	F_LOG $FUNCNAME "after run: $PYTHONPATH"
 	F_LOG $FUNCNAME finished
@@ -177,17 +193,25 @@ F_DIALOG(){
 	dialog --title "Ansible wrapper for splunk> (v$VERSION)" "$@"
 }
 
-# really you want to read a comment for this function?
+# really? you want to read a comment for this function?
 F_HELP(){
 	echo
-	echo -e "\tUSAGE/HELP for $BIN"
+	echo -e "    USAGE/HELP for $BIN"
 	echo
-	echo -e "\tAvailable options:\n"
-	echo -e "\t[no argument]		Will show the normal GUI\n"
-	echo -e "\t--help			This output"
-	echo -e "\t--advanced		Will enable/show advanced option menu"
-	echo -e "\t--testing		Unfinished menu options"
-	echo -e "\n\t--noninteractive	UNFINISHED! Enables full automated way of actions with these available sub args:\n"
+	echo -e "    Mandatory:\n    ---------------------"
+	echo -e "\t--env [production | development | ...]"
+	echo -e "\t\t\tdefine the running environment ($ADIR/inventories/[your --env setting]/"
+	echo -e "\n    Optional:\n    ---------------------"
+	echo -e "\t--help\t\tWill show this\n"
+	echo -e "\t--advanced\tWill enable/show advanced option menu"
+	echo -e "\t--testing\tUnfinished menu options"
+
+	echo -e "\n\t--batch\t\tUNFINISHED! Enables full automated way of using ansible-engine"
+	echo -e "\t  Batch options:"
+	echo -e "\t  -1 (will use ansible v1)  | -2 (will use ansible v2)"
+	echo -e "\t  -p|--play <playbookname>"
+	echo -e "\t  -t|--target <targetgroup>"
+	echo -e "\t  -i|--inventory <hosts filename>"
 	echo
 }
 
@@ -195,11 +219,11 @@ F_HELP(){
 F_SHOWAPPS(){
 	echo "$FUNCNAME started" >> $LOG
 	SEL="$1"
-	[ -z $SEL ]&& echo ERROR missing arg for F_SHOWAPPS
+	[ -z "$SEL" ]&& echo ERROR missing arg for F_SHOWAPPS
 	if [ "$SEL" == "ALL" ];then
-		./$SHOWAPPS
+		./$SHOWAPPS -env $AINVENTORY/$TARGETENV
 	else
-		./$SHOWAPPS "$SEL"
+		./$SHOWAPPS -env $AINVENTORY/$TARGETENV "$SEL"
 	fi
 	echo "************************************************"
 	read -p "To continue press ENTER" DUMMY
@@ -225,9 +249,9 @@ F_GOAPPS(){
 		F_SHOWAPPS "ALL"
 	else
 		if [ "$SELECTION" == "Choose" ];then
-			OPTIONS=($(for i in $(find group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#group_vars/##g);do echo $i $i off;done))
+			OPTIONS=($(for i in $(find $AINVENTORY/$TARGETENV/group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#$AINVENTORY/$TARGETENV/group_vars/##g);do echo $i $i off;done))
 			SELECTION=$(F_DIALOG --checklist "Select options:" 22 76 16 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-			if [ -z $SELECTION ];then
+			if [ -z "$SELECTION" ];then
 			F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30 
 			else
 				F_SHOWAPPS "$SELECTION"
@@ -248,14 +272,16 @@ F_HOSTFILE(){
 	while [ $STARTOVER -eq 1 ];do
 		unset OPTIONS SELECTION HOSTFILE
 		# detect available host files
-		while [ -z "$HOSTFILE" ];do
-			OPTIONS=($(for i in $(find . -maxdepth 1 -type f -name "hosts*" |grep -v template);do echo ${i##*/} file;done))
-			HOSTFILE=$(F_DIALOG --menu "Select a hosts file:" 22 76 16 "${OPTIONS[@]}" manually "type in a path" 2>&1 >/dev/tty)
+		while [ -z "$SHOSTFILE" ];do
+			OPTIONS=($(for i in $(find $AINVENTORY/$TARGETENV -maxdepth 1 -type f -name "hosts*" |grep -v template);do echo ${i##*/} file;done))
+			SHOSTFILE=$(F_DIALOG --menu "Select a hosts file:" 22 76 16 "${OPTIONS[@]}" manually "type in a path" 2>&1 >/dev/tty)
 			[ $? -ne 0 ] && HOSTFILE="ABORTED" && F_ABORTMAINMENU 
 		done
 		if [ "$HOSTFILE" == "manually" ];then
-			HOSTFILE=$(F_DIALOG --inputbox 'Type in your hosts filename' 20 100 $DEFHOSTFILE 2>&1 >/dev/tty)
+			SHOSTFILE=$(F_DIALOG --inputbox 'Type in your hosts filename' 20 100 $DEFHOSTFILE 2>&1 >/dev/tty)
 		fi
+		# construct the full host filename
+		HOSTFILE="${AINVENTORY}/${TARGETENV}/${SHOSTFILE}"
 		if [ ! -r "$HOSTFILE" ];then
 			F_DIALOG --msgbox "\n\nERROR: $HOSTFILE does not exist or is not readable" 10 80
 			STARTOVER=1
@@ -268,8 +294,8 @@ F_HOSTFILE(){
 
 # identify the available targets
 F_TARGETS(){
-	echo "$FUNCNAME started" >> $LOG
-	OPTIONS=($(for i in $(egrep "^\[" $HOSTFILE |tr -d "[" |tr -d "]"|grep -v ":vars");do echo $i $i off;done))
+	F_LOG "$FUNCNAME" "started with these arguments: $@"
+	OPTIONS=($(for i in $(egrep "^\[" "$HOSTFILE" |tr -d "[" |tr -d "]"|egrep -v "(:vars|:children)");do echo $i $i off;done))
 	if [ -z "$1" ];then 
 		echo -e "\n\nERROR! Missing F_TARGETS arg!! Cannot continue...\n" && F_EXIT
 	else
@@ -277,13 +303,13 @@ F_TARGETS(){
 	fi
         HOSTSELECTION=$(F_DIALOG --${DOPT} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
 	HERR=$?
-	echo "$FUNCNAME: HERR was $HERR"  >> $LOG
+	F_LOG "$FUNCNAME" "HERR was $HERR"
 	if [ "$HERR" != "0" ];then
 		echo "ABORTED"
 	else
 		echo "$HOSTSELECTION"
 	fi
-	echo "$FUNCNAME finished" >> $LOG
+	F_LOG "$FUNCNAME" "finished"
 }
 
 # group_vars dir check and initiate if needed
@@ -291,7 +317,7 @@ F_GVARDIR(){
 	echo "$FUNCNAME started" >> $LOG
 	INIT=0
 	TG=$1
-	TDIR=group_vars/$TG
+	TDIR=$AINVENTORY/$TARGETENV/group_vars/$TG
 	[ -z "$TG" ]&& echo "Missing arg for $FUNCNAME!! ABORTED" && F_EXIT
 	if [ -d "$TDIR" ];then
 		echo "$TDIR" exists >> $LOG
@@ -447,10 +473,10 @@ F_LOCSRC(){
 # expands a target group to a list of hostnames/ips defined in the users host file
 # returns a space delimited list with the expanded list of hostnames
 F_EXPANDHOSTS(){
-	echo "$FUNCNAME started" >> $LOG
+	F_LOG "$FUNCNAME" "started with these arguments: $@"
 	unset RET
 	TGROUP=$1
-	TGFILE="$WORKDIR/expanded_${HOSTFILE}_${TGROUP}"
+	TGFILE="$WORKDIR/expanded_${SHOSTFILE}_${TGROUP}"
 	if [ -z "$HOSTSELECTION" ];then
 		F_HOSTFILE
 	fi
@@ -468,7 +494,7 @@ F_EXPANDHOSTS(){
               F_EXIT
         fi
 	echo "$RET"
-	echo "$FUNCNAME finished" >> $LOG
+	F_LOG "$FUNCNAME" finished
 }
 
 # validate a dir if it contains conf files
@@ -500,7 +526,7 @@ F_DIAERR(){
 	[ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
 
 	if [ "$ERRC" != "0" ];then
-		F_DIALOG --colors --msgbox "ERROR:\n\nTask $TASK ended with errorcode >$ERRC<!" 10 50
+		F_DIALOG --colors --msgbox "ERROR:\n\nTask $TASK ended with errorcode >$ERRC<!" 50 100
 		# TODO: option to abort completely?
 	else
 		F_DIALOG --colors --msgbox "SUCCESS:\n\nTask $TASK ended successfully" 10 50
@@ -518,15 +544,15 @@ F_ERRLOG(){
         [ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
 
         if [ "$ERRC" != "0" ];then
-                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask $TASK ended with errorcode >$ERRC<!" 10 50
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask ${TASK}\nended with errorcode >$ERRC<!" 40 100
                 # TODO: option to abort completely?
 		exit_status=$?
         else
-                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask $TASK ended successfully" 10 50
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask ${TASK}\nended successfully" 40 100
 		exit_status=$?
         fi
 	if [ $exit_status -eq 3 ]; then
-		F_DIALOG --colors --textbox "$DLOG" 30 200
+		F_DIALOG --colors --textbox "$DLOG" 50 200
 	fi
         echo "$FUNCNAME finished" >> $LOG
 
@@ -538,6 +564,13 @@ F_ENAPP(){
 	unset HOSTFILE
 	F_HOSTFILE
 	unset HOSTSELEXPANDED ABORTED HTARGETS HOSTSELECT OPTIONS
+
+	# local repository definition configuration file for tgz's	
+	REPODEF=$AINVENTORY/$TARGETENV/group_vars/all/splunk_repository
+
+	# extract repo dir for apps
+	REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")/apps"
+
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS radiolist)
 		[ $HOSTSELECTION == "ABORTED" ] && ABORTED=1 && break
@@ -877,6 +910,27 @@ F_SHOWHOSTS(){
 	[ "$ABORTED" -eq 0 ] && echo "$HTARGETS"
 }
 
+# show available enviroments to the user and let the user select one
+F_CHOOSEENV(){
+	# returns the choosen environment so call this function like:
+	# ENVCHOICE="$(F_CHOOSEENV)"
+	F_LOG $FUNCNAME "started"
+
+        OPTIONS=($(for inv in $(find $AINVENTORY/* -type d -maxdepth 0);do echo "${inv##*/} $inv off";done))
+
+        while [ -z "$ENVTARGET" ];do
+              ABORTED=0
+              ENVTARGET=$(F_DIALOG --radiolist "\nYou HAVE TO choose an environment first.\n\nThe following are the available environment(s) based on\n<$AINVENTORY>\n\nMake your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+              [ $? -eq 1 ] && ABORTED=1 && break
+              F_LOG $FUNCNAME "ENVTARGET (while): >$ENVTARGET<"
+        done
+        F_LOG $FUNCNAME "ENVTARGET (end): $ENVTARGET"
+        F_LOG $FUNCNAME "finished"
+        # return objects to the calling function
+        [ "$ABORTED" -ne 0 ] && ENVTARGET="ABORTED"
+	echo "$ENVTARGET"
+}
+
 # manage local conf files 
 F_EDITSYSC(){
 	echo "$FUNCNAME started" >> $LOG
@@ -964,6 +1018,233 @@ F_ABORTMAINMENU(){
 	$MAINMENU	
 }
 
+# shelper gui
+F_SHELPER(){
+	F_LOG "$FUNCNAME" started
+ 	while [ "$MENUDONE" == "0" ]; do
+		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" \
+			--menu "\nshelper the splunk helper tool.\n\nSelect an option:" \
+			15 100 15 \
+			"" "" \
+			"Upgrade/Install" "Will install or upgrade shelper on given machines" \
+			Exec "Will execute certain shelper commands on given machines" \
+			"" "" \
+			"" "" \
+			3>&1 1>&2 2>&3)
+		if [ "$?" != "0" ]; then
+		    MENUDONE=1
+		    echo "$0: finished."
+		    F_EXIT
+		fi
+		case "$SELECTION" in
+			"Upgrade/Install")
+			F_SHUPGRADE
+			;;
+			Exec)
+			F_SHEXEC
+			;;
+		esac
+	done
+}
+
+# calculate a temporary group based on user selected values
+F_CALCTGROUP(){ F_LOG "$FUNCNAME" started
+	# returns: N/A
+	# requires: tempfile name as arg1
+
+	[ -z $1 ] && echo "ERROR: missing arg1" && F_EXIT
+	CALCGRPF=${AINVENTORY}/${TARGETENV}/$1
+
+        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
+        F_HOSTFILE
+        while [ -z "$HOSTSELECT" ];do
+                HOSTSELECTION=$(F_TARGETS checklist)
+                if [ "$HOSTSELECTION" == "ABORTED" ];then
+                        ABORTED=1 && break
+			[ $? -ne 0 ] && F_ABORTMAINMENU
+                else
+                        if [ -z "$HOSTSELECTION" ];then
+                                F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                        else
+                                HOSTSELECT=1
+                                ABORTED=0
+                        fi
+                fi
+        done
+	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+
+	# ask for specific hosts or target group?
+	unset HOSTLIST['expanded']
+		F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
+	for hostlist in $HOSTSELECTION;do
+		if [ -z "${HOSTLIST['expanded']}" ];then
+			HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist)"
+		else
+			HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist)"
+		fi
+	done
+
+	unset EDITHOST	
+	while [ -z "$EDITHOST" ];do
+	        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
+		if [ -z "$EDITHOST" ];then
+			F_DIALOG --yesno "No selection made! Retry?" 10 40
+			[ $? -ne 0 ] && F_ABORTMAINMENU
+		fi
+	done
+
+	# make host list unique to avoid duplicated upgrades when a host is in multiple groups
+	# number each entry,sort by name and remove dups, sort by num
+	UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
+	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
+
+	F_LOG "$FUNCNAME" "Will do action on: <$UPGRADEHOSTS>"
+	[ $? -ne 0 ] && F_ABORTMAINMENU
+
+	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	echo '[aetmpgrp]' > $CALCGRPF
+	for h in $UPGRADEHOSTS;do echo "$h" >> $CALCGRPF; done
+	F_LOG "$FUNCNAME" "Temporary group: $(cat $CALCGRPF)"
+}
+
+# shelper execute
+F_SHEXEC(){
+	F_LOG "$FUNCNAME" started
+	# splunk_user=
+	# splunk_password=
+	# shelper_action='reload custom'
+	# shelper_custom='panels'
+
+	CREDS=$(F_GETAPICREDS)
+	SPLUSR="${CREDS/:*}"
+	SPLPW="${CREDS/*:}"
+
+	while [ -z "$ANS" ];do
+		ANS=$(F_DIALOG --radiolist "\nChoose your shelper action:\n \
+		(use the space-bar to select)" 15 100 5 \
+			reload-all "shelperreload all - so a full debug refresh" on \
+			custom-reload "define your own reload command" off \
+			2>&1 >/dev/tty)
+		ERR=$?
+		echo "$FUNCNAME: err was $ERR" >> $LOG
+		if [ $ERR -ne 0 ];then
+			echo "$FUNCNAME: err was $ERR" >> $LOG
+			ANS="ABORTED"
+		fi
+		# reset ans when the user has selected the hint text...
+		[ "$ANS" == "----" ]&&unset ANS
+	done
+
+	PBSHRELOAD=${WORKDIR}/maintenance/shelper_reload.yml
+
+	F_CALCTGROUP $FUNCNAME
+	
+	case $ANS in 
+		custom-reload)
+			unset SHCUST
+			while [ -z "$SHCUST" ];do
+                	  SHCUST=$(F_DIALOG --inputbox '\n\nType your custom reload arguments (space separated).\ne.g. "props panels transforms inputs"' 20 100 "" 2>&1 >/dev/tty)
+                	  [ $? -ne 0 ] && F_ABORTMAINMENU
+        		done
+			SHEXE="reload custom"
+			echo "F_A2BIN -i $HOSTFILE $PBSHRELOAD --limits aetmpgrp -e \"splunk_user=$SPLUSR splunk_password=$SPLPW shelper_action='$SHEXE' shelper_custom='$SHCUST'\""
+		;;
+		reload-all)
+			SHEXE="reload all"
+		;;
+	esac
+
+	F_EXIT
+}
+
+# install/upgrade/use shelper
+F_SHUPGRADE(){
+        echo "$FUNCNAME started" >> $LOG
+        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
+        F_HOSTFILE
+        while [ -z "$HOSTSELECT" ];do
+                HOSTSELECTION=$(F_TARGETS checklist)
+                if [ "$HOSTSELECTION" == "ABORTED" ];then
+                        ABORTED=1 && break
+			[ $? -ne 0 ] && F_ABORTMAINMENU
+                else
+                        if [ -z "$HOSTSELECTION" ];then
+                                F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                        else
+                                HOSTSELECT=1
+                                ABORTED=0
+                        fi
+                fi
+        done
+	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+
+	PLPW=""
+	SPLPWR=fail
+
+	# ask for specific hosts or target group?
+	unset HOSTLIST['expanded']
+		F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
+	for hostlist in $HOSTSELECTION;do
+		if [ -z "${HOSTLIST['expanded']}" ];then
+			HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist)"
+		else
+			HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist)"
+		fi
+	done
+
+	unset EDITHOST	
+	while [ -z "$EDITHOST" ];do
+	        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
+		if [ -z "$EDITHOST" ];then
+			F_DIALOG --yesno "No selection made! Retry?" 10 40
+			[ $? -ne 0 ] && F_ABORTMAINMENU
+		fi
+	done
+
+	# make host list unique to avoid duplicated upgrades when a host is in multiple groups
+	# number each entry,sort by name and remove dups, sort by num
+	UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
+	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
+
+	F_LOG "$FUNCNAME" "Will upgrade/install shelper on: <$UPGRADEHOSTS>"
+	F_DIALOG --scrollbar --yesno "Will upgrade/install shelper on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
+	[ $? -ne 0 ] && F_ABORTMAINMENU
+
+	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	UTMPGRP=${AINVENTORY}/${TARGETENV}/shelperhosts
+	echo '[tmpshmaint]' > $UTMPGRP
+	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
+	F_LOG "$FUNCNAME" "Temporary group: $(cat $UTMPGRP)"
+
+ 	F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBSHINSTALL '--limit tmpshmaint" | tee -a $LOG
+
+	# do it
+	F_A2BIN "$UTMPGRP" "$PBSHINSTALL" "\Za\Z1UPGRADING/INSTALLING ...\Z\n" "--limit tmpshmaint" 
+        F_ERRLOG "${PIPESTATUS[0]}" "shelper upgrade/install for:\n\n$UPGRADEHOSTST" "$LOG"
+}
+
+# ask for splunk_user and splunk_password vars
+F_GETAPICREDS(){
+	PLPW=""
+	SPLPWR=fail
+
+	while [ "$SPLPW" != "$SPLPWR" ];do
+		[ -z "$PREUSR" ] && PREUSR=$DEFSPLAPIADMIN
+
+		SPLUSR=$(F_DIALOG --inputbox '\n\nADMIN username for splunk API\n(only required for Indexer peer nodes - leave empty otherwise)' 20 100 $PREUSR 2>&1 >/dev/tty)
+		[ $? -ne 0 ] && F_ABORTMAINMENU
+		PREUSR=$SPLUSR
+		SPLPW=$(F_DIALOG --passwordbox '\n\nADMIN password for splunk API\n(supports only these special chars for sure: -,_,%,@)\nYOU WILL SEE NOTHING WHILE TYPING!' 20 100 2>&1 >/dev/tty)
+		[ $? -ne 0 ] && F_ABORTMAINMENU
+		SPLPWR=$(F_DIALOG --passwordbox '\n\nTo verify the ADMIN password for splunk API write it again' 20 100 2>&1 >/dev/tty)
+		[ $? -ne 0 ] && F_ABORTMAINMENU
+		[ "$SPLPW" != "$SPLPWR" ] && F_DIAERR "3" "ERROR: Passwords doesn't match!"
+	done
+
+	[ -z "$SPLPW" ]&& SPLPW=undefined
+	echo "$SPLUSR:$SPLPW"
+}
+
 # upgrading splunk
 F_UPGRADESPL(){
 	# Prepare new version?
@@ -993,28 +1274,14 @@ F_UPGRADESPL(){
 
 # TODO: download splunk ?
 #	group_vars/all/splunk_installation:
-#		globversion: "6.5.5"
-#		globhash: "586c3ec08cfb"
+#	Answer for:	globversion: "6.5.5"
+#			globhash: "586c3ec08cfb"
+#	replace those vars and download
 	#$ABIN -i $HOSTFILE download_splunk.yml
 
-	# ask for splunk_user and splunk_password vars
-	PLPW=""
-	SPLPWR=fail
-
-	while [ "$SPLPW" != "$SPLPWR" ];do
-		[ -z "$PREUSR" ] && PREUSR=$DEFSPLAPIADMIN
-
-		SPLUSR=$(F_DIALOG --inputbox '\n\nADMIN username for splunk API\n(only required for Indexer peer nodes - leave empty otherwise)' 20 100 $PREUSR 2>&1 >/dev/tty)
-		[ $? -ne 0 ] && F_ABORTMAINMENU
-		PREUSR=$SPLUSR
-		SPLPW=$(F_DIALOG --inputbox '\n\nADMIN password for splunk API\n(supports only these special chars for sure: -,_,%,@)' 20 100 2>&1 >/dev/tty)
-		[ $? -ne 0 ] && F_ABORTMAINMENU
-		SPLPWR=$(F_DIALOG --inputbox '\n\nRe-type ADMIN password for splunk API' 20 100 2>&1 >/dev/tty)
-		[ $? -ne 0 ] && F_ABORTMAINMENU
-		[ "$SPLPW" != "$SPLPWR" ] && F_DIAERR "3" "ERROR: Passwords doesn't match!"
-	done
-
-	[ -z "$SPLPW" ]&& SPLPW=undefined
+	CREDS=$(F_GETAPICREDS)
+	SPLUSR="${CREDS/:*}"
+	SPLPW="${CREDS/*:}"
 
 	# ask for specific hosts or target group?
 	unset HOSTLIST['expanded']
@@ -1039,15 +1306,23 @@ F_UPGRADESPL(){
 	# make host list unique to avoid duplicated upgrades when a host is in multiple groups
 	# number each entry,sort by name and remove dups, sort by num
 	UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
-	UPGRADEHOSTST="$(echo $UPGRADEHOSTS| sed 's/ /\\n/g')"
+	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
 
 	F_LOG "$FUNCNAME" "Will upgrade <$UPGRADEHOSTS>"
-	F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 10 100
+	F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
 	[ $? -ne 0 ] && F_ABORTMAINMENU
 
- 	F_LOG $FUNCNAME "F_A2BIN $HOSTFILE $PBUPGRADE '--limit \'$UPGRADEHOSTS\' -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\""
-	F_A2BIN "$HOSTFILE" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit $UPGRADEHOSTS -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
-	F_DIAERR "$?" "Upgrade for:\n$UPGRADEHOSTS\n"
+	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
+	echo '[tmpupgrade]' > $UTMPGRP
+	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
+	F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
+
+ 	F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBUPGRADE '--limit tmpupgrade -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
+
+	# upgrade
+	F_A2BIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}" 
+        F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
 }
 
 # Deploy Apps to specified targets
@@ -1077,17 +1352,15 @@ F_DEPLOYAPP(){
 		for rolesapp in $(find roles/apps -maxdepth 1 -type d |egrep -v "(template|file|vars|tasks)");do
 			F_APPTPLUPDATE "roles/apps/app.template/tasks" "$rolesapp/tasks"
 		done
-		echo -e "\nRe-creating deployment playbook to reflect any manual changes.. :\n"
-		CPBLOG=$WORKDIR/pb.log
-		echo starting ... > $CPBLOG
+		F_LOG "Re-creating deployment playbook to reflect any manual changes.. "
 
 		$ABIN -i $HOSTFILE ae_recreate_deploy.yml
 
 		for tgroup in $HOSTSELECTION;do
 			# do not buffer stdout!!
 			export PYTHONUNBUFFERED=1
-			$ABIN -i $HOSTFILE ae_deploy_apps.yml -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $CPBLOG
-			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$CPBLOG"
+			$ABIN -i $HOSTFILE $PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$LOG"
 		done
 	fi
 }
@@ -1098,16 +1371,21 @@ F_MENUMAIN(){
 		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" \
 			--menu "\nStart the ansible engine\n\nSelect an option:" \
 			35 76 35 \
-			______________ "MANAGE APPS  ______________" \
+			'>>>>>>>>>>>' 'Apps <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<' \
 			"" "" \
 			Link-app "Link an app (local file or git project) to a group" \
 			Show-apps "Show all already linked apps" \
 			Deploy-apps "Deploy all active apps for a target group" \
 			"" "" \
-			______________ "MANAGE system/local/*.conf  ______________" \
+			'>>>>>>>>>>>' 'system/local/*.conf <<<<<<<<<<<<<<<<<<<<<<<<<<' \
 			"" "" \
 			Edit-SYSC "Fetch/Edit/Show/Manage remote conf files" \
 			Deploy-SYSC "Deploy enabled system configs"\
+			"" "" \
+			'>>>>>>>>>>>' 'splunk> Maintenance <<<<<<<<<<<<<<<<<<<<<<<<<<' \
+			"" "" \
+			Upgrade	"Upgrade existing splunk> instance(s)" \
+			shelper	"Upgrade/Install the shelper" \
 			"" "" \
 			"" "" \
 			3>&1 1>&2 2>&3)
@@ -1144,6 +1422,9 @@ F_MENUMAIN(){
 			Upgrade)
 			F_UPGRADESPL
 			;;
+			shelper)
+			F_SHELPER
+			;;
 			gitlab)
 			F_SETUP_GITLAB
 			;;
@@ -1161,11 +1442,6 @@ F_MENUTESTING(){
 			"" "" \
 			New-local-app "UNFINISHED: Add a new splunk> app to the local repo" \
 			Disable-app "UNFINISHED: Disable an app for a target group" \
-			"" "" \
-			______________ "MANAGE splunk>  ______________" \
-			"" "" \
-		Upgrade	"UNFINISHED: Upgrade existing splunk> instance(s)" \
-			"" "" \
 			3>&1 1>&2 2>&3)
 		if [ "$?" != "0" ]; then
 		    MENUDONE=1
@@ -1216,26 +1492,65 @@ F_MENUADVANCED(){
 echo "$@" |grep -q "\-\-help"
 [ $? -eq 0 ]&& F_HELP && F_EXIT
 
-echo "$@" |grep -q "noninteractive"
-	if [ $? -eq 0 ];then
-    # automatic mode
-    echo "automatic mode is not READY YET!!"
-    F_EXIT
+echo "$@" |egrep -q "(noninteractive|batch)"
+if [ $? -eq 0 ];then
+   # enter batch mode
+   # parse args
+   while [ ! -z "$1" ];do
+     case "$1" in
+	-1) BABIN=$ABIN ;shift;;
+	-2) BABIN=$A2BIN ; shift;;
+        --batch|--noninteractive) shift;;
+	-p|--play) BPLAY="$2"; shift 2;;
+	-t|--target) TARGET="$2"; shift 2;;
+        -i|--inventory) HOSTFILE="$2"; shift 2;;
+	*) echo -e "ERROR unknown argument: $BPLAY\n"; F_HELP; F_EXIT ;;
+     esac
+   done
+   # validate args
+   for f in $HOSTFILE $BPLAY; do
+	if [ ! -f $f ];then
+	  echo "ERROR missing file: >$f<"
+	  F_HELP
+	  F_EXIT
+	fi
+   done
+   [ -z "$TARGET" -o -z "$BABIN" -o -z "$BPLAY" -o -z "$HOSTFILE" ] && echo "ERROR: missing a required arg!" && F_HELP && F_EXIT 
+   # run 
+   echo "$BABIN -i $HOSTFILE $BPLAY -e \"target=$TARGET accept_hostkey=true\" --tags $TARGET"
 else
     # interactive mode
     MENUDONE=0
 
-    case $1 in
+    while [ ! -z "$1" ]; do
+      case "$1" in
 	--advanced)
 	MAINMENU=F_MENUADVANCED
+	shift
 	;;
 	--testing)
 	MAINMENU=F_MENUTESTING
+	shift
+	;;
+	--env)
+	TARGETENV=$2
+	shift 2
 	;;
 	*)
-	MAINMENU=F_MENUMAIN
+	F_HELP
+	F_EXIT
 	;;
-    esac
+      esac
+    done
+    # support multiple environments
+    while [ -z "$TARGETENV" ];do
+	TARGETENV=$(F_CHOOSEENV)
+        [ "$TARGETENV" == "ABORTED" ] && F_EXIT
+    done
+
+    [ ! -d "$ADIR/inventories/$TARGETENV" ] && echo -e "\nERROR: specified environment $TARGETENV\n($ADIR/inventories/$TARGETENV)\ndoes not exist!" && F_HELP && F_EXIT
+    [ -z "$MAINMENU" ]&& MAINMENU=F_MENUMAIN
     $MAINMENU
 fi
 
+F_EXIT

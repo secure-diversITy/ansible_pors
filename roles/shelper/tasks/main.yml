@@ -1,0 +1,12 @@
+---
+#- include: ../../common/handlers/shelper.yml
+#- include: check_virt.yml
+#  when: ansible_virtualization_type == "VMware"
+#- include: testing.yml
+#- include: copy_app.yml
+#- include: configure_local.yml
+#- include: remove_app.yml
+- include: prereq.yml
+  when: shelper_installation.enabled == true
+- include: git_checkout.yml
+  when: shelper_installation.enabled == true and shelper_installation.install_shelper_git == true

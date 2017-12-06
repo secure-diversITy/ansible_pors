@@ -1,0 +1,35 @@
+---
+- name: shelper start
+  shell: "{{ shelper_installation.shelper_path }}/shelperstart"
+  register: shelper_result
+
+- name: shelper stop
+  shell: "{{ shelper_installation.shelper_path }}/shelperstop"
+  register: shelper_result
+
+- name: shelper restart
+  shell: "{{ shelper_installation.shelper_path }}/shelperrestart"
+  register: shelper_result
+        
+- name: shelper reload deploy-server
+  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+  when: inventory_hostname in groups['deploymentserver']
+  register: shelper_result
+
+- name: shelper reload custom
+  shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+  register: shelper_result
+
+- name: shelper reload all
+  shell: "{{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+  register: shelper_result
+
+- name: shelper apply cluster-bundle
+  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+  when: inventory_hostname in groups['masternode']
+  register: shelper_result
+
+- name: shelper apply shcluster-bundle
+  shell: "{{ shelper_installation.shelper_path }}/shelper apply shcluster-bundle -target https://{{ groups['shcmember'][0] }}:8089 --answer-yes -auth {{ splunk_user }}:{{ splunk_password }}"
+  when: inventory_hostname in groups['deployer']
+  register: shelper_result

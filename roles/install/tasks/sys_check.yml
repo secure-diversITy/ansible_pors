@@ -1,0 +1,20 @@
+---
+
+- name: Check if we're running in docker
+  shell: "grep /docker/ /proc/1/cgroup >> /dev/null"
+  register: run_in_docker
+  ignore_errors: yes
+
+
+
+
+#################################################################
+# This should be the last block in this file!
+- name: Set the generic VM var
+  shell: "echo"
+  register: run_in_vm
+  when: (run_in_docker is defined and run_in_docker.rc == 0)
+
+#################################################################
+# NO CODE AFTER THIS LINE - PUT NEW VM CHECKS ABOVE THE GENERIC
+# BLOCK!

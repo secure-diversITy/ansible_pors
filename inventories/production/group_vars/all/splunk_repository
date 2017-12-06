@@ -1,0 +1,9 @@
+---
+#####################################################################################################################
+# Repository Variables
+#####################################################################################################################
+splunk_repository:
+  repository_root: /var/lib/splunk_repository
+  repository_owner: splunk
+  repository_group: splunk
+  git_url: git@xxxxxxxxxxxxxxxxxxggit02.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunk

@@ -1,0 +1,16 @@
+---
+
+- name: Create Splunk unix group
+  group: name=splunk
+         state=present
+  when: splunk_installation.package_format != "rpm"
+
+- name: Create Splunk unix user
+  user: name=splunk 
+        group=splunk
+        state=present
+        comment="Splunk Server"
+        shell="/bin/bash"
+        home="/opt/splunk"
+        password="!!"
+  when: splunk_installation.package_format != "rpm"

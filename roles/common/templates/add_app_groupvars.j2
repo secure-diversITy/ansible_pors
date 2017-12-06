@@ -1,0 +1,17 @@
+############################################
+#
+# Default app spec for the target group this
+# file resists in. 
+# 
+############################################
+
+{{ app_variable }}:
+  {{ deployment.dir }}:
+    install: true
+    clean_install: false
+{% if filename is defined and filename != "" %}
+    bundle: {{ filename }}
+{% else %}
+    git_repo: {{ splunk_repository.git_url }}/{{ app_name }}.git
+    git_version: {{ git_branch }}
+{% endif %}

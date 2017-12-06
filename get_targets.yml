@@ -1,0 +1,15 @@
+---
+- hosts: repository
+
+  tasks:
+    - name: Clean any previous tmp file
+      file:
+          path: "{{ expandfile }}"
+          state: absent
+      no_log: True
+
+    - name: Write tmp file 
+      shell: echo "{{ item }}:{{ hostvars[item]['ansible_ssh_port'] | default(22)}}" >> "{{ expandfile }}"
+      with_items: groups['{{ target }}']
+      no_log: True
+

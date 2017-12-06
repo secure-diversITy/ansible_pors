@@ -1,0 +1,14 @@
+- name: Deploy Apps
+  hosts: "{{ '{{' }} target {{ '}}' }}"
+  user: splunk
+  
+  vars_prompt:
+    - name: "splunk_user"
+      prompt: "\n\tsplunk> GUI account name (optional)\n\tLeave empty if you do NOT want\n\tto reload/restart splunk (if triggered)"
+      private: no
+    - name: "splunk_password"
+      prompt: "\n\tsplunk> GUI password (optional)"
+      private: yes
+
+  roles:
+{{ app_roles.stdout_lines | app_role_list | to_nice_yaml | indent(4, true) }}

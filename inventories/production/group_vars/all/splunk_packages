@@ -1,0 +1,23 @@
+---
+#####################################################################################################################
+# Splunk Package Variables
+#####################################################################################################################
+#globversion: "6.5.4"
+#globhash: "adb84211dd7c"
+#tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
+
+splunk_packages:
+  linux_64_rpm:
+    package:
+      version: "6.3.3_RPM-IS-DEPRECATED_USE_TGZ"
+      url: "http://download.splunk.com/products/splunk/releases/6.3.3/splunk/linux/splunk-6.3.3-f44afce176d0-linux-2.6-x86_64.rpm"
+
+  linux_64_tgz:
+    package:
+      version: "{{ globversion }}"
+      url: 'https://download.splunk.com/products/splunk/releases/{{ globversion }}/linux/{{ tgzname }}'
+
+#  linux_64_tgz:
+#    package:
+#      version: "6.4.6"
+#      url: "https://download.splunk.com/products/splunk/releases/6.4.6/linux/splunk-6.4.6-6635aa31e851-Linux-x86_64.tgz"

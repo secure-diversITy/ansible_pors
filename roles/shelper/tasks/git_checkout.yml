@@ -1,0 +1,27 @@
+---
+#- name: Clean existing app directory
+#  file: path="{{ splunk_installation.splunk_home_path }}/etc/{{ item.key | replace('shcluster_apps', 'shcluster/apps') | replace('_', '-') }}/{{ app_name }}"
+#        state=absent
+#  when: "item.value.clean_install is defined and
+#        item.value.clean_install == true and
+#        item.value.git_repo is defined"
+#  with_dict: "{{ vars['app_variable'] }} | app_default"
+
+- name: clean leftovers
+  file:
+      path: "{{ shelper_installation.shelper_tmp_path }}"
+      state: absent
+
+- name: Clone repository 
+  git: 
+    repo={{ shelper_installation.shelper_git_url }} 
+    dest={{ shelper_installation.shelper_tmp_path }}
+    version={{ shelper_installation.shelper_git_version | default('master') }}
+    clone=yes
+    update=yes
+    force=yes
+  when: shelper_installation.shelper_git_url is defined
+
+- name: Install splunk helper
+  shell: "make -C {{ shelper_installation.shelper_tmp_path }}/splunkhelper"
+  when: shelper_installation.shelper_git_url is defined

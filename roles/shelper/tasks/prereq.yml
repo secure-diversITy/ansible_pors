@@ -1,0 +1,8 @@
+---
+- name: Check/Install for git 
+  package: 
+        name: git
+        state: present
+        use: auto 
+  when: shelper_installation.shelper_git_url is defined
+

@@ -1,0 +1,39 @@
+---
+#####################################################################################################################
+# VMware tools Variables
+#####################################################################################################################
+
+vmtools_packages:
+   linux_64_rpm:
+      tools:
+        version: "10.0.5"
+        release: "4.el7_3"
+        name: "open-vm-tools"
+        arch: "x86_64"
+        #pkg: "open-vm-tools-10.0.5-4.el7_3.x86_64.rpm"
+        repo: "https://mirror.netcologne.de/centos/7/updates/x86_64/Packages"
+        #url: "https://mirror.netcologne.de/centos/7/updates/x86_64/Packages/open-vm-tools-10.0.5-4.el7_3.x86_64.rpm"
+      fuse:
+        name: "fuse"
+        version: "2.9.2"
+        release: "7.el7"
+        arch: "x86_64"
+        #pkg: "fuse-2.9.2-7.el7.x86_64.rpm"
+        repo: "https://mirror.netcologne.de/centos/7/os/x86_64/Packages"
+      libfuse:
+        name: "fuse-libs"
+        version: "2.9.2"
+        release: "7.el7"
+        arch: "x86_64"
+        #pkg: "fuse-libs-2.9.2-7.el7.x86_64.rpm"
+        repo: "https://mirror.netcologne.de/centos/7/os/x86_64/Packages"
+
+files:
+  linux_64_rpm:
+    tools:
+      name: "{{ vmtools_packages.linux_64_rpm.tools.name }}-{{ vmtools_packages.linux_64_rpm.tools.version }}-{{ vmtools_packages.linux_64_rpm.tools.release }}.{{ vmtools_packages.linux_64_rpm.tools.arch }}.rpm"
+    fuse:
+      name: "{{ vmtools_packages.linux_64_rpm.fuse.name }}-{{ vmtools_packages.linux_64_rpm.fuse.version }}-{{ vmtools_packages.linux_64_rpm.fuse.release }}.{{ vmtools_packages.linux_64_rpm.fuse.arch }}.rpm"
+    libfuse:
+      name: "{{ vmtools_packages.linux_64_rpm.libfuse.name }}-{{ vmtools_packages.linux_64_rpm.libfuse.version }}-{{ vmtools_packages.linux_64_rpm.libfuse.release }}.{{ vmtools_packages.linux_64_rpm.libfuse.arch }}.rpm"
+

@@ -1,0 +1,60 @@
+- name: Download latest splunk tuned profile (git)
+  git:
+    repo={{ splunk_optimize.tuned_git_url }}
+    dest="{{ splunk_optimize.splunk_home_path }}/tuned-profile"
+    version=master
+    clone=yes
+    update=no
+    force=no
+    accept_hostkey=yes
+  become: yes
+  become_user: splunk
+  when: "splunk_optimize.install_tuned_git == true and
+         splunk_optimize.tuned_git_url is defined"
+
+- name: Download latest splunk tuned profile (web-url)
+  get_url:
+      url: "{{ splunk_optimize.tuned_tgz_url }}"
+      dest: "{{ splunk_optimize.remote_package_temp_path }}/splunk_tuned.tgz"
+  when: "splunk_optimize.install_tuned_tgz == true and
+         splunk_optimize.tuned_tgz_url is defined"
+
+- name: Download latest splunk tuned profile (ansible-repo)
+  copy: src="{{ splunk_optimize.tuned_ansible_repo }}"
+        dest="/{{ splunk_optimize.remote_package_temp_path }}/splunk_tuned.tgz"
+  when: "splunk_optimize.install_tuned_ansible == true and
+         splunk_optimize.tuned_ansible_repo is defined"
+
+- name: Install splunk tuned profile from git
+  shell: "cp -a {{ splunk_optimize.splunk_home_path }}/tuned-profile/etc_tuned_splunk /etc/tuned/splunk"
+  when: "splunk_optimize.install_tuned_git == true or 
+         splunk_optimize.install_tuned_tgz == true"
+
+- name: Extract splunk tuned profile from tgz (web-url/ansible-repo)
+  unarchive: src="{{ splunk_optimize.remote_package_temp_path }}/splunk_tuned.tgz"
+             dest="{{ splunk_optimize.remote_package_temp_path }}/"
+             copy=no
+  when: "(splunk_optimize.install_tuned_tgz == true and
+         splunk_optimize.tuned_tgz_url is defined) or
+        (splunk_optimize.install_tuned_ansible == true and
+         splunk_optimize.tuned_ansible_repo is defined)"
+
+- name: Install splunk tuned profile from tgz (web-url/ansible-repo)
+  shell: "cp -a {{ splunk_optimize.remote_package_temp_path }}/tuned*/etc_tuned_splunk /etc/tuned/splunk"
+  when: "(splunk_optimize.install_tuned_tgz == true and
+         splunk_optimize.tuned_tgz_url is defined) or
+        (splunk_optimize.install_tuned_ansible == true and
+         splunk_optimize.tuned_ansible_repo is defined)"
+
+- name: Activate splunk tuned profile
+  shell: "tuned-adm profile splunk"
+  when: "(splunk_optimize.install_tuned_tgz == true and
+         splunk_optimize.tuned_tgz_url is defined) or
+        (splunk_optimize.install_tuned_ansible == true and
+         splunk_optimize.tuned_ansible_repo is defined) or
+        (splunk_optimize.install_tuned_git == true and
+         splunk_optimize.tuned_git_url is defined)"
+
+- name: Disable SELinux
+  selinux: 
+      state: disabled
