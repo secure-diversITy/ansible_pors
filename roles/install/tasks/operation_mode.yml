@@ -1,0 +1,10 @@
+---
+
+- name: Check if we are running in a cluster (SH or IX)
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk btool server list clustering | grep mode |tr -d ' ' |cut -d '=' -f 2"
+  register: splpeernode
+#  become: yes
+#  become_user: root 
+  #become_user: "{{ splunk_install_user }}"
+
+# TODO: CHECK SH CLUSTER?!

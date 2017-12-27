@@ -4,6 +4,8 @@
 - include: prepare_splunk.yml
   when: splunk_upgrade == False
 
+- include: operation_mode.yml
+
 - include: splunk_stop.yml
   when: splunk_upgrade == True
 
@@ -44,5 +46,7 @@
     - splunk_optimize.selinux is defined
 
 - include: splunk_start.yml
-  when: splunk_upgrade == True
+  when:
+    - splpeernode.stdout != "slave" 
+    #- splunk_upgrade == True
 

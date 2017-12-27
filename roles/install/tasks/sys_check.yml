@@ -1,11 +1,10 @@
 ---
 
+# this can be better fetched now directly with ansible FACTS!
 - name: Check if we're running in docker
   shell: "grep /docker/ /proc/1/cgroup >> /dev/null"
   register: run_in_docker
   ignore_errors: yes
-
-
 
 
 #################################################################

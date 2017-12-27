@@ -4,8 +4,10 @@
 #####################################################################################################################
 
 # change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
-globversion: "6.5.6"
-globhash: "44f873cfa227"
+#globversion: "6.5.6"
+#globhash: "44f873cfa227"
+globversion: "6.6.5"
+globhash: "b119a2a8b0ad"
 
 # construct the full file name
 tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
@@ -25,7 +27,7 @@ splunk_installation:
 
   admin_password: xxxxxxxxxxxxxxxxxx
 
-  splunk_xxxxxxxxxxxxxxxxxx
+  splunk_secret: xxxxxxxxxxxxxxxxxx
 
 splunk_optimize:
   initd: True

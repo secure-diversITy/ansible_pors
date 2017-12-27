@@ -17,3 +17,37 @@
   register: splunk_is_started
   when: splunkinitfile is defined and splunkinitfile.stat.exists and splunkbin is defined and splunkbin.stat.exists
 
+- name: Re-check Splunk Status (after init)
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep splunkd"
+  register: splunk_restate
+  failed_when: splunk_restate.rc != 0
+  ignore_errors: yes
+  when:
+        - splunkinitfile is defined
+        - splunkinitfile.stat.exists == True
+
+- name: Start Splunk by binary (fallback)
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk start"
+  async: 1800
+  poll: 0
+  register: splunk_started_by_bin
+  when:
+        - splunk_restate.rc != 0
+        - splunkbin is defined and splunkbin.stat.exists == True
+
+#- debug: msg="{{ splunk_restate }} . {{ splunk_stopped_by_bin}} ."
+
+- name: ... is Splunk by bin started?
+  async_status: jid={{ splunk_started_by_bin.ansible_job_id }}
+  register: splunk_bin_started_result
+  until: splunk_bin_started_result.finished
+  retries: 360
+  when:
+        - splunk_restate.rc != 0
+        - splunk_started_by_bin.changed is defined and splunk_started_by_bin.changed == True
+
+# ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
+- name: Re-Check Splunk Status
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep splunkd"
+  register: splunk_laststate
+  failed_when: splunk_laststate.rc != 0

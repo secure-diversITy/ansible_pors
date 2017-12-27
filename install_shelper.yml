@@ -4,6 +4,7 @@
   become: yes
   become_user: root
   #no_log: True 
+  gather_facts: False
 
   roles:
     - shelper

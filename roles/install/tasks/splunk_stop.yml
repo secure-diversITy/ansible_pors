@@ -20,26 +20,31 @@
 - name: Take Splunk offline (indexer cluster peer)
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth {{ splunk_user }}:{{ splunk_password }}"
   #shell: "sleep 6s && {{ splunk_installation.splunk_home_path }}/bin/splunk stop"
-  become: yes
-  become_user: splunk
+#  become: yes
+#  become_user: "{{ splunk_install_user }}"
   async: 1800
   poll: 0
   register: splunk_ix_is_stopped
-  when:
-        - "'peernodes' in group_names"
-        - splunk_state.rc == 0
+  when: 
+     - splunk_state.rc == 0
+     - splpeernode.stdout == "slave"
+        #("'peernode' in group_names" or splpeernode.stdout == "slave" ) 
+        #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
 
 # to catch the job id we need to become the same user than the offline cmd uses
 - name: ... is Splunk offline (indexer cluster peer)?
   async_status: jid={{ splunk_ix_is_stopped.ansible_job_id }}
   register: splunk_ix_is_stopped_result
   until: splunk_ix_is_stopped_result.finished
-  become: yes
-  become_user: splunk
+#  become: yes
+#  become_user: "{{ splunk_install_user }}"
   retries: 360
-  when: 
-        - "'peernodes' in group_names"
-        - splunk_ix_is_stopped is defined
+  when:
+     - splunk_state.rc == 0
+     - splunk_ix_is_stopped is defined
+     - splpeernode.stdout == "slave"
+        #("'peernode' in group_names" or splpeernode.stdout == "slave" )
+        #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
 
 # handle non-indexers either by init if found or by using splunk binary if not (will fail after 30 min >retries< wait time)
 - name: Stop Splunk by init
@@ -67,7 +72,7 @@
         - splunkinitfile.stat.exists == True
 
 - name: Re-check Splunk Status (after init)
-  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep splunkd"
   register: splunk_restate
   failed_when: splunk_restate.rc == 0
   ignore_errors: yes
@@ -81,12 +86,10 @@
   async: 1800
   poll: 0
   register: splunk_stopped_by_bin
-  when:
-        - splunk_state.rc == 0 
-        - splunk_restate.rc is not defined
-        - "'peernodes' not in group_names"
-        - splunk_stopped_by_init.skipped
-        - splunkbin is defined and splunkbin.stat.exists == True
+  #when:
+        #- splunk_state.rc == 0
+        #- (splunk_restate.rc == 0 or splunk_stopped_by_init.skipped is defined)
+        #- splunkbin is defined and splunkbin.stat.exists == True
 
 #- debug: msg="{{ splunk_restate }} . {{ splunk_stopped_by_bin}} ."
 
@@ -95,16 +98,14 @@
   register: splunk_bin_stopped_result
   until: splunk_bin_stopped_result.finished
   retries: 360
-  when: 
-        - splunk_state.rc == 0
-        - splunk_stopped_by_init.skipped is defined and splunk_stopped_by_init.skipped == True
-        - splunk_stopped_by_bin.changed is defined and splunk_stopped_by_bin.changed == True
-        - "'peernodes' not in group_names"
-        - splunk_stopped_by_init.skipped
+  #when: 
+  #      - splunk_state.rc == 0
+  #      - splunk_stopped_by_init.skipped is defined and splunk_stopped_by_init.skipped == True
+  #      - splunk_stopped_by_bin.changed is defined and splunk_stopped_by_bin.changed == True
 
 # ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
 - name: Re-Check Splunk Status
-  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep splunkd"
   register: splunk_laststate
   failed_when: splunk_laststate.rc == 0
 

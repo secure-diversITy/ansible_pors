@@ -5,6 +5,7 @@
   become_user: root
   #strategy: free
   #no_log: True 
+  gather_facts: True
 
   vars:
         splunk_upgrade: True
