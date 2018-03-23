@@ -1,0 +1,6 @@
+---
+- include: ../../../common/handlers/splunkd.yml
+- include: copy_app.yml
+- include: git_checkout.yml
+- include: configure_local.yml
+- include: remove_app.yml
