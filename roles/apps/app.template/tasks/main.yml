@@ -1,6 +1,11 @@
 ---
 - include: ../../../common/handlers/splunkd.yml
-- include: copy_app.yml
-- include: git_checkout.yml
+
+- include_tasks: copy_app.yml
+  when: vars[app_variable].apps.bundle is defined
+
+- include_tasks: git_checkout.yml
+  when: vars[app_variable].apps.git_repo is defined
+
 - include: configure_local.yml
 - include: remove_app.yml

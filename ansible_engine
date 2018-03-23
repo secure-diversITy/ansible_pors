@@ -1409,7 +1409,7 @@ F_UPGRADESPLC(){ F_LOG $FUNCNAME started
 	# 5) IX cluster
 	# 6) Maintenance mode off
 	# 7) DS, DMC, HF, AI, LM, dev SH's
-	# 8) specials: old AI (sgmsplunk05), CDC SH
+	# 8) specials: old AI (xxxxxxxxxxxxxxxxxx05), CDC SH
 	# 
 
 	F_LOG $FUNCNAME ended

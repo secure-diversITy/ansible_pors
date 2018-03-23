@@ -5,7 +5,7 @@
   when: "item.value.clean_install is defined and
         item.value.clean_install == true and
         item.value.git_repo is defined"
-  with_dict: "{{ vars['app_variable'] }}"
+  with_dict: "{{ vars[app_variable] }}"
 
 - name: Clone repository 
   git: 
@@ -18,7 +18,7 @@
     accept_hostkey=yes
   when: "item.value.install == true and
         item.value.git_repo is defined"
-  with_dict: "{{ vars['app_variable'] }}"
+  with_dict: "{{ vars[app_variable] }}"
   notify: 
     - splunk reload deploy-server
     - splunk apply cluster-bundle
