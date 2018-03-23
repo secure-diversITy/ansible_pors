@@ -635,9 +635,10 @@ F_ENAPP(){
 			# enable app for each target group
 			for tapp in $SELAPPS;do
 				F_WAITBOX "... linking $tapp ..."
-				app_fulldir=$(find $REPODIR -type f -name $tapp |grep -v "/splunk/"|egrep "(tar|tgz|spl)")
+				app_fulldir=$(find $REPODIR -type f -name $tapp |egrep "(tar|tgz|spl)")
 				app_dir=${app_fulldir%/*}
 				app_type=$(echo "$app_dir" | egrep -o '(/other$|/splunk$)')
+				F_LOG $FUNCNAME "app_fulldir: $app_fulldir, app_dir: $app_dir, app_type: $app_type"
 				if [ "$app_type" == "/other" -o "$app_type" == "/splunk" ];then
 				    app_name="$(tar tf "$app_fulldir" 2> /dev/null |head -n1 |tr -d "/")"
 				else
