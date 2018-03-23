@@ -4,7 +4,7 @@
 # Description:
 # Forget about all the stuff needed to know like: use playbook X to do A and Z to do B
 #
-# Copyright (2017): Thomas Fischer <mail -at- sedi DOT one>
+# Copyright (2017-2018): Thomas Fischer <mail -AT- sedi -DOT- one>
 # Licensed under the LGPL v3:
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -27,13 +27,13 @@
 # # call ansible engine
 # F_CALLAE(){
 #        ARGS="$@"
-#        (cd /opt/ansible-playbooks/splunk;./_ansible-engine.sh $ARGS)
+#        (cd /opt/ansible-playbooks/splunk;./ansible_engine $ARGS)
 # }
 # alias ansible-engine="F_CALLAE $@"
 #
 #
 #################
-VERSION=20180321
+VERSION=20180220
 ###############################################################################################################
 
 # do not buffer stdout!!
@@ -130,7 +130,7 @@ else
         echo -e "\nReally?? You want to use ansible deployment without ansible??! Coooool.. Install ansible and try again..\n"
 	F_EXIT
     fi
-    for i in $(echo $SHOWAPPS $PBNEWAPP $PBDEPLAPP $PBDEPLSYSC);do
+    for i in $(echo $SHOWAPPS $PBNEWAPP $PBENAPP $PBDEPLSYSC);do
 	if [ ! -r $i ];then 
 	    echo -e "\n\tERROR. Please ensure you've done chmod +r $i first and that $i exists!\n"
 	    F_EXIT
@@ -240,8 +240,8 @@ F_SELECTOR(){
 	echo "$FUNCNAME started" >> $LOG
 	SELECTION=$(F_DIALOG --menu "\nChoose an option:" \
 			15 76 14 \
-			ALL "" \
 			Choose "" \
+			ALL "" \
 			3>&1 1>&2 2>&3)
 	echo "$SELECTION"
 	echo "$FUNCNAME finished" >> $LOG
@@ -318,7 +318,6 @@ F_TARGETS(){
 	# 8. get only these lines containing a comma and something behind (means section has a value)
 	#    this is needed as a section can be empty which shouldnt be shown if!
 	OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done))
-	#OLD WAY: OPTIONS=($(for i in $(egrep "^\[" "$HOSTFILE" |tr -d "[" |tr -d "]"|egrep -v "(:vars|:children)");do echo $i $i off;done))
 
 	if [ -z "$1" ];then 
 		echo -e "\n\nERROR! Missing F_TARGETS arg!! Cannot continue...\n" && F_EXIT
@@ -679,10 +678,11 @@ F_ENAPP(){
 	                                app_full=$(echo "$SELAPPS" |tr " " "\n" |egrep "/${gapp}$")
 	       	                        app_dir=${app_full%/*}
 	       	                        app_namespace=${app_dir##*/}
+					F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
 	       	                        for tgroup in $HOSTSELECTION;do
                                         F_GVARDIR $tgroup
 						# TODO: may have an option for choosing branch?!
-	                                        echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
+	                                        echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
 	                                        $ABIN -i $HOSTFILE $PBENAPP -e "app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch='master'" >> $LOG
 						F_ERRLOG "$?" "linking $gapp to $tgroup\n\n" "$LOG"
 	                                done
@@ -838,7 +838,10 @@ F_PULLSYSC(){
 			HOSTSELEXPANDED="$AUTO"
 		fi
 
-		ANS=$(F_SSHORNOT)
+		# set temporarly to always pull.
+		# TODO: decide to make this configurable as a general user defined setting
+		#ANS=$(F_SSHORNOT)
+		ANS=Pull
 
 		case "$ANS" in
 			ABORTED)
@@ -878,7 +881,11 @@ F_PULLSYSC(){
 				    else
 					REMPATH="/opt/splunk/etc/system/local"
 				    fi
-				    REMDIR=$(F_DBROWSE "$host" "$REMPATH")
+				    # disabled user conf temporarly
+				    # TODO: put this into a general setting store instead?
+				    #REMDIR=$(F_DBROWSE "$host" "$REMPATH")
+				    REMDIR=$REMPATH
+
 				    echo "$FUNCNAME remdir: $REMDIR" >> $LOG
 				    if [ "$REMDIR" == "999" ];then
 					echo "$FUNCNAME: aborted!" >> $LOG
@@ -1473,6 +1480,14 @@ F_UPGRADESPL(){
 	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
 	F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 
+	[ $? -ne 0 ] && F_ABORTMAINMENU
+
+	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
+	echo '[tmpupgrade]' > $UTMPGRP
+	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
+	F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
+
  	F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBUPGRADE '--limit tmpupgrade -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
 
 	# upgrade
@@ -1488,7 +1503,6 @@ F_DEPLOYAPP(){
 	# Ask for target group(s) to deploy
 	# Deploy
         echo "$FUNCNAME started" >> $LOG
-
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
         F_HOSTFILE
         while [ -z "$HOSTSELECT" ];do
@@ -1510,15 +1524,21 @@ F_DEPLOYAPP(){
 		done
 		F_LOG "$FUNCNAME" "Re-creating deployment playbook to reflect any manual changes.. "
 
-		$ABIN -i $HOSTFILE ae_recreate_deploy.yml
+		$ABIN -i $HOSTFILE ae_recreate_deploy.yml -e "target_env=$TARGETENV"
+		
+		# do not buffer stdout!!
+		export PYTHONUNBUFFERED=1
 
-		F_LOG $FUNCNAME "host selection: $HOSTSELECTION"
+		F_LOG $FUNCNAME "python path before: $PYTHONPATH"
+        	export PYTHONPATH=${A2PATH}/lib
+		export PYTHONUNBUFFERED=1
+        	F_LOG $FUNCNAME "python path after: $PYTHONPATH"
 
 		for tgroup in $HOSTSELECTION;do
-			F_LOG $FUNCNAME "tgroup: $tgroup"
-			# do not buffer stdout!!
-			export PYTHONUNBUFFERED=1
-			$ABIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			# CHECK first!
+			F_LOG $FUNCNAME "will exec: $A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
+			$A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			$A2BIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
 			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$LOG"
 		done
 	fi
@@ -1533,19 +1553,22 @@ F_MENUMAIN(){
 			'>>>>>>>>>>>' 'Apps <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<' \
 			"" "" \
 			Link-app "Link an app (local file or git project) to a group" \
-			Show-apps "Show all already linked apps" \
 			Deploy-apps "Deploy all active apps for a target group" \
+			Show-apps "Show all already linked apps" \
 			"" "" \
 			'>>>>>>>>>>>' 'system/local/*.conf <<<<<<<<<<<<<<<<<<<<<<<<<<' \
 			"" "" \
 			Edit-SYSC "Fetch/Edit/Show/Manage remote conf files" \
 			Deploy-SYSC "Deploy enabled system configs"\
 			"" "" \
+			'>>>>>>>>>>>' 'splunk> Daily Tasks <<<<<<<<<<<<<<<<<<<<<<<<<<' \
+			"" "" \
+			shelper	"Upgrade/Install/Use the shelper" \
+			Stop/Start "stop, start, restart splunk>" \
+			"" "" \
 			'>>>>>>>>>>>' 'splunk> Maintenance <<<<<<<<<<<<<<<<<<<<<<<<<<' \
 			"" "" \
 			Upgrade	"Upgrade splunk> instance(s)" \
-			Stop/Start "stop, start, restart splunk>" \
-			shelper	"Upgrade/Install/Use the shelper" \
 			"" "" \
 			"" "" \
 			3>&1 1>&2 2>&3)
@@ -1720,4 +1743,3 @@ else
 fi
 
 F_EXIT
-
