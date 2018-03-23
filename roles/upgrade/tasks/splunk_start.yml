@@ -1,0 +1,7 @@
+---
+
+- name: Start Splunk again
+  service: name=splunk
+           state=started
+           args="--accept-license --answer-yes"
+

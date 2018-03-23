@@ -2,11 +2,11 @@
 import os
 import re
 
-def linked_app_list (app):
+def linked_app_list_development(app):
+  base_dir='inventories/' + 'development' + '/group_vars/'
   eapp={}
   mopp={}
   overalldict={}
-  base_dir='inventories/' + 'production' + '/group_vars/'
   rolepath='apps'
   tgroups=os.listdir(base_dir)
 
@@ -31,7 +31,7 @@ def linked_app_list (app):
 
 class FilterModule(object):
  def filters(self):
-   return {'link_app_list': linked_app_list}
+   return {'link_app_list_development': linked_app_list_development}
 
 mapp=os.listdir("roles/apps")
-linked_app_list(mapp)
+linked_app_list_development(mapp)

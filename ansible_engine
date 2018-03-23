@@ -33,7 +33,7 @@
 #
 #
 #################
-VERSION=20171227
+VERSION=20180321
 ###############################################################################################################
 
 # do not buffer stdout!!
@@ -300,7 +300,26 @@ F_HOSTFILE(){
 # identify the available targets
 F_TARGETS(){
 	F_LOG "$FUNCNAME" "started with these arguments: $@"
-	OPTIONS=($(for i in $(egrep "^\[" "$HOSTFILE" |tr -d "[" |tr -d "]"|egrep -v "(:vars|:children)");do echo $i $i off;done))
+	
+	# 1. filter out all vars and child sections
+	# 2. get all sections and 1 next line
+	# 3. replace [ with newline
+	# 4. replace ] with comma and empty lines with a /
+	# 5. remove all newlines
+	# 6. replace // with /
+	# 7. replace / with newline
+	# --> steps 4-7 are required to ensure even when 2 sections are written without a space
+	#     between. Example:
+	#	[sec1]
+	#  	[sec2]
+	#  	host
+	#     As we catch always section + 1 next line on step 2 to identify empty sections the above 
+	#     steps ensure we will *NOT* have a result of: "sec1" has host "sec2"
+	# 8. get only these lines containing a comma and something behind (means section has a value)
+	#    this is needed as a section can be empty which shouldnt be shown if!
+	OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done))
+	#OLD WAY: OPTIONS=($(for i in $(egrep "^\[" "$HOSTFILE" |tr -d "[" |tr -d "]"|egrep -v "(:vars|:children)");do echo $i $i off;done))
+
 	if [ -z "$1" ];then 
 		echo -e "\n\nERROR! Missing F_TARGETS arg!! Cannot continue...\n" && F_EXIT
 	else
@@ -562,6 +581,13 @@ F_ERRLOG(){
 
 }
 
+# display a wait box
+F_WAITBOX(){
+	# requires 1 arg (message to show)
+	MSG="$1"
+	F_DIALOG --begin 3 3 --infobox "\n$MSG" 5 80
+}
+
 # enable an app for a host/target
 F_ENAPP(){
 	echo "$FUNCNAME started" >> $LOG
@@ -609,16 +635,24 @@ F_ENAPP(){
 	               	#HOSTSELEXPANDED="$(F_EXPANDHOSTS "$HOSTSELECTION")"
 			# enable app for each target group
 			for tapp in $SELAPPS;do
+				F_WAITBOX "... linking $tapp ..."
 				app_fulldir=$(find $REPODIR -type f -name $tapp |grep -v "/splunk/"|egrep "(tar|tgz|spl)")
 				app_dir=${app_fulldir%/*}
-				app_name=${app_dir##*/}
+				app_type=$(echo "$app_dir" | egrep -o '(/other$|/splunk$)')
+				if [ "$app_type" == "/other" -o "$app_type" == "/splunk" ];then
+				    app_name="$(tar tf "$app_fulldir" 2> /dev/null |head -n1 |tr -d "/")"
+				else
+				    app_name=${app_dir##*/}
+				    app_type="/${app_name}"
+				fi
 				for tgroup in $HOSTSELECTION;do
 					F_GVARDIR $tgroup
 					echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''\":\n" >>$LOG
-					$ABIN -i $HOSTFILE $PBENAPP -e "app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG
-					F_ERRLOG "$?" "linking $gapp to $tgroup\n\n" "$LOG"
+					$ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG
+					[ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				done
 			done
+			F_ERRLOG 0 "Linking apps finished" "$LOG"
 			;;
 			gitlab)
 			unset SELAPPS
@@ -1454,6 +1488,7 @@ F_DEPLOYAPP(){
 	# Ask for target group(s) to deploy
 	# Deploy
         echo "$FUNCNAME started" >> $LOG
+
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
         F_HOSTFILE
         while [ -z "$HOSTSELECT" ];do
@@ -1477,10 +1512,13 @@ F_DEPLOYAPP(){
 
 		$ABIN -i $HOSTFILE ae_recreate_deploy.yml
 
+		F_LOG $FUNCNAME "host selection: $HOSTSELECTION"
+
 		for tgroup in $HOSTSELECTION;do
+			F_LOG $FUNCNAME "tgroup: $tgroup"
 			# do not buffer stdout!!
 			export PYTHONUNBUFFERED=1
-			$ABIN -i $HOSTFILE $PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			$ABIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
 			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$LOG"
 		done
 	fi
@@ -1682,3 +1720,4 @@ else
 fi
 
 F_EXIT
+

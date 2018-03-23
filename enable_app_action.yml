@@ -37,7 +37,7 @@
 
   tasks:
   - name: Building full file path if defined
-    stat: path={{splunk_repository.repository_root}}/apps/{{ app_name }}/{{ filename }}
+    stat: path={{splunk_repository.repository_root}}/apps{{ app_type }}/{{ filename }}
     register: fqfilename
     when: filename is defined
 
@@ -79,8 +79,8 @@
     command: "ls roles/apps"
     register: app_roles
 
-  - name: Create deploy_apps.yml
-    template: src=roles/common/templates/deploy_apps.yml.j2
-              dest=./deploy_apps.yml
+  - name: (Re)create deploy_apps.yml
+    template: src=roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+              dest=inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
 

@@ -16,6 +16,7 @@ splunk_installation:
   splunk_home_path: /opt/splunk
   version: "{{ globversion }}"
   ssh_public_key: xxxxxxxxxxxxxxxxxx
+   #"xxxxxxxxxxxxxxxxxx
 
   package_format: tgz
 
@@ -25,9 +26,6 @@ splunk_installation:
 
   remote_app_temp_path: /tmp
 
-  admin_password: xxxxxxxxxxxxxxxxxx
-
-  splunk_secret: xxxxxxxxxxxxxxxxxx
 
 splunk_optimize:
   initd: True

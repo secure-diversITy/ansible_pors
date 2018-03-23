@@ -10,6 +10,7 @@
     install: true
     clean_install: false
 {% if filename is defined and filename != "" %}
+    bundle_dir: {{ splunk_repository.repository_root }}/apps{{ app_type }}
     bundle: {{ filename }}
 {% else %}
     git_repo: {{ splunk_repository.git_url }}/{{ app_name }}.git

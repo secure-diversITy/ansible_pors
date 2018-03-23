@@ -1,0 +1,24 @@
+---
+
+- name: splunk actions
+  hosts: "*"
+  remote_user: ansible
+  become: yes
+  become_user: root
+  #no_log: True 
+  gather_facts: False
+
+  handlers:
+    - include: ../roles/common/handlers/main.yml
+
+  tasks:
+    - name: "splunk {{ splunk_action }} (this can take some time before you see results in the HANDLER task ...)"
+      shell: echo
+      notify: "splunk {{ splunk_action }}"
+      register: actionresult
+
+    - meta: flush_handlers
+
+    - name: Print result
+      debug: 
+        msg: "{{ action_result.stdout_lines }}"

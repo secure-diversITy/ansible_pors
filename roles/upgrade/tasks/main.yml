@@ -1,0 +1,4 @@
+---
+- include: splunk_stop.yml
+- include: upgrade_splunk.yml
+- include: splunk_start.yml

@@ -2,7 +2,7 @@
 ##################################################################################
 #
 # Desc:		Show the deployed apps for each type
-# Copyright:	2017, Thomas Fischer <mail@se-di.de>
+# Copyright:	2017-2018, Thomas Fischer <mail@se-di.de>
 #
 ##################################################################################
 
