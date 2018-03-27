@@ -11,3 +11,7 @@ Ansible engine is a wrapper and GUI (ncurses/dialog based) to execute several ta
 * OpenSSH (ssh and scp client)
 * several standard GNU linux stuff like: grep, sed, tar, cat
 * git (client)
+
+## Options / Features
+
+![Main Menu](https://github.com/secure-diversITy/ansible_engine/blob/stable/docs/main.png)
