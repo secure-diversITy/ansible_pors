@@ -1,0 +1,38 @@
+---
+#- name: debug
+#  debug: 
+#        msg:  "{{ vars[app_variable].apps }}"
+
+- name: Copy app to remote host
+  copy: src="{{ item.value.bundle_dir }}/{{ item.value.bundle }}"
+        dest="/{{ splunk_installation.remote_app_temp_path }}/{{ item.value.bundle }}"
+  with_dict: "{{ vars[app_variable] }}"
+
+- name: Clean existing app directory
+  file: path="{{ splunk_installation.splunk_home_path }}/etc/{{ item.key | replace('shcluster_apps', 'shcluster/apps') | replace('_', '-') }}/{{ app_name }}"
+        state=absent
+  when: 
+        - item.value.clean_install is defined
+        - item.value.clean_install == true
+        - item.value.bundle is defined
+  with_dict: "{{ vars[app_variable] }}"
+
+- name: Unarchive app
+  unarchive: src="{{ splunk_installation.remote_app_temp_path }}/{{ item.value.bundle }}"
+             dest="{{ splunk_installation.splunk_home_path }}/etc/{{ item.key | replace('shcluster_apps', 'shcluster/apps') | replace('_', '-') }}"
+             copy=no
+  when:
+        - item.value.install == true
+        - item.value.bundle is defined
+  with_dict: "{{ vars[app_variable] }}"
+#  notify: 
+#    - splunk reload deploy-server 
+#    - splunk apply cluster-bundle
+#    - splunk apply shcluster-bundle
+
+- name: Remove temporary file 
+  file: path="{{ splunk_installation.remote_app_temp_path }}/{{ item.value.bundle }}"
+        state=absent
+  when: "item.value.install == true and
+         item.value.bundle is defined"
+  with_dict: "{{ vars[app_variable] }}"
