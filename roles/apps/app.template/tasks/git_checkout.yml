@@ -19,7 +19,3 @@
   when: "item.value.install == true and
         item.value.git_repo is defined"
   with_dict: "{{ vars[app_variable] }}"
-  notify: 
-    - splunk reload deploy-server
-    - splunk apply cluster-bundle
-    - splunk apply shcluster-bundle
