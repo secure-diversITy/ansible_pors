@@ -5,8 +5,8 @@
     - name: "app_name"
       prompt: "\n1) App source or git repo name (mandatory)\n 
               \n   App source => basically this is the folder name in your local repo
-              \n   --> Repo defined in 'inventories/{{ target_env }}/group_vars/all/splunk_repository'
-              \n   You have to place your app as 'tgz' in the subdirectory {{splunk_repository.repository_root}}/apps/<App source>/
+              \n   --> Repo defined in 'inventories/<target_env>/group_vars/all/splunk_repository'
+              \n   You have to place your app as 'tgz' in the subdirectory <splunk_repository.repository_root>/apps/<App source>/
               \n   Example: 'splunk' or 'other' means '/var/lib/splunk_repository/apps' 
               \n\n   git repo name => the real git project name (without .git)
               \n   Example: TA-my-app
@@ -23,7 +23,7 @@
       private: no
 
     - name: "git_url"
-      prompt: "\n4) Change git base URL (optional)\n   leave empty if you want to use default or if you want to use local file\n   --> default defined in: inventories/{{ target_env }}/group_vars/all/splunk_repository\n   Your answer"
+      prompt: "\n4) Change git base URL (optional)\n   leave empty if you want to use default or if you want to use local file\n   --> default defined in: inventories/< target_env >/group_vars/all/splunk_repository\n   Your answer"
       private: no
 
     - name: "git_branch"
@@ -37,7 +37,7 @@
 
   tasks:
   - name: Building full file path if defined
-    stat: path={{splunk_repository.repository_root}}/apps{{ app_type }}/{{ filename }}
+    stat: path={{splunk_repository.repository_root}}/apps{{ app_type | default({}) }}/{{ filename }}
     register: fqfilename
     when: filename is defined
 
