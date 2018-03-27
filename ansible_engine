@@ -33,7 +33,7 @@
 #
 #
 #################
-VERSION=20180321_20180220
+VERSION=20180323
 ###############################################################################################################
 
 # do not buffer stdout!!
@@ -648,7 +648,7 @@ F_ENAPP(){
 				for tgroup in $HOSTSELECTION;do
 					F_GVARDIR $tgroup
 					echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''\":\n" >>$LOG
-					$ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG
+					$ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG 2>&1
 					[ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				done
 			done
@@ -684,7 +684,7 @@ F_ENAPP(){
                                         F_GVARDIR $tgroup
 						# TODO: may have an option for choosing branch?!
 	                                        echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
-	                                        $ABIN -i $HOSTFILE $PBENAPP -e "app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch='master'" >> $LOG
+						F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master'}"
 						F_ERRLOG "$?" "linking $gapp to $tgroup\n\n" "$LOG"
 	                                done
 				fi
@@ -1530,16 +1530,12 @@ F_DEPLOYAPP(){
 		# do not buffer stdout!!
 		export PYTHONUNBUFFERED=1
 
-		F_LOG $FUNCNAME "python path before: $PYTHONPATH"
-        	export PYTHONPATH=${A2PATH}/lib
-		export PYTHONUNBUFFERED=1
-        	F_LOG $FUNCNAME "python path after: $PYTHONPATH"
-
 		for tgroup in $HOSTSELECTION;do
 			# CHECK first!
 			F_LOG $FUNCNAME "will exec: $A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
-			$A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
-			$A2BIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			#$A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			#$A2BIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup 2>&1 | tee -a $LOG
+			F_A2BIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Deploying <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
 			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$LOG"
 		done
 	fi
@@ -1548,26 +1544,26 @@ F_DEPLOYAPP(){
 # the main menu window in regular mode
 F_MENUMAIN(){
  	    while [ "$MENUDONE" == "0" ]; do
-		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" \
+		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
 			--menu "\nStart the ansible engine\n\nSelect an option:" \
 			35 76 35 \
-			'>>>>>>>>>>>' 'Apps <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<' \
+			'' '\Zb\ZuAPPS\ZB\ZU'\
 			"" "" \
 			Link-app "Link an app (local file or git project) to a group" \
 			Deploy-apps "Deploy all active apps for a target group" \
 			Show-apps "Show all already linked apps" \
 			"" "" \
-			'>>>>>>>>>>>' 'system/local/*.conf <<<<<<<<<<<<<<<<<<<<<<<<<<' \
+			'' '\Zb\Zusystem/local/*.conf\ZB\ZU'\
 			"" "" \
 			Edit-SYSC "Fetch/Edit/Show/Manage remote conf files" \
 			Deploy-SYSC "Deploy enabled system configs"\
 			"" "" \
-			'>>>>>>>>>>>' 'splunk> Daily Tasks <<<<<<<<<<<<<<<<<<<<<<<<<<' \
+			'' '\Zb\Zusplunk> Tasks\ZB\ZU' \
 			"" "" \
 			shelper	"Upgrade/Install/Use the shelper" \
 			Stop/Start "stop, start, restart splunk>" \
 			"" "" \
-			'>>>>>>>>>>>' 'splunk> Maintenance <<<<<<<<<<<<<<<<<<<<<<<<<<' \
+			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
 			"" "" \
 			Upgrade	"Upgrade splunk> instance(s)" \
 			"" "" \
