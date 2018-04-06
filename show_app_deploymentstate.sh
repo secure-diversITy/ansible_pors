@@ -1,12 +1,14 @@
 #!/bin/bash
 ##################################################################################
-#
-# Desc:		Show the deployed apps for each type
-# Copyright:	2017-2018, Thomas Fischer <mail@se-di.de>
-#
-##################################################################################
+## @file			show_app_deploymentstate.sh
+## @brief		        Show the deployed apps for each type
+## @author			T. Fischer <mail |at| sedi DOT one>
+## @copyright			2017-2018 T. Fischer <mail |at| sedi DOT one>, licensed under the LGPL v2
+######################################################################################################################
 
-
+## @fn F_COLORS()
+## @brief Describes the meanings of the various colors on output
+## @showinitializer
 F_COLORS(){
 	cat <<EOFCOL
 
@@ -25,6 +27,9 @@ F_COLORS(){
 EOFCOL
 }
 
+## @fn F_USAGE()
+## @brief Help info
+## @showinitializer
 F_USAGE(){
 	cat <<_EOUSAGE
 
@@ -61,7 +66,7 @@ while [ ! -z "$1" ];do
 	shift
 	;;
 	-logfile)
-	LOG="$2"
+        LOG="$2"
 	shift 2
 	;;
 	-env)
