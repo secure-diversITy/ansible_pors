@@ -33,7 +33,7 @@
 #
 #
 #################
-VERSION=20180323
+VERSION=20180406
 ###############################################################################################################
 
 # do not buffer stdout!!
@@ -318,6 +318,7 @@ F_TARGETS(){
 	# 8. get only these lines containing a comma and something behind (means section has a value)
 	#    this is needed as a section can be empty which shouldnt be shown if!
 	OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done))
+	# OPTIONS EXPLANATION ABOVE
 
 	if [ -z "$1" ];then 
 		echo -e "\n\nERROR! Missing F_TARGETS arg!! Cannot continue...\n" && F_EXIT
@@ -1415,15 +1416,13 @@ F_UPGRADESPLC(){ F_LOG $FUNCNAME started
 	F_LOG $FUNCNAME ended
 }
 
-# upgrading splunk
-F_UPGRADESPL(){
-	# Prepare new version?
-	# -> Setup the configs
-	# -> Show the current staged version
-	# Ask for hostfile
-	# Ask for hosts OR/AND target groups?
-	# Use upgrade playbook
-        echo "$FUNCNAME started" >> $LOG
+# select host(s)
+F_SELHOST(){
+	# parses the inventory
+	# offer all groups found
+	# parse groups including childs
+	# offer all hosts found
+        F_LOG $FUNCNAME started
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
         F_HOSTFILE
         while [ -z "$HOSTSELECT" ];do
@@ -1442,13 +1441,9 @@ F_UPGRADESPL(){
         done
 	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
 
-	CREDS=$(F_GETAPICREDS)
-	SPLUSR="${CREDS/:*}"
-	SPLPW="${CREDS/*:}"
-
 	# ask for specific hosts or target group?
 	unset HOSTLIST['expanded']
-	F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
+	F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80 2>&1 > /dev/tty
 	for hostlist in $HOSTSELECTION;do
 		if [ -z "${HOSTLIST['expanded']}" ];then
 			HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
@@ -1468,8 +1463,69 @@ F_UPGRADESPL(){
 
 	# make host list unique to avoid duplicated upgrades when a host is in multiple groups
 	# number each entry,sort by name and remove dups, sort by num
-	UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
-	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
+	# UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
+	echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
+}
+
+# install splunk
+F_INSTALLSPL(){
+        F_LOG $FUNCNAME started
+	# this installs pure splunk without configuration
+	
+        SHOSTS="$(F_SELHOST)"
+        SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+
+        if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
+                F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+                F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+        else
+                F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+        fi
+	
+	F_LOG "$FUNCNAME" "Will install splunk on <$UPGRADEHOSTS>"
+	F_DIALOG --scrollbar --yesno "Will install Splunk on these hosts:\n\n$SHOSTST\n\nAre you sure?" 30 100
+	[ $? -ne 0 ] && F_ABORTMAINMENU
+
+	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+	echo '[tmpgrp]' > $ITMPGRP
+	for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
+	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+
+	F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+
+ 	F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL '--limit tmpgrp" | tee -a $LOG
+
+	# doit
+	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp" 
+        F_ERRLOG "${PIPESTATUS[0]}" "Installing splunk on:\n\n$SHOSTST" "$LOG"
+
+        F_LOG $FUNCNAME ended
+}
+
+# Upgrade splunk
+F_UPGRADESPL(){
+        F_LOG $FUNCNAME started
+	# Prepare new version?
+	# -> Setup the configs
+	# -> Show the current staged version
+	# Ask for hostfile
+	# Ask for hosts OR/AND target groups?
+	# Use upgrade playbook
+ 
+	UPGRADEHOSTS="$(F_SELHOST)"
+	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\n/g')"
+
+	if  [ -z "$UPGRADEHOSTS" ] || [ -z $UPGRADEHOSTST ];then
+		F_LOG $FUNCNAME "UPGRADEHOSTS ($UPGRADEHOSTS) or UPGRADEHOSTSST ($UPGRADEHOSTST) empty"
+		F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+	else
+		F_LOG $FUNCNAME "UPGRADEHOSTS and UPGRADEHOSTST are both set"
+	fi
+
+	CREDS=$(F_GETAPICREDS)
+	SPLUSR="${CREDS/:*}"
+	SPLPW="${CREDS/*:}"
 
 	F_LOG "$FUNCNAME" "Will upgrade <$UPGRADEHOSTS>"
 	F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
@@ -1479,14 +1535,8 @@ F_UPGRADESPL(){
 	UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
 	echo '[tmpupgrade]' > $UTMPGRP
 	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
-	F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
+	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
 
-	[ $? -ne 0 ] && F_ABORTMAINMENU
-
-	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
-	UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
-	echo '[tmpupgrade]' > $UTMPGRP
-	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
 	F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 
  	F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBUPGRADE '--limit tmpupgrade -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
@@ -1494,6 +1544,8 @@ F_UPGRADESPL(){
 	# upgrade
 	F_A2BIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}" 
         F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
+
+        F_LOG $FUNCNAME ended
 }
 
 # Deploy Apps to specified targets
