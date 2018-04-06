@@ -26,6 +26,10 @@
 ## ansible engine (ae) is a wrapper and GUI (ncurses/dialog based) to execute several tasks with ansible.<br>
 ## This is a pure **technical** documentation of ae for those who want to understand how ae works under the hood
 ##
+## @section code Code
+## ansible engine is hosted at github:<br>
+## https://github.com/secure-diversITy/ansible_engine
+## 
 ## @section secintro User documentation
 ## The ansible engine (ae) configuration and installation is described here: <br>
 ## https://github.com/secure-diversITy/ansible_engine/wiki
