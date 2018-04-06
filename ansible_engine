@@ -1,47 +1,71 @@
 #!/bin/bash
 ########################################################################################
+## @file			ansible_engine.sh
+## @brief			-THE- GUI for using ansible + splunk
+## @author			Thomas Fischer <mail -AT- sedi -DOT- one>
+## @date                        2017-2018
+## @copyright			LGPL v3
+## @details
+##    This program is free software: you can redistribute it and/or modify<br>
+##    it under the terms of the GNU General Public License as published by<br>
+##    the Free Software Foundation, either version 3 of the License, or<br>
+##    (at your option) any later version.<br>
+##    <br>
+##    This program is distributed in the hope that it will be useful,<br>
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of<br>
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br>
+##    GNU General Public License for more details.<br>
+##    <br>
+##    You should have received a copy of the GNU General Public License<br>
+##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##
+########################################################################################
 #
-# Description:
-# Forget about all the stuff needed to know like: use playbook X to do A and Z to do B
-#
-# Copyright (2017-2018): Thomas Fischer <mail -AT- sedi -DOT- one>
-# Licensed under the LGPL v3:
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-#
-# bashrc setup:
-# -----------------------
-# # call ansible engine
-# F_CALLAE(){
-#        ARGS="$@"
-#        (cd /opt/ansible-playbooks/splunk;./ansible_engine $ARGS)
-# }
-# alias ansible-engine="F_CALLAE $@"
-#
-#
-#################
-VERSION=20180327
+## @mainpage ansible engine (ae)
+## @section intro Overview
+## ansible engine (ae) is a wrapper and GUI (ncurses/dialog based) to execute several tasks with ansible.<br>
+## This is a pure **technical** documentation of ae for those who want to understand how ae works under the hood
+##
+## @section secintro User documentation
+## The ansible engine (ae) configuration and installation is described here: <br>
+## https://github.com/secure-diversITy/ansible_engine/wiki
+##<br>
 ###############################################################################################################
+VERSION=20180406
+###############################################################################################################
+#
+# doxygen copy templates:
+#
+# # @var 
+# # @brief 
+# # @showinitializer
+# # @details 
+#
+# # @fn F_NAME()
+# # @brief ..
+# # @param 1 ..
+# # @return ..
+# # @exception ..
+# # @details ..
+##############################################################################################################
 
-# do not buffer stdout!!
+
+## @var PYTHONUNBUFFERED
+## @brief avoid buffering when exec python code (ansible)
+## @showinitializer
+## @details when python buffers output ae seems to hang until the 
+## whole playbook has been finished without any feedback. This ensures we see output directly in ae.
 export PYTHONUNBUFFERED=1
 
-# engine bin and working directory
-BIN=${0##*/}
-WORKDIR=".$(echo ${BIN/.sh}|tr -d _)"
+## @var BIN
+## @brief auto generate the binary name without path
+## @showinitializer
+declare BIN=${0##*/}
+
+## @var WORKDIR
+## @brief The working directory where all run files of ae will be stored
+## @showinitializer
+declare WORKDIR=".$(echo ${BIN/.sh}|tr -d _)"
 [ ! -d "$WORKDIR" ]&& mkdir -p $WORKDIR
 
 # we resist on the bashrc alias so using pwd is fine here
@@ -68,20 +92,59 @@ A2BIN=$A2PATH/bin/ansible-playbook
 
 
 LOG=$WORKDIR/${BIN}.log
-EDITBIN=/usr/bin/vim	# editor for conf file editing
-PBDIR="$PWD"
+## @var EDITBIN
+## @brief The editor which will be used e.g. when editing system/local files
+## @showinitializer
+declare EDITBIN=/usr/bin/vim
 
-# Playbooks
-PBNEWAPP=add_app.yml
-PBENAPP=enable_app_action.yml
-PBDEPLAPP=ae_deploy_apps.yml
-PBDEPLSYSC=deploy_systemconfigs.yml
-PBGETTARGETS=ae_get_targets.yml
-PBUPGRADE=upgrade_splunk.yml
-PBSHINSTALL=install_shelper.yml
-SHOWAPPS=show_app_deploymentstate.sh
-PBSHRELOAD=${ADIR}/maintenance/shelper_reload.yml
-PBSPLACT=${ADIR}/maintenance/splunk_tasks.yml
+## @var PBDIR
+## @brief The directory where all playbooks are expected
+## @showinitializer
+declare PBDIR="$PWD"
+
+## @var PBNEWAPP
+## @brief Adding/Linking new app(s) to ae
+## @showinitializer
+declare PBNEWAPP=add_app.yml
+## @var PBENAPP
+## @brief Adding/Linking new app(s) to ae (the real action)
+## @showinitializer
+declare PBENAPP=enable_app_action.yml
+## @var PBDEPLAPP
+## @brief Deploy apps to given targets
+## @showinitializer
+declare PBDEPLAPP=ae_deploy_apps.yml
+## @var PBDEPLSYSC
+## @brief Deploy system/local configs to given targets 
+## @showinitializer
+declare PBDEPLSYSC=deploy_systemconfigs.yml
+## @var PBGETTARGETS
+## @brief Parsing inventories file and create an expanded host list for each target
+## @showinitializer
+declare PBGETTARGETS=ae_get_targets.yml
+## @var PBUPGRADE
+## @brief Upgrade splunk
+## @showinitializer
+declare PBUPGRADE=upgrade_splunk.yml
+## @var  PBSHINSTALL
+## @brief Install/Upgrade the splunk helper
+## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
+## @showinitializer
+declare PBSHINSTALL=install_shelper.yml
+## @var SHOWAPPS
+## @brief Show app deployment state by target(s) and type (local, git, ...)
+## @showinitializer
+declare SHOWAPPS=show_app_deploymentstate.sh
+## @var PBSHRELOAD
+## @brief Execute splunk helper tasks
+## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
+## @showinitializer
+declare PBSHRELOAD=${ADIR}/maintenance/shelper_reload.yml
+## @var PBSPLACT
+## @brief Maintenance tasks for splunk
+## @details Examples: splunk stop, start, restart
+## @showinitializer
+declare PBSPLACT=${ADIR}/maintenance/splunk_tasks.yml
 
 # default splunk API admin
 DEFSPLAPIADMIN=admin
@@ -96,13 +159,21 @@ GLABSETTINGS=$WORKDIR/gitlab.auth
 # NO CHANGES BEHIND THIS POINT
 #################################################################################################
 
-# clear the running bit
+## @fn F_ENDSESS()
+## @brief Clear ae session
+## @details ae ensures it will not be executed more then 1 time by the EXECBIT var
 F_ENDSESS(){
 	echo "$FUNCNAME started" >> $LOG
 	rm -vf $EXECBIT >> $LOG
 	echo "$FUNCNAME finished" >> $LOG
 }
 
+## @fn F_EXIT()
+## @brief The regular exit
+## @param 1 when set to 'NOSESSEXIT' no session exit will happen (rare)
+## @return 0
+## @details If just executed without param ae will not clear the session
+## but when a full abort is required use param 1 accordingly
 F_EXIT(){
 	echo "$FUNCNAME started" >> $LOG
 	

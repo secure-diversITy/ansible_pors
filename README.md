@@ -20,3 +20,8 @@ Ansible engine is a wrapper and GUI (ncurses/dialog based) to execute several ta
 ## Guide
 
 [Wiki](https://github.com/secure-diversITy/ansible_engine/wiki)
+
+
+## Technical documentation
+
+[doxygen](/docs/html/index.html)

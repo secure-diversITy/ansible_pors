@@ -1,0 +1,161 @@
+\hypertarget{ansible__engine_8sh}{}\section{/opt/data/development/git/ansible\+\_\+engine/repo/ansible\+\_\+engine.sh File Reference}
+\label{ansible__engine_8sh}\index{/opt/data/development/git/ansible\+\_\+engine/repo/ansible\+\_\+engine.\+sh@{/opt/data/development/git/ansible\+\_\+engine/repo/ansible\+\_\+engine.\+sh}}
+
+
+-\/\+T\+H\+E-\/ G\+UI for using ansible + splunk  
+
+
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}{F\+\_\+\+E\+N\+D\+S\+E\+SS}} ()
+\begin{DoxyCompactList}\small\item\em Clear ae session. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_a66ec6201aeab8fa5ad0064b93bd4850c}{F\+\_\+\+E\+X\+IT}} (1)
+\begin{DoxyCompactList}\small\item\em The regular exit. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+Exported String \mbox{\hyperlink{ansible__engine_8sh_af6d5a9916e4dc573ceb5dcc099e131a3}{P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED}} = 1
+\begin{DoxyCompactList}\small\item\em avoid buffering when exec python code (ansible) \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}\label{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}{B\+IN}} = \$\{0\#\#$\ast$/\}
+\begin{DoxyCompactList}\small\item\em auto generate the binary name without path \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}\label{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}{W\+O\+R\+K\+D\+IR}} = \char`\"{}.\$(echo \$\{\mbox{\hyperlink{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}{B\+IN}}/.sh\}$\vert$tr \+\_\+)\char`\"{}
+\begin{DoxyCompactList}\small\item\em The working directory where all run files of ae will be stored. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a90f3e5b40645b8ebe43db8f146fbaded}\label{ansible__engine_8sh_a90f3e5b40645b8ebe43db8f146fbaded}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a90f3e5b40645b8ebe43db8f146fbaded}{E\+D\+I\+T\+B\+IN}} = /usr/bin/vim
+\begin{DoxyCompactList}\small\item\em The editor which will be used e.\+g. when editing system/local files. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_ad6dc768bd04c52f11f0a3416c7157576}\label{ansible__engine_8sh_ad6dc768bd04c52f11f0a3416c7157576}} 
+String \mbox{\hyperlink{ansible__engine_8sh_ad6dc768bd04c52f11f0a3416c7157576}{P\+B\+D\+IR}} = \char`\"{}\$P\+WD\char`\"{}
+\begin{DoxyCompactList}\small\item\em The directory where all playbooks are expected. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a06cf6d51b3ccc9f90e9865f2566e2d13}\label{ansible__engine_8sh_a06cf6d51b3ccc9f90e9865f2566e2d13}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a06cf6d51b3ccc9f90e9865f2566e2d13}{P\+B\+N\+E\+W\+A\+PP}} = add\+\_\+app.\+yml
+\begin{DoxyCompactList}\small\item\em Adding/\+Linking new app(s) to ae. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a8c588b65ccd29bf03f0ea2f36124e707}\label{ansible__engine_8sh_a8c588b65ccd29bf03f0ea2f36124e707}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a8c588b65ccd29bf03f0ea2f36124e707}{P\+B\+E\+N\+A\+PP}} = enable\+\_\+app\+\_\+action.\+yml
+\begin{DoxyCompactList}\small\item\em Adding/\+Linking new app(s) to ae (the real action) \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a04d2a765ad48aee391ce970589657845}\label{ansible__engine_8sh_a04d2a765ad48aee391ce970589657845}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a04d2a765ad48aee391ce970589657845}{P\+B\+D\+E\+P\+L\+A\+PP}} = ae\+\_\+deploy\+\_\+apps.\+yml
+\begin{DoxyCompactList}\small\item\em Deploy apps to given targets. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a4f304baa81ee66cb0098e1a9973d7145}\label{ansible__engine_8sh_a4f304baa81ee66cb0098e1a9973d7145}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a4f304baa81ee66cb0098e1a9973d7145}{P\+B\+D\+E\+P\+L\+S\+Y\+SC}} = deploy\+\_\+systemconfigs.\+yml
+\begin{DoxyCompactList}\small\item\em Deploy system/local configs to given targets. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a55bcb5c8a394dd5d538f5f406af77df8}\label{ansible__engine_8sh_a55bcb5c8a394dd5d538f5f406af77df8}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a55bcb5c8a394dd5d538f5f406af77df8}{P\+B\+G\+E\+T\+T\+A\+R\+G\+E\+TS}} = ae\+\_\+get\+\_\+targets.\+yml
+\begin{DoxyCompactList}\small\item\em Parsing inventories file and create an expanded host list for each target. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a40bf4e7ce006ccfc3a6cb8aa66e088df}\label{ansible__engine_8sh_a40bf4e7ce006ccfc3a6cb8aa66e088df}} 
+String \mbox{\hyperlink{ansible__engine_8sh_a40bf4e7ce006ccfc3a6cb8aa66e088df}{P\+B\+U\+P\+G\+R\+A\+DE}} = upgrade\+\_\+splunk.\+yml
+\begin{DoxyCompactList}\small\item\em Upgrade splunk. \end{DoxyCompactList}\item 
+String \mbox{\hyperlink{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}} = install\+\_\+shelper.\+yml
+\begin{DoxyCompactList}\small\item\em Install/\+Upgrade the splunk helper. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_aa8b6c14970a3d4f412f9e6cca56ca23f}\label{ansible__engine_8sh_aa8b6c14970a3d4f412f9e6cca56ca23f}} 
+String \mbox{\hyperlink{ansible__engine_8sh_aa8b6c14970a3d4f412f9e6cca56ca23f}{S\+H\+O\+W\+A\+P\+PS}} = show\+\_\+app\+\_\+deploymentstate.\+sh
+\begin{DoxyCompactList}\small\item\em Show app deployment state by target(s) and type (local, git, ...) \end{DoxyCompactList}\item 
+String \mbox{\hyperlink{ansible__engine_8sh_a5abc6709ccffb498c492099b1770c0d6}{P\+B\+S\+H\+R\+E\+L\+O\+AD}} = \$\{A\+D\+IR\}/maintenance/shelper\+\_\+reload.\+yml
+\begin{DoxyCompactList}\small\item\em Execute splunk helper tasks. \end{DoxyCompactList}\item 
+String \mbox{\hyperlink{ansible__engine_8sh_a07a65ca55f4f8bec6ba69c3d4f05db1c}{P\+B\+S\+P\+L\+A\+CT}} = \$\{A\+D\+IR\}/maintenance/splunk\+\_\+tasks.\+yml
+\begin{DoxyCompactList}\small\item\em Maintenance tasks for splunk. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_aa303602d6c6a608b35e3c950471b05bd}\label{ansible__engine_8sh_aa303602d6c6a608b35e3c950471b05bd}} 
+Exported String {\bfseries P\+Y\+T\+H\+O\+N\+P\+A\+TH} = \$\{A2\+P\+A\+TH\}/lib
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+-\/\+T\+H\+E-\/ G\+UI for using ansible + splunk 
+
+\begin{DoxyAuthor}{Author}
+Thomas Fischer $<$mail -\/\+A\+T-\/ sedi -\/\+D\+O\+T-\/ one$>$ 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+2017-\/2018 
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+L\+G\+PL v3
+\end{DoxyCopyright}
+This program is free software\+: you can redistribute it and/or modify~\newline
+ it under the terms of the G\+NU General Public License as published by~\newline
+ the Free Software Foundation, either version 3 of the License, or~\newline
+ (at your option) any later version.~\newline
+ ~\newline
+ This program is distributed in the hope that it will be useful,~\newline
+ but W\+I\+T\+H\+O\+UT A\+NY W\+A\+R\+R\+A\+N\+TY; without even the implied warranty of~\newline
+ M\+E\+R\+C\+H\+A\+N\+T\+A\+B\+I\+L\+I\+TY or F\+I\+T\+N\+E\+SS F\+OR A P\+A\+R\+T\+I\+C\+U\+L\+AR P\+U\+R\+P\+O\+SE. See the~\newline
+ G\+NU General Public License for more details.~\newline
+ ~\newline
+ You should have received a copy of the G\+NU General Public License~\newline
+ along with this program. If not, see \href{http://www.gnu.org/licenses/}{\tt http\+://www.\+gnu.\+org/licenses/}. 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}\label{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+E\+N\+D\+S\+E\+SS@{F\+\_\+\+E\+N\+D\+S\+E\+SS}}
+\index{F\+\_\+\+E\+N\+D\+S\+E\+SS@{F\+\_\+\+E\+N\+D\+S\+E\+SS}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+E\+N\+D\+S\+E\+S\+S()}{F\_ENDSESS()}}
+{\footnotesize\ttfamily F\+\_\+\+E\+N\+D\+S\+E\+SS (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Clear ae session. 
+
+ae ensures it will not be executed more then 1 time by the E\+X\+E\+C\+B\+IT var \mbox{\Hypertarget{ansible__engine_8sh_a66ec6201aeab8fa5ad0064b93bd4850c}\label{ansible__engine_8sh_a66ec6201aeab8fa5ad0064b93bd4850c}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+E\+X\+IT@{F\+\_\+\+E\+X\+IT}}
+\index{F\+\_\+\+E\+X\+IT@{F\+\_\+\+E\+X\+IT}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+E\+X\+I\+T()}{F\_EXIT()}}
+{\footnotesize\ttfamily F\+\_\+\+E\+X\+IT (\begin{DoxyParamCaption}\item[{1}]{ }\end{DoxyParamCaption})}
+
+
+
+The regular exit. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em 1} & when set to \textquotesingle{}N\+O\+S\+E\+S\+S\+E\+X\+IT\textquotesingle{} no session exit will happen (rare) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+0
+\end{DoxyReturn}
+If just executed without param ae will not clear the session but when a full abort is required use param 1 accordingly 
+
+\subsection{Variable Documentation}
+\mbox{\Hypertarget{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}\label{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+B\+S\+H\+I\+N\+S\+T\+A\+LL@{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}}
+\index{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL@{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}{PBSHINSTALL}}
+{\footnotesize\ttfamily P\+B\+S\+H\+I\+N\+S\+T\+A\+LL = install\+\_\+shelper.\+yml}
+
+
+
+Install/\+Upgrade the splunk helper. 
+
+\href{https://github.com/secure-diversITy/splunk/tree/master/splunkhelper}{\tt https\+://github.\+com/secure-\/divers\+I\+Ty/splunk/tree/master/splunkhelper} \mbox{\Hypertarget{ansible__engine_8sh_a5abc6709ccffb498c492099b1770c0d6}\label{ansible__engine_8sh_a5abc6709ccffb498c492099b1770c0d6}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+B\+S\+H\+R\+E\+L\+O\+AD@{P\+B\+S\+H\+R\+E\+L\+O\+AD}}
+\index{P\+B\+S\+H\+R\+E\+L\+O\+AD@{P\+B\+S\+H\+R\+E\+L\+O\+AD}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{P\+B\+S\+H\+R\+E\+L\+O\+AD}{PBSHRELOAD}}
+{\footnotesize\ttfamily P\+B\+S\+H\+R\+E\+L\+O\+AD = \$\{A\+D\+IR\}/maintenance/shelper\+\_\+reload.\+yml}
+
+
+
+Execute splunk helper tasks. 
+
+\href{https://github.com/secure-diversITy/splunk/tree/master/splunkhelper}{\tt https\+://github.\+com/secure-\/divers\+I\+Ty/splunk/tree/master/splunkhelper} \mbox{\Hypertarget{ansible__engine_8sh_a07a65ca55f4f8bec6ba69c3d4f05db1c}\label{ansible__engine_8sh_a07a65ca55f4f8bec6ba69c3d4f05db1c}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+B\+S\+P\+L\+A\+CT@{P\+B\+S\+P\+L\+A\+CT}}
+\index{P\+B\+S\+P\+L\+A\+CT@{P\+B\+S\+P\+L\+A\+CT}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{P\+B\+S\+P\+L\+A\+CT}{PBSPLACT}}
+{\footnotesize\ttfamily P\+B\+S\+P\+L\+A\+CT = \$\{A\+D\+IR\}/maintenance/splunk\+\_\+tasks.\+yml}
+
+
+
+Maintenance tasks for splunk. 
+
+Examples\+: splunk stop, start, restart \mbox{\Hypertarget{ansible__engine_8sh_af6d5a9916e4dc573ceb5dcc099e131a3}\label{ansible__engine_8sh_af6d5a9916e4dc573ceb5dcc099e131a3}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED@{P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED}}
+\index{P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED@{P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED}{PYTHONUNBUFFERED}}
+{\footnotesize\ttfamily P\+Y\+T\+H\+O\+N\+U\+N\+B\+U\+F\+F\+E\+R\+ED = 1}
+
+
+
+avoid buffering when exec python code (ansible) 
+
+when python buffers output ae seems to hang until the whole playbook has been finished without any feedback. This ensures we see output directly in ae. 
