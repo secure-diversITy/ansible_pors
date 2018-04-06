@@ -149,6 +149,12 @@ declare PBSHRELOAD=${ADIR}/maintenance/shelper_reload.yml
 ## @details Examples: splunk stop, start, restart
 ## @showinitializer
 declare PBSPLACT=${ADIR}/maintenance/splunk_tasks.yml
+## @var PBINSTALL
+## @brief Install splunk
+## @details Examples: splunk stop, start, restart
+## @showinitializer
+declare PBINSTALL=install_splunk.yml
+
 
 # default splunk API admin
 DEFSPLAPIADMIN=admin
@@ -270,7 +276,7 @@ F_LOG(){
 
 # main dialog form
 F_DIALOG(){
-	dialog --title "Ansible wrapper for splunk> (v$VERSION)" "$@"
+	dialog --title "ae for splunk> (v$VERSION)" "$@"
 }
 
 # really? you want to read a comment for this function?
@@ -1569,7 +1575,7 @@ F_INSTALLSPL(){
 
 	F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
- 	F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL '--limit tmpgrp" | tee -a $LOG
+ 	F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
 
 	# doit
 	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp" 
@@ -1672,7 +1678,7 @@ F_DEPLOYAPP(){
 F_MENUMAIN(){
  	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
-			--menu "\nStart the ansible engine\n\nSelect an option:" \
+			--menu "\nSelect an option:" \
 			35 76 35 \
 			'' '\Zb\ZuAPPS\ZB\ZU'\
 			"" "" \
@@ -1692,7 +1698,8 @@ F_MENUMAIN(){
 			"" "" \
 			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
 			"" "" \
-			Upgrade	"Upgrade splunk> instance(s)" \
+			Upgrade	"splunk> instance(s)" \
+			Install	"splunk>" \
 			"" "" \
 			"" "" \
 			3>&1 1>&2 2>&3)
@@ -1743,6 +1750,9 @@ F_MENUMAIN(){
 			;;
 			gitlab)
 			F_SETUP_GITLAB
+			;;
+			Install)
+			F_INSTALLSPL
 			;;
 		esac
 	     done
