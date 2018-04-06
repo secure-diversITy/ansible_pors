@@ -1,3 +1,6 @@
 [submodule "docs/helpers/bash-doxygen"]
 	path = docs/helpers/bash-doxygen
 	url = https://github.com/Anvil/bash-doxygen.git
+[submodule "docs/io"]
+	path = docs/io
+	url = https://github.com/secure-diversITy/secure-diversITy.github.io.git
