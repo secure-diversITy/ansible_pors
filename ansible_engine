@@ -151,7 +151,7 @@ declare PBSHRELOAD=${ADIR}/maintenance/shelper_reload.yml
 declare PBSPLACT=${ADIR}/maintenance/splunk_tasks.yml
 ## @var PBINSTALL
 ## @brief Install splunk
-## @details Examples: splunk stop, start, restart
+## @details Will install splunk on a single host or group of hosts
 ## @showinitializer
 declare PBINSTALL=install_splunk.yml
 
