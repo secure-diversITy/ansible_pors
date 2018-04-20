@@ -1,7 +1,7 @@
 ---
 #- name: debug
 #  debug: 
-#        msg:  "{{ vars[app_variable].apps }}"
+#        msg:  "{{ vars[app_variable].shcluster_apps }}"
 
 - name: Copy app to remote host
   copy: src="{{ item.value.bundle_dir }}/{{ item.value.bundle }}"
