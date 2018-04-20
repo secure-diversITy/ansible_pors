@@ -1145,7 +1145,9 @@ F_EDITSYSC(){
 
 # abort current menu and go back to MAIN dialog
 F_ABORTMAINMENU(){
-	$MAINMENU	
+	F_LOG "$FUNCNAME" "started with $MAINMENU"
+	$MAINMENU
+	F_LOG "$FUNCNAME" ended
 }
 
 # shelper gui
@@ -1497,12 +1499,11 @@ F_UPGRADESPLC(){ F_LOG $FUNCNAME started
 	F_LOG $FUNCNAME ended
 }
 
-# select host(s)
+## @fn F_SELHOST()
+## @brief Show and choose host(s)
+## @details Parsing the inventory, offering all groups found, parsing groups including childs, remove dups, offer host list and let the user choose
+## @exception on abort: F_ABORTMAINMENU, on faulure: error dialog
 F_SELHOST(){
-	# parses the inventory
-	# offer all groups found
-	# parse groups including childs
-	# offer all hosts found
         F_LOG $FUNCNAME started
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
         F_HOSTFILE
@@ -1548,7 +1549,9 @@ F_SELHOST(){
 	echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
 }
 
-# install splunk
+## @fn F_INSTALLSPL()
+## @brief Install splunk on ansible prepared servers
+## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
         F_LOG $FUNCNAME started
 	# this installs pure splunk without configuration
@@ -1563,7 +1566,7 @@ F_INSTALLSPL(){
                 F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
         fi
 	
-	F_LOG "$FUNCNAME" "Will install splunk on <$UPGRADEHOSTS>"
+	F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
 	F_DIALOG --scrollbar --yesno "Will install Splunk on these hosts:\n\n$SHOSTST\n\nAre you sure?" 30 100
 	[ $? -ne 0 ] && F_ABORTMAINMENU
 
@@ -1676,6 +1679,7 @@ F_DEPLOYAPP(){
 
 # the main menu window in regular mode
 F_MENUMAIN(){
+	MENUDONE=0
  	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
 			--menu "\nSelect an option:" \
@@ -1698,8 +1702,8 @@ F_MENUMAIN(){
 			"" "" \
 			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
 			"" "" \
-			Upgrade	"splunk> instance(s)" \
-			Install	"splunk>" \
+			Upgrade	"existing splunk> instance(s)" \
+			Install	"splunk> on blank server(s)" \
 			"" "" \
 			"" "" \
 			3>&1 1>&2 2>&3)
