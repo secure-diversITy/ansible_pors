@@ -1,0 +1,54 @@
+---
+- include: touch.yml
+- include: clustering/available_sites.yml
+- include: clustering/cluster_label.yml
+- include: clustering/master_uri.yml
+- include: clustering/mode.yml
+- include: clustering/multisite.yml
+- include: clustering/replication_factor.yml
+- include: clustering/search_factor.yml
+- include: clustering/site_replication_factor.yml
+- include: clustering/pass4SymmKey.yml
+- include: diskUsage/minFreeSpace.yml
+- include: general/pass4SymmKey.yml
+- include: general/site.yml
+- include: general/trustedIP.yml
+- include: license/master_uri.yml
+
+- include: replication_port/port.yml
+  when: splunk_server_conf.replication_port is defined
+
+- include: replication_port_ssl/port.yml
+  when: splunk_server_conf.replication_port_ssl is defined
+
+- include: replication_port_ssl/rootCA.yml
+  when: splunk_server_conf.replication_port_ssl is defined
+
+- include: replication_port_ssl/serverCert.yml
+  when: splunk_server_conf.replication_port_ssl is defined
+
+- include: replication_port_ssl/password.yml
+  when: splunk_server_conf.replication_port_ssl is defined
+
+- include: shclustering/conf_deploy_fetch_url.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/election.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/id.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/mgmt_uri.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/pass4SymmKey.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/replication_factor.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/shcluster_label.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: sslConfig/sslKeysfilePassword.yml

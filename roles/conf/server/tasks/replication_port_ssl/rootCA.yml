@@ -1,0 +1,28 @@
+---
+#####################################################################################################################
+# Configurations for Splunk server.conf
+#####################################################################################################################
+
+#####################################################################################################################
+# [replication_port-ssl:<port>]
+#####################################################################################################################
+
+# rootCA
+
+- name: "Configure server.conf [replication_port-ssl:<port>] - rootCA state=present"
+  ini_file: dest={{ splunk_conf_path }}/server.conf
+            section="replication_port-ssl://{{ splunk_server_conf.replication_port_ssl.port }}"
+            option=rootCA
+            value={{ splunk_server_conf.replication_port_ssl.rootCA }}
+            state=present
+  when: splunk_server_conf.replication_port_ssl.disabled == false and splunk_server_conf.replication_port_ssl.rootCA is defined
+  notify: splunk restart
+
+- name: "Configure server.conf [replication_port-ssl:<port>] - rootCA state=absent (default)"
+  ini_file: dest={{ splunk_conf_path }}/server.conf
+            section=replication_port-ssl://{{ splunk_server_conf.replication_port_ssl.port }}
+            option=rootCA
+            state=absent
+  when: (splunk_server_conf.replication_port_ssl.disabled == true and splunk_server_conf.replication_port_ssl.port is defined) or
+        (splunk_server_conf.replication_port_ssl is defined and splunk_server_conf.replication_port_ssl.rootCA is undefined and splunk_server_conf.replication_port_ssl.port is defined)
+  notify: splunk restart
