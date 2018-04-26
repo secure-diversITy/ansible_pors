@@ -35,7 +35,7 @@
 ## https://github.com/secure-diversITy/ansible_engine/wiki
 ##<br>
 ###############################################################################################################
-VERSION=20180406
+VERSION=20180420
 ###############################################################################################################
 #
 # doxygen copy templates:
@@ -154,7 +154,11 @@ declare PBSPLACT=${ADIR}/maintenance/splunk_tasks.yml
 ## @details Will install splunk on a single host or group of hosts
 ## @showinitializer
 declare PBINSTALL=install_splunk.yml
-
+## @var PBCONFPEER
+## @brief Configures splunk as a peernode 
+## @details This will configure an existing splunk installation as a peernode of an existing indexer cluster
+## @showinitializer
+declare PBCONFPEER=${ADIR}/ae_configure_ix_peernode.yml
 
 # default splunk API admin
 DEFSPLAPIADMIN=admin
@@ -1681,6 +1685,80 @@ F_DEPLOYAPP(){
 	fi
 }
 
+
+## @fn F_CLUSTER()
+## @brief Indexer cluster menu
+## @exception When no valid answer given returning to MAIN menu
+## @details Provides a menu for several cluster tasks 
+F_CLUSTER(){
+	unset SELECTION
+	SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
+                   --menu "\nSelect an option:" \
+                    	35 70 35 \
+                        '' '\Zb\ZuMaintenance\ZB\ZU'\
+                        "" "" \
+                        AddPeer "configure a peer to be part of an existing IX cluster" \
+                        OfflinePeer "NOT-READY-YET" \
+                        RemovePeer "NOT-READY-YET" \
+                        "" "" \
+                        "" "" \
+                        3>&1 1>&2 2>&3)
+
+        if [ "$?" != "0" ]; then
+              MENUDONE=1
+              F_LOG $FUNCNAME "aborted by user"
+              F_ABORTMAINMENU
+        else
+                case "$SELECTION" in
+                        AddPeer)
+			F_ADDPEER
+                        ;;
+                        *)
+                        F_ABORTMAINMENU
+                        ;;
+		esac
+	fi
+}
+
+## @fn F_ADDPEER()
+## @brief Configures a new peer to an existing indexer cluster
+## @exception ..
+## @details 
+F_ADDPEER(){
+        F_LOG $FUNCNAME started
+
+	unset SHOSTS SHOSTST
+        SHOSTS="$(F_SELHOST)"
+        SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+
+        if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
+                F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+                F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+        else
+                F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+        fi
+
+        F_LOG "$FUNCNAME" "Will configure indexer peernode on <$SHOSTS>"
+        F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas indexer peernode(s). Are you sure?" 30 100
+        [ $? -ne 0 ] && F_ABORTMAINMENU
+
+        # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+        ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+        echo '[tmpgrp]' > $ITMPGRP
+        for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
+        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+
+        F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+
+        F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
+
+        # doit
+        F_A2BIN "$ITMPGRP" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit tmpgrp"
+        F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer peernode on:\n\n$SHOSTST" "$LOG"
+
+        F_LOG $FUNCNAME ended	
+}
+
 # the main menu window in regular mode
 F_MENUMAIN(){
 	MENUDONE=0
@@ -1708,6 +1786,7 @@ F_MENUMAIN(){
 			"" "" \
 			Upgrade	"existing splunk> instance(s)" \
 			Install	"splunk> on blank server(s)" \
+			Cluster "Indexer tasks" \
 			"" "" \
 			"" "" \
 			3>&1 1>&2 2>&3)
@@ -1761,6 +1840,9 @@ F_MENUMAIN(){
 			;;
 			Install)
 			F_INSTALLSPL
+			;;
+			Cluster)
+			F_CLUSTER
 			;;
 		esac
 	     done
