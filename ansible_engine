@@ -278,7 +278,7 @@ F_LOG(){
 		F_DIAERR 2 "INTERNAL ERROR: $FUNCNAME requires an arg"
 	else
 		PREFIX="$(date '+%F_%T') ($CALLER) -"
-		echo "$PREFIX $MSG" >> $LOG
+		echo -e "$PREFIX $MSG" >> $LOG
 	fi
 }
 
