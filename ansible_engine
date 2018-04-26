@@ -1082,7 +1082,7 @@ F_CHOOSEENV(){
 	# ENVCHOICE="$(F_CHOOSEENV)"
 	F_LOG $FUNCNAME "started"
 
-        OPTIONS=($(for inv in $(find $AINVENTORY/* -maxdepth 0 -type d);do echo "${inv##*/} $inv off";done))
+        OPTIONS=($(for inv in $(find $AINVENTORY/* -maxdepth 0 -type d);do echo "${inv##*/} $inv off";done | sort -r))
 
         while [ -z "$ENVTARGET" ];do
               ABORTED=0
