@@ -1537,31 +1537,43 @@ F_UPGRADESPLC(){ F_LOG $FUNCNAME started
 
 ## @fn F_SELHOST()
 ## @brief Show and choose host(s)
+## @param 1 specify a target group directly (non interactive - will just output ALL(!) the host(s) of a group)
 ## @details Parsing the inventory, offering all groups found, parsing groups including childs, remove dups, offer host list and let the user choose
 ## @exception on abort: F_ABORTMAINMENU, on faulure: error dialog
 F_SELHOST(){
         F_LOG $FUNCNAME started
-        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
-        F_HOSTFILE
-        while [ -z "$HOSTSELECT" ];do
+        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup TGRP
+	TGRP="$1"
+	if [ -z "$TGRP" ];then
+	  source $AEUSRHOSTFILE
+          [ -f "$HOSTFILE" ] || F_HOSTFILE
+          while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS checklist)
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
                         ABORTED=1 && break
                 else
                         if [ -z "$HOSTSELECTION" ];then
+				F_LOG $FUNCNAME "No selection made / HOSTSELECTION empty!"
                                 F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
                         else
                                 HOSTSELECT=1
                                 ABORTED=0
                         fi
                 fi
-        done
+          done
+	else
+		HOSTSELECTION="$TGRP"
+		ABORTED=0
+	fi
+
 	if [ $ABORTED -eq 1 ];then
 		F_ABORTMAINMENU
 	else
-			  # ask for specific hosts or target group?
-			  unset HOSTLIST['expanded']
+		# ask for specific hosts or target group?
+		unset HOSTLIST['expanded']
+		if [ -z "$TGRP" ];then
 			  F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80 2>&1 > /dev/tty
+		fi
 			  for hostlist in $HOSTSELECTION;do
 				if [ -z "${HOSTLIST['expanded']}" ];then
 					HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
@@ -1570,20 +1582,25 @@ F_SELHOST(){
 				fi
 			  done
 
-			  unset EDITHOST	
+		unset EDITHOST
+		# select hosts interactive or not depending on how we get called
+		if [ -z "$TGRP" ];then
 			  while [ -z "$EDITHOST" ];do
 			        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
 				if [ -z "$EDITHOST" ];then
+					F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
 					F_DIALOG --yesno "No selection made! Retry?" 10 40
 					[ $? -ne 0 ] && F_ABORTMAINMENU
 				fi
 			  done
-
+		else
+			EDITHOST=$(echo "${HOSTLIST['expanded']}")
+		fi
 			  # make host list unique to avoid duplicated upgrades when a host is in multiple groups
 			  # number each entry,sort by name and remove dups, sort by num
 			  # UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
 			  echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
-	fi
+	  fi
 }
 
 ## @fn F_INSTALLSPL()
@@ -1780,13 +1797,13 @@ F_ADDPEER(){
         for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
         if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
 
-		# we need the MN and LM in any case:
-		LMHOST=$(F_SELHOST licensemaster)
-		MNHOST=$(F_SELHOST masternode)
-		echo -e '\n[masternode]' >> $ITMPGRP
-		echo "$MNHOST" >> $ITMPGRP
-		echo -e '\n[licensemaster]' >> $ITMPGRP
-		echo "$LMHOST" >> $ITMPGRP
+        # we need the MN and LM in any case:
+        LMHOST=$(F_SELHOST licensemaster)
+        MNHOST=$(F_SELHOST masternode)
+        echo -e '\n[masternode]' >> $ITMPGRP
+        echo "$MNHOST" >> $ITMPGRP
+        echo -e '\n[licensemaster]' >> $ITMPGRP
+        echo "$LMHOST" >> $ITMPGRP
 
         F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
