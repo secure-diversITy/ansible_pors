@@ -35,7 +35,7 @@
 ## https://github.com/secure-diversITy/ansible_engine/wiki
 ##<br>
 ###############################################################################################################
-VERSION=20180420
+VERSION=20180426
 ###############################################################################################################
 #
 # doxygen copy templates:
@@ -1776,16 +1776,24 @@ F_ADDPEER(){
 
         # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
         ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
-        echo '[tmpgrp]' > $ITMPGRP
+        echo '[peernode]' > $ITMPGRP
         for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
         if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+
+		# we need the MN and LM in any case:
+		LMHOST=$(F_SELHOST licensemaster)
+		MNHOST=$(F_SELHOST masternode)
+		echo -e '\n[masternode]' >> $ITMPGRP
+		echo "$MNHOST" >> $ITMPGRP
+		echo -e '\n[licensemaster]' >> $ITMPGRP
+		echo "$LMHOST" >> $ITMPGRP
 
         F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
         F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
 
         # doit
-        F_A2BIN "$ITMPGRP" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit tmpgrp"
+        F_A2BIN "$ITMPGRP" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit peernode"
         F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer peernode on:\n\n$SHOSTST" "$LOG"
 
         F_LOG $FUNCNAME ended	
