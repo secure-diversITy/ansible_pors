@@ -605,8 +605,11 @@ F_LOCSRC(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# expands a target group to a list of hostnames/ips defined in the users host file
-# returns a space delimited list with the expanded list of hostnames
+## @fn F_EXPANDHOSTS()
+## @brief create an expanded list of hostnames
+## @param 1 target group name
+## @return  space delimited list with the expanded list of hostnames
+## @details expands a target group to a list of hostnames/ips defined in the users host file
 F_EXPANDHOSTS(){
 	F_LOG "$FUNCNAME" "started with these arguments: $@"
 	unset RET
