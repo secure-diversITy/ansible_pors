@@ -94,6 +94,10 @@ ABIN=ansible-playbook
 A2PATH=/opt/splunk/ansible-git
 A2BIN=$A2PATH/bin/ansible-playbook
 
+## @var LOG
+## @brief The ae log file
+## @showinitializer
+declare LOG=$WORKDIR/${BIN}.log
 
 LOG=$WORKDIR/${BIN}.log
 ## @var EDITBIN
