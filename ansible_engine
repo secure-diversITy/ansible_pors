@@ -396,7 +396,29 @@ F_HOSTFILE(){
 	F_LOG $FUNCNAME finished
 }
 
-# identify the available targets
+## @fn F_TARGETS()
+## @brief identify targets/hosts of a group
+## @param 1 required: dialog option (checklist/radiolist)
+## @param 2 optional: automatic/non interactive mode (auto selected group name|empty)
+## @return list of hosts
+## @exception on error or abort: abort
+## @details 
+## 1. filter out all vars and child sections
+## 2. get all sections and 1 next line
+## 3. replace [ with newline
+## 4. replace ] with comma and empty lines with a /
+## 5. remove all newlines
+## 6. replace // with /
+## 7. replace / with newline
+## --> steps 4-7 are required to ensure even when 2 sections are written without a space
+##     between. Example:
+##	[sec1]
+##  	[sec2]
+##  	host
+##     As we catch always section + 1 next line on step 2 to identify empty sections the above 
+##     steps ensure we will *NOT* have a result of: "sec1" has host "sec2"
+## 8. get only these lines containing a comma and something behind (means section has a value)
+##    this is needed as a section can be empty which shouldnt be shown if!
 F_TARGETS(){
 	F_LOG "$FUNCNAME" "started with these arguments: $@"
 	
