@@ -1511,7 +1511,6 @@ F_SELHOST(){
                 HOSTSELECTION=$(F_TARGETS checklist)
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
                         ABORTED=1 && break
-			[ $? -ne 0 ] && F_ABORTMAINMENU
                 else
                         if [ -z "$HOSTSELECTION" ];then
                                 F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
@@ -1521,32 +1520,34 @@ F_SELHOST(){
                         fi
                 fi
         done
-	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+	if [ $ABORTED -eq 1 ];then
+		F_ABORTMAINMENU
+	else
+			  # ask for specific hosts or target group?
+			  unset HOSTLIST['expanded']
+			  F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80 2>&1 > /dev/tty
+			  for hostlist in $HOSTSELECTION;do
+				if [ -z "${HOSTLIST['expanded']}" ];then
+					HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
+				else
+					HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
+				fi
+			  done
 
-	# ask for specific hosts or target group?
-	unset HOSTLIST['expanded']
-	F_DIALOG --begin 3 3 --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80 2>&1 > /dev/tty
-	for hostlist in $HOSTSELECTION;do
-		if [ -z "${HOSTLIST['expanded']}" ];then
-			HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
-		else
-			HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
-		fi
-	done
+			  unset EDITHOST	
+			  while [ -z "$EDITHOST" ];do
+			        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
+				if [ -z "$EDITHOST" ];then
+					F_DIALOG --yesno "No selection made! Retry?" 10 40
+					[ $? -ne 0 ] && F_ABORTMAINMENU
+				fi
+			  done
 
-	unset EDITHOST	
-	while [ -z "$EDITHOST" ];do
-	        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
-		if [ -z "$EDITHOST" ];then
-			F_DIALOG --yesno "No selection made! Retry?" 10 40
-			[ $? -ne 0 ] && F_ABORTMAINMENU
-		fi
-	done
-
-	# make host list unique to avoid duplicated upgrades when a host is in multiple groups
-	# number each entry,sort by name and remove dups, sort by num
-	# UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
-	echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
+			  # make host list unique to avoid duplicated upgrades when a host is in multiple groups
+			  # number each entry,sort by name and remove dups, sort by num
+			  # UPGRADEHOSTS=$(echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' ')
+			  echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
+	fi
 }
 
 ## @fn F_INSTALLSPL()
