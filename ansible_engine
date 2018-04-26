@@ -1584,6 +1584,9 @@ F_INSTALLSPL(){
 	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp" 
         F_ERRLOG "${PIPESTATUS[0]}" "Installing splunk on:\n\n$SHOSTST" "$LOG"
 
+	# cleanup
+	[ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
+
         F_LOG $FUNCNAME ended
 }
 
