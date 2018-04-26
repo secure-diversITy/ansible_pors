@@ -1726,7 +1726,7 @@ F_CLUSTER(){
 	unset SELECTION
 	SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
                    --menu "\nSelect an option:" \
-                    	35 70 35 \
+                    	20 90 80 \
                         '' '\Zb\ZuMaintenance\ZB\ZU'\
                         "" "" \
                         AddPeer "configure a peer to be part of an existing IX cluster" \
