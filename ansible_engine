@@ -99,7 +99,15 @@ A2BIN=$A2PATH/bin/ansible-playbook
 ## @showinitializer
 declare LOG=$WORKDIR/${BIN}.log
 
-LOG=$WORKDIR/${BIN}.log
+## @var AEINFOHOSTFILE
+## @brief the user choosen hostfile will be written into this file
+## @details can be sourced like: source $AEUSRHOSTFILE - will set HOSTFILE=
+## @showinitializer
+declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
+
+# reset any previous set user host file
+> $AEUSRHOSTFILE
+
 ## @var EDITBIN
 ## @brief The editor which will be used e.g. when editing system/local files
 ## @showinitializer
@@ -383,7 +391,9 @@ F_HOSTFILE(){
 			STARTOVER=0
 		fi
 	done
-	echo "$FUNCNAME finished" >> $LOG
+	echo "HOSTFILE=\"$HOSTFILE\"" > $AEUSRHOSTFILE
+	F_LOG $FUNCNAME "written new AEUSRHOSTFILE ($AEUSRHOSTFILE):\n$(cat $AEUSRHOSTFILE)"
+	F_LOG $FUNCNAME finished
 }
 
 # identify the available targets
