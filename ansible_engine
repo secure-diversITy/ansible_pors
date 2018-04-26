@@ -614,22 +614,25 @@ F_EXPANDHOSTS(){
 	F_LOG "$FUNCNAME" "started with these arguments: $@"
 	unset RET
 	TGROUP=$1
-	TGFILE="$WORKDIR/expanded_${SHOSTFILE}_${TGROUP}"
-	if [ -z "$HOSTSELECTION" ];then
-		F_HOSTFILE
-	fi
-	# get all hosts via playbook (will expand groups in groups etc)
-	$ABIN -i $HOSTFILE $PBGETTARGETS -e "target=$TGROUP expandfile=$TGFILE" |sort 2>&1>> $LOG
+	source "$AEUSRHOSTFILE"
+	if [ -f "$HOSTFILE" ];then
+		TGFILE="$AINVENTORY/$TARGETENV/${FUNCNAME}_${TGROUP}"
 
-	# parse the resulted FILE and massage its content
-        if [ -r "$TGFILE" ];then
-              # filter ansible stuff:
-	      RET=$(sed "s/,//g;s/\[//g;s/]//g;s/'//g" $TGFILE)
-        else
-	      # bark no error to the calling function but an error message in log
-              F_LOG $FUNCNAME "WARNING: cant read/find $TGFILE! Empty group??"
-	      RET="EMPTY"
-        fi
+		# get all hosts via playbook (will expand groups in groups etc)
+		$ABIN -i $HOSTFILE $PBGETTARGETS -e "target=$TGROUP expandfile=$TGFILE" 2>&1 | sort >> $LOG
+	
+		# parse the resulted FILE and massage its content
+	        if [ -r "$TGFILE" ];then
+       	       # filter ansible stuff:
+		      RET=$(sed "s/,//g;s/\[//g;s/]//g;s/'//g" $TGFILE)
+        	else
+	      	# bark no error to the calling function but an error message in log
+              	F_LOG $FUNCNAME "WARNING: cant read/find $TGFILE! Empty group??"
+	      	RET="EMPTY"
+        	fi
+	else
+		F_LOG $FUNCNAME "ERROR: HOSTFILE $HOSTFILE NOT FOUND!"
+	fi
 	echo "$RET"
 	F_LOG "$FUNCNAME" finished
 }
