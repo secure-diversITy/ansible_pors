@@ -848,7 +848,7 @@ F_SETUP_GITLAB(){
 # get all available gitlab projects for the current user
 # this does not work with other git servers (think of ssh git@git-server info for those supporting this)
 F_GITLABSRC(){
-	echo "$FUNCNAME started" >> $LOG
+	F_LOG $FUNCNAME started
 	# check of required vars are set
 	# build gitlab URL
 	# curl with the private token 
@@ -861,12 +861,22 @@ F_GITLABSRC(){
 		# I'm not that happy with this URL because it seems to be so unflexible for future changes (besides that parsing grep)
 		# ... but: it works atm..
 		# page=1 and per_page are required otherwise you will see the per page setting in the users settings only (default 20)
-		GLABURL="https://$GLABHOST/api/v3/projects?simple=true&page=1&per_page=1000"
+                # max=100 according to https://docs.gitlab.com/ce/api/README.html#pagination
+		GLABURL="https://$GLABHOST/api/v3/projects?simple=true&per_page=100"
 
-		# I prefer to use the private token instead of oauth
-		curl -s --header "PRIVATE-TOKEN: $PTOKEN" "$GLABURL" | python -mjson.tool | sed 's/[\",]//g' | egrep "web_url:" |sed 's/\s*web_url:\s*//g'
+                # fetch the needed page count first, then iterate over all pages
+                PAGECNT=$(curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head | grep 'X-Total-Pages' |egrep -o '[[:digit:]]' |tr -d '\n')
+                PAGE=1
+                F_LOG $FUNCNAME "page count on GLABURL is: $PAGECNT starting at page: $PAGE"
+
+                while [ "$PAGE" -le "$PAGECNT" ];do
+                    F_LOG $FUNCNAME "parsing page $PAGE ..."
+		    curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" 2>&1 >> $LOG
+		    curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" | python -mjson.tool | sed 's/[\",]//g' | egrep "web_url:" |sed 's/\s*web_url:\s*//g'
+                    PAGE=$((PAGE + 1))
+                done
 	fi
-	echo "$FUNCNAME finished" >> $LOG
+	F_LOG $FUNCNAME finished
 }
 
 # Just showing a simple message box with some dynamic info
