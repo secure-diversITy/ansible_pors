@@ -1,5 +1,5 @@
-\hypertarget{ansible__engine_8sh}{}\section{/opt/data/development/git/ansible\+\_\+engine/repo/ansible\+\_\+engine.sh File Reference}
-\label{ansible__engine_8sh}\index{/opt/data/development/git/ansible\+\_\+engine/repo/ansible\+\_\+engine.\+sh@{/opt/data/development/git/ansible\+\_\+engine/repo/ansible\+\_\+engine.\+sh}}
+\hypertarget{ansible__engine_8sh}{}\section{/opt/data/development/git/ansible\+\_\+engine\+\_\+dmc/ansible\+\_\+engine.sh File Reference}
+\label{ansible__engine_8sh}\index{/opt/data/development/git/ansible\+\_\+engine\+\_\+dmc/ansible\+\_\+engine.\+sh@{/opt/data/development/git/ansible\+\_\+engine\+\_\+dmc/ansible\+\_\+engine.\+sh}}
 
 
 -\/\+T\+H\+E-\/ G\+UI for using ansible + splunk  
@@ -11,7 +11,19 @@
 \mbox{\hyperlink{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}{F\+\_\+\+E\+N\+D\+S\+E\+SS}} ()
 \begin{DoxyCompactList}\small\item\em Clear ae session. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{ansible__engine_8sh_a66ec6201aeab8fa5ad0064b93bd4850c}{F\+\_\+\+E\+X\+IT}} (1)
-\begin{DoxyCompactList}\small\item\em The regular exit. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em The regular exit. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_a11be079619b38fc891171796f6434bcb}{F\+\_\+\+T\+A\+R\+G\+E\+TS}} (1, 2)
+\begin{DoxyCompactList}\small\item\em identify targets/hosts of a group \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_a8233577ab4c7a9a7be584c90aea71749}{F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+TS}} (1)
+\begin{DoxyCompactList}\small\item\em create an expanded list of hostnames \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_a8012bbe8c3a9244ff76f4000e67f191a}{F\+\_\+\+S\+E\+L\+H\+O\+ST}} (1)
+\begin{DoxyCompactList}\small\item\em Show and choose host(s) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_a9568fd1ead2b71b897b08920e10845a5}{F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+PL}} ()
+\begin{DoxyCompactList}\small\item\em Install splunk on ansible prepared servers. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_a404f494374c78e96b2638ab4b727a158}{F\+\_\+\+C\+L\+U\+S\+T\+ER}} ()
+\begin{DoxyCompactList}\small\item\em Indexer cluster menu. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{ansible__engine_8sh_ad8cc58f72a5560d0ae9e41b78ac63baf}{F\+\_\+\+A\+D\+D\+P\+E\+ER}} ()
+\begin{DoxyCompactList}\small\item\em Configures a new peer to an existing indexer cluster. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
@@ -23,6 +35,12 @@ String \mbox{\hyperlink{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}{B
 \mbox{\Hypertarget{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}\label{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}} 
 String \mbox{\hyperlink{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}{W\+O\+R\+K\+D\+IR}} = \char`\"{}.\$(echo \$\{\mbox{\hyperlink{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}{B\+IN}}/.sh\}$\vert$tr \+\_\+)\char`\"{}
 \begin{DoxyCompactList}\small\item\em The working directory where all run files of ae will be stored. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_ac7187ca7ba17909332956762d43e1cb8}\label{ansible__engine_8sh_ac7187ca7ba17909332956762d43e1cb8}} 
+String \mbox{\hyperlink{ansible__engine_8sh_ac7187ca7ba17909332956762d43e1cb8}{L\+OG}} = \$\mbox{\hyperlink{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}{W\+O\+R\+K\+D\+IR}}/\$\{\mbox{\hyperlink{ansible__engine_8sh_a4cdf0b70265066d6127339b05fd497c1}{B\+IN}}\}.log
+\begin{DoxyCompactList}\small\item\em The ae log file. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ansible__engine_8sh_a75a1ad4da5e27d9b290238f213609894}\label{ansible__engine_8sh_a75a1ad4da5e27d9b290238f213609894}} 
+String {\bfseries A\+E\+U\+S\+R\+H\+O\+S\+T\+F\+I\+LE} = \$\{\mbox{\hyperlink{ansible__engine_8sh_a65ed767ae8d8b098d10bef5621b44918}{W\+O\+R\+K\+D\+IR}}\}/ae\+\_\+current\+\_\+hostfile
+\item 
 \mbox{\Hypertarget{ansible__engine_8sh_a90f3e5b40645b8ebe43db8f146fbaded}\label{ansible__engine_8sh_a90f3e5b40645b8ebe43db8f146fbaded}} 
 String \mbox{\hyperlink{ansible__engine_8sh_a90f3e5b40645b8ebe43db8f146fbaded}{E\+D\+I\+T\+B\+IN}} = /usr/bin/vim
 \begin{DoxyCompactList}\small\item\em The editor which will be used e.\+g. when editing system/local files. \end{DoxyCompactList}\item 
@@ -56,6 +74,10 @@ String \mbox{\hyperlink{ansible__engine_8sh_a5abc6709ccffb498c492099b1770c0d6}{P
 \begin{DoxyCompactList}\small\item\em Execute splunk helper tasks. \end{DoxyCompactList}\item 
 String \mbox{\hyperlink{ansible__engine_8sh_a07a65ca55f4f8bec6ba69c3d4f05db1c}{P\+B\+S\+P\+L\+A\+CT}} = \$\{A\+D\+IR\}/maintenance/splunk\+\_\+tasks.\+yml
 \begin{DoxyCompactList}\small\item\em Maintenance tasks for splunk. \end{DoxyCompactList}\item 
+String \mbox{\hyperlink{ansible__engine_8sh_a5cd762e578035a4804ac18c2629c13e7}{P\+B\+I\+N\+S\+T\+A\+LL}} = install\+\_\+splunk.\+yml
+\begin{DoxyCompactList}\small\item\em Install splunk. \end{DoxyCompactList}\item 
+String \mbox{\hyperlink{ansible__engine_8sh_ac1b51f4881d2cb0122ebe0fa5dadf285}{P\+B\+C\+O\+N\+F\+P\+E\+ER}} = \$\{A\+D\+IR\}/ae\+\_\+configure\+\_\+ix\+\_\+peernode.\+yml
+\begin{DoxyCompactList}\small\item\em Configures splunk as a peernode. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{ansible__engine_8sh_aa303602d6c6a608b35e3c950471b05bd}\label{ansible__engine_8sh_aa303602d6c6a608b35e3c950471b05bd}} 
 Exported String {\bfseries P\+Y\+T\+H\+O\+N\+P\+A\+TH} = \$\{A2\+P\+A\+TH\}/lib
 \end{DoxyCompactItemize}
@@ -87,7 +109,37 @@ This program is free software\+: you can redistribute it and/or modify~\newline
  along with this program. If not, see \href{http://www.gnu.org/licenses/}{\tt http\+://www.\+gnu.\+org/licenses/}. 
 
 \subsection{Function Documentation}
-\mbox{\Hypertarget{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}\label{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}} 
+\mbox{\Hypertarget{ansible__engine_8sh_ad8cc58f72a5560d0ae9e41b78ac63baf}\label{ansible__engine_8sh_ad8cc58f72a5560d0ae9e41b78ac63baf}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+A\+D\+D\+P\+E\+ER@{F\+\_\+\+A\+D\+D\+P\+E\+ER}}
+\index{F\+\_\+\+A\+D\+D\+P\+E\+ER@{F\+\_\+\+A\+D\+D\+P\+E\+ER}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+A\+D\+D\+P\+E\+E\+R()}{F\_ADDPEER()}}
+{\footnotesize\ttfamily F\+\_\+\+A\+D\+D\+P\+E\+ER (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Configures a new peer to an existing indexer cluster. 
+
+
+\begin{DoxyExceptions}{Exceptions}
+{\em ..} & \\
+\hline
+\end{DoxyExceptions}
+\mbox{\Hypertarget{ansible__engine_8sh_a404f494374c78e96b2638ab4b727a158}\label{ansible__engine_8sh_a404f494374c78e96b2638ab4b727a158}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+C\+L\+U\+S\+T\+ER@{F\+\_\+\+C\+L\+U\+S\+T\+ER}}
+\index{F\+\_\+\+C\+L\+U\+S\+T\+ER@{F\+\_\+\+C\+L\+U\+S\+T\+ER}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+C\+L\+U\+S\+T\+E\+R()}{F\_CLUSTER()}}
+{\footnotesize\ttfamily F\+\_\+\+C\+L\+U\+S\+T\+ER (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Indexer cluster menu. 
+
+
+\begin{DoxyExceptions}{Exceptions}
+{\em When} & no valid answer given returning to M\+A\+IN menu\\
+\hline
+\end{DoxyExceptions}
+Provides a menu for several cluster tasks \mbox{\Hypertarget{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}\label{ansible__engine_8sh_ae32aed87711d2842d25199eda0b2726e}} 
 \index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+E\+N\+D\+S\+E\+SS@{F\+\_\+\+E\+N\+D\+S\+E\+SS}}
 \index{F\+\_\+\+E\+N\+D\+S\+E\+SS@{F\+\_\+\+E\+N\+D\+S\+E\+SS}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
 \subsubsection{\texorpdfstring{F\+\_\+\+E\+N\+D\+S\+E\+S\+S()}{F\_ENDSESS()}}
@@ -115,10 +167,122 @@ The regular exit.
 \begin{DoxyReturn}{Returns}
 0
 \end{DoxyReturn}
-If just executed without param ae will not clear the session but when a full abort is required use param 1 accordingly 
+If just executed without param ae will not clear the session but when a full abort is required use param 1 accordingly \mbox{\Hypertarget{ansible__engine_8sh_a8233577ab4c7a9a7be584c90aea71749}\label{ansible__engine_8sh_a8233577ab4c7a9a7be584c90aea71749}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+TS@{F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+TS}}
+\index{F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+TS@{F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+TS}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+T\+S()}{F\_EXPANDHOSTS()}}
+{\footnotesize\ttfamily F\+\_\+\+E\+X\+P\+A\+N\+D\+H\+O\+S\+TS (\begin{DoxyParamCaption}\item[{1}]{ }\end{DoxyParamCaption})}
+
+
+
+create an expanded list of hostnames 
+
+
+\begin{DoxyParams}{Parameters}
+{\em 1} & target group name \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+space delimited list with the expanded list of hostnames
+\end{DoxyReturn}
+expands a target group to a list of hostnames/ips defined in the users host file \mbox{\Hypertarget{ansible__engine_8sh_a9568fd1ead2b71b897b08920e10845a5}\label{ansible__engine_8sh_a9568fd1ead2b71b897b08920e10845a5}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+PL@{F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+PL}}
+\index{F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+PL@{F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+PL}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+P\+L()}{F\_INSTALLSPL()}}
+{\footnotesize\ttfamily F\+\_\+\+I\+N\+S\+T\+A\+L\+L\+S\+PL (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Install splunk on ansible prepared servers. 
+
+
+\begin{DoxyExceptions}{Exceptions}
+{\em on} & abort\+: F\+\_\+\+A\+B\+O\+R\+T\+M\+A\+I\+N\+M\+E\+NU, on failure\+: F\+\_\+\+E\+R\+R\+L\+OG dialog \\
+\hline
+\end{DoxyExceptions}
+\mbox{\Hypertarget{ansible__engine_8sh_a8012bbe8c3a9244ff76f4000e67f191a}\label{ansible__engine_8sh_a8012bbe8c3a9244ff76f4000e67f191a}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+S\+E\+L\+H\+O\+ST@{F\+\_\+\+S\+E\+L\+H\+O\+ST}}
+\index{F\+\_\+\+S\+E\+L\+H\+O\+ST@{F\+\_\+\+S\+E\+L\+H\+O\+ST}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+S\+E\+L\+H\+O\+S\+T()}{F\_SELHOST()}}
+{\footnotesize\ttfamily F\+\_\+\+S\+E\+L\+H\+O\+ST (\begin{DoxyParamCaption}\item[{1}]{ }\end{DoxyParamCaption})}
+
+
+
+Show and choose host(s) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em 1} & specify a target group directly (non interactive -\/ will just output A\+LL(!) the host(s) of a group)\\
+\hline
+\end{DoxyParams}
+Parsing the inventory, offering all groups found, parsing groups including childs, remove dups, offer host list and let the user choose 
+\begin{DoxyExceptions}{Exceptions}
+{\em on} & abort\+: F\+\_\+\+A\+B\+O\+R\+T\+M\+A\+I\+N\+M\+E\+NU, on faulure\+: error dialog \\
+\hline
+\end{DoxyExceptions}
+\mbox{\Hypertarget{ansible__engine_8sh_a11be079619b38fc891171796f6434bcb}\label{ansible__engine_8sh_a11be079619b38fc891171796f6434bcb}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!F\+\_\+\+T\+A\+R\+G\+E\+TS@{F\+\_\+\+T\+A\+R\+G\+E\+TS}}
+\index{F\+\_\+\+T\+A\+R\+G\+E\+TS@{F\+\_\+\+T\+A\+R\+G\+E\+TS}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{F\+\_\+\+T\+A\+R\+G\+E\+T\+S()}{F\_TARGETS()}}
+{\footnotesize\ttfamily F\+\_\+\+T\+A\+R\+G\+E\+TS (\begin{DoxyParamCaption}\item[{1}]{,  }\item[{2}]{ }\end{DoxyParamCaption})}
+
+
+
+identify targets/hosts of a group 
+
+\mbox{[}sec2\mbox{]} host As we catch always section + 1 next line on step 2 to identify empty sections the above steps ensure we will {\itshape N\+OT} have a result of\+: \char`\"{}sec1\char`\"{} has host \char`\"{}sec2\char`\"{}
+\begin{DoxyEnumerate}
+\item get only these lines containing a comma and something behind (means section has a value) this is needed as a section can be empty which shouldnt be shown if!
+\end{DoxyEnumerate}
+
+
+\begin{DoxyParams}{Parameters}
+{\em 1} & required\+: dialog option (checklist/radiolist) \\
+\hline
+{\em 2} & optional\+: automatic/non interactive mode (auto selected group name$\vert$empty) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+list of hosts 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em on} & error or abort\+: abort\\
+\hline
+\end{DoxyExceptions}
+
+\begin{DoxyEnumerate}
+\item filter out all vars and child sections
+\item get all sections and 1 next line
+\item replace \mbox{[} with newline
+\item replace \mbox{]} with comma and empty lines with a /
+\item remove all newlines
+\item replace // with /
+\item replace / with newline --$>$ steps 4-\/7 are required to ensure even when 2 sections are written without a space between. Example\+: 
+\end{DoxyEnumerate}
 
 \subsection{Variable Documentation}
-\mbox{\Hypertarget{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}\label{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}} 
+\mbox{\Hypertarget{ansible__engine_8sh_ac1b51f4881d2cb0122ebe0fa5dadf285}\label{ansible__engine_8sh_ac1b51f4881d2cb0122ebe0fa5dadf285}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+B\+C\+O\+N\+F\+P\+E\+ER@{P\+B\+C\+O\+N\+F\+P\+E\+ER}}
+\index{P\+B\+C\+O\+N\+F\+P\+E\+ER@{P\+B\+C\+O\+N\+F\+P\+E\+ER}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{P\+B\+C\+O\+N\+F\+P\+E\+ER}{PBCONFPEER}}
+{\footnotesize\ttfamily P\+B\+C\+O\+N\+F\+P\+E\+ER = \$\{A\+D\+IR\}/ae\+\_\+configure\+\_\+ix\+\_\+peernode.\+yml}
+
+
+
+Configures splunk as a peernode. 
+
+This will configure an existing splunk installation as a peernode of an existing indexer cluster \mbox{\Hypertarget{ansible__engine_8sh_a5cd762e578035a4804ac18c2629c13e7}\label{ansible__engine_8sh_a5cd762e578035a4804ac18c2629c13e7}} 
+\index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+B\+I\+N\+S\+T\+A\+LL@{P\+B\+I\+N\+S\+T\+A\+LL}}
+\index{P\+B\+I\+N\+S\+T\+A\+LL@{P\+B\+I\+N\+S\+T\+A\+LL}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
+\subsubsection{\texorpdfstring{P\+B\+I\+N\+S\+T\+A\+LL}{PBINSTALL}}
+{\footnotesize\ttfamily P\+B\+I\+N\+S\+T\+A\+LL = install\+\_\+splunk.\+yml}
+
+
+
+Install splunk. 
+
+Will install splunk on a single host or group of hosts \mbox{\Hypertarget{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}\label{ansible__engine_8sh_a63fb318d1ba289777a689f021cfb4434}} 
 \index{ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}!P\+B\+S\+H\+I\+N\+S\+T\+A\+LL@{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}}
 \index{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL@{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}!ansible\+\_\+engine.\+sh@{ansible\+\_\+engine.\+sh}}
 \subsubsection{\texorpdfstring{P\+B\+S\+H\+I\+N\+S\+T\+A\+LL}{PBSHINSTALL}}
