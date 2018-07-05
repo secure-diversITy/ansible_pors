@@ -598,8 +598,9 @@ F_LOCSRC(){
 	unset SDIR OPTIONS
 	[ ! -d "$REPODIR" ]&& echo "Cannot determine repo dir <$REPODIR>!! ABORTED" && F_EXIT
 
-	OPTIONS=($(for tgz in $(find $REPODIR -type f |grep -v "/splunk/"|egrep "(tar|tgz|spl)");do echo ${tgz##*/} "file" off; done))
-	SDIR=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 22 80 16 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+	#OPTIONS=($(for tgz in $(find $REPODIR -type f |grep -v "/splunk/"|egrep "(tar|tgz|spl)");do echo ${tgz##*/} "file" off; done | sort))
+	OPTIONS=($(for tgz in $(find $REPODIR -type f |egrep "(tar|tgz|spl)");do echo ${tgz##*/} "file" off; done | sort))
+	SDIR=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 40 80 40 "${OPTIONS[@]}" 2>&1 >/dev/tty)
         if [ $? -ne 0 ];then
             SDIR=999
         fi
