@@ -45,6 +45,8 @@
   when: 
     - splunk_optimize.selinux is defined
 
+- include: set_perms.yml
+
 - include: splunk_start.yml
   when:
     - splpeernode.stdout != "slave" 

@@ -1,0 +1,7 @@
+- name: Set directory permissions for splunk etc
+  file: path={{ splunk_installation.splunk_home_path }}/etc/
+        mode=0750
+
+- name: Set directory permissions for splunk etc/apps
+  file: path={{ splunk_installation.splunk_home_path }}/etc/apps
+        mode=0750
