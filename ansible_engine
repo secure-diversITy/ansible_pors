@@ -35,7 +35,9 @@
 ## https://github.com/secure-diversITy/ansible_engine/wiki
 ##<br>
 ###############################################################################################################
-VERSION=20180528
+VERSIONTYPE=testing
+VERSIONNUM=20180705
+VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
 # doxygen copy templates:
