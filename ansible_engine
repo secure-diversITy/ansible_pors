@@ -785,11 +785,14 @@ F_ENAPP(){
 			fi
 			# get gitlab projects
 			F_DIALOG --begin 3 3 --infobox "\nPlease standby until all gitlab projects have been parsed..." 5 80
-			SELAPPS=$(F_GITLABSRC|sort)
-			unset OPTIONS
-        		OPTIONS=($(echo "CUSTOM GIT-Project off" && for gapp in $SELAPPS;do echo ${gapp##*/} "GIT-Project" off; done))
-		        GLABAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-                        for gapp in $GLABAPP;do
+			CSELAPPS=$(F_GITLABSRC|sort)
+                        echo "$CSELAPPS" |grep "returncode:0" >> $LOG
+                        if [ $? -eq 0 ];then
+                            SELAPPS="${CSELAPPS/returncode:0}"
+			    unset OPTIONS
+        		    OPTIONS=($(echo "CUSTOM GIT-Project off" && for gapp in $SELAPPS;do echo ${gapp##*/} "GIT-Project" off; done))
+		            GLABAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+                            for gapp in $GLABAPP;do
 				if [ "$gapp" == "CUSTOM" ];then
 					gapp=$(F_DIALOG --inputbox '\nHINT: the project MUST exists already on the gitlab server!\nType in the gitlab project name (only the name):\n' 15 100 2>&1 >>/dev/tty)
 				fi
@@ -809,7 +812,10 @@ F_ENAPP(){
 						F_ERRLOG "$?" "linking $gapp to $tgroup\n\n" "$LOG"
 	                                done
 				fi
-                        done
+                            done
+                        else
+                            F_DIAERR 9 "$FUNCNAME: GITLAB API ERROR!! CHECK $LOG"
+                        fi
 			;;
 			*)
 			echo NO SELECTION MADE..
@@ -856,6 +862,7 @@ F_GITLABSRC(){
 	# build gitlab URL
 	# curl with the private token 
 	# parse the result with python and grep for the wanted project URLs
+    # HINT: no dialogs allowed here!
 	unset ERRC
 	if [ ! -z "$PTOKEN" ]&&[ ! -z "$GLABHOST" ];then
 		# TODO: check for curl as a req
@@ -865,21 +872,32 @@ F_GITLABSRC(){
 		# ... but: it works atm..
 		# page=1 and per_page are required otherwise you will see the per page setting in the users settings only (default 20)
                 # max=100 according to https://docs.gitlab.com/ce/api/README.html#pagination
-		GLABURL="https://$GLABHOST/api/v3/projects?simple=true&per_page=100"
+                GLABURL="https://$GLABHOST/api/v4/projects?simple=true&per_page=100"
 
-                # fetch the needed page count first, then iterate over all pages
-                PAGECNT=$(curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head | grep 'X-Total-Pages' |egrep -o '[[:digit:]]' |tr -d '\n')
-                PAGE=1
-                F_LOG $FUNCNAME "page count on GLABURL is: $PAGECNT starting at page: $PAGE"
+                curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head | egrep "HTTP/.* 200 OK" >> $LOG
+                if [ $? -eq 0 ];then
+                    # fetch the needed page count first, then iterate over all pages
+                    PAGECNT=$(curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head | grep 'X-Total-Pages' |egrep -o '[[:digit:]]' |tr -d '\n')
+                    # debugging
+                    # echo "curl -k -s --header \"PRIVATE-TOKEN: $PTOKEN\" \"${GLABURL}\" --head" >> $LOG
+                    PAGE=1
+                    F_LOG $FUNCNAME "page count on GLABURL is: $PAGECNT starting at page: $PAGE"
 
-                while [ "$PAGE" -le "$PAGECNT" ];do
-                    F_LOG $FUNCNAME "parsing page $PAGE ..."
-		    curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" 2>&1 >> $LOG
-		    curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" | python -mjson.tool | sed 's/[\",]//g' | egrep "web_url:" |sed 's/\s*web_url:\s*//g'
-                    PAGE=$((PAGE + 1))
-                done
+                    while [ "$PAGE" -le "$PAGECNT" ];do
+                        F_LOG $FUNCNAME "parsing page $PAGE ..."
+                        #curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" 2>&1 | python -mjson.tool >> $LOG
+                        curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" | python -mjson.tool | sed 's/[\",]//g' | egrep "web_url:" |sed 's/\s*web_url:\s*//g'
+                        PAGE=$((PAGE + 1))
+                    done
+                    ERRC=$?
+                else
+                    curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head >> $LOG
+                    F_LOG $FUNCNAME "API ERROR! Check your gitlab config!\nconnecting to $GLABURL returned an error:\n$( curl -k -s --header \"PRIVATE-TOKEN: $PTOKEN\" \"${GLABURL}\" --head)\n\nstart AE with --advanced to re-initialize gitlab, check the access token in gitlab and ensure the gitlab API url is still correct"
+                    ERRC=9
+                fi
 	fi
-	F_LOG $FUNCNAME finished
+	echo "$FUNCNAME finished" >> $LOG
+        echo "returncode:$ERRC"
 }
 
 # Just showing a simple message box with some dynamic info
