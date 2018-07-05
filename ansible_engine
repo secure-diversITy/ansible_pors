@@ -761,7 +761,7 @@ F_ENAPP(){
 				app_type=$(echo "$app_dir" | egrep -o '(/other$|/splunk$)')
 				F_LOG $FUNCNAME "app_fulldir: $app_fulldir, app_dir: $app_dir, app_type: $app_type"
 				if [ "$app_type" == "/other" -o "$app_type" == "/splunk" ];then
-				    app_name="$(tar tf "$app_fulldir" 2> /dev/null |head -n1 |tr -d "/")"
+				    app_name=$(tar tf "$app_fulldir" 2> /dev/null |head -n1 | cut -d '/' -f1)
 				else
 				    app_name=${app_dir##*/}
 				    app_type="/${app_name}"
