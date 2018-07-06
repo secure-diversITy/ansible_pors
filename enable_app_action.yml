@@ -32,8 +32,8 @@
       default: "master"
 
   pre_tasks:
-    - include_vars: inventories/{{ target_env }}/group_vars/all/splunk_repository
-    - include_vars: inventories/{{ target_env }}/group_vars/{{ app2group }}/deployment
+    - include_vars: "{{ inventory_dir }}/group_vars/all/splunk_repository"
+    - include_vars: "{{ inventory_dir }}/group_vars/{{ app2group }}/deployment"
 
   tasks:
   - name: Building full file path if defined
@@ -59,28 +59,28 @@
         app_variable: "{{ app_name | regex_replace('-', '_')}}"
 
   - name: Copy template app template
-    command: cp -RfT roles/apps/app.template roles/apps/{{ app_name }} 
+    command: cp -RfT {{ inventory_dir }}/../../roles/apps/app.template {{ inventory_dir }}/../../roles/apps/{{ app_name }} 
 
   - name: Set app variables
-    template: src=roles/apps/{{ app_name }}/vars/main.yml.j2
-              dest=roles/apps/{{ app_name }}/vars/main.yml
+    template: src={{ inventory_dir }}/../../roles/apps/{{ app_name }}/vars/main.yml.j2
+              dest={{ inventory_dir }}/../../roles/apps/{{ app_name }}/vars/main.yml
               mode=0640
 
   - name: Set app variables within group_vars
-    template: src=roles/common/templates/add_app_groupvars.j2
-              dest=inventories/{{ target_env }}/group_vars/{{ app2group }}/{{ app_name }}
+    template: src={{ inventory_dir }}/../../roles/common/templates/add_app_groupvars.j2
+              dest={{ inventory_dir }}/group_vars/{{ app2group }}/{{ app_name }}
               mode=0640
 
   - name: Remove template file
-    file: path=roles/apps/{{ app_name }}/vars/main.yml.j2
+    file: path={{ inventory_dir }}/../../roles/apps/{{ app_name }}/vars/main.yml.j2
           state=absent
  
   - name: Find app roles
-    command: "ls roles/apps"
+    command: "ls {{ inventory_dir }}/../../roles/apps"
     register: app_roles
 
   - name: (Re)create deploy_apps.yml
-    template: src=roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
-              dest=inventories/{{ target_env }}/ae_deploy_apps.yml
+    template: src={{ inventory_dir }}/../../roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+              dest={{ inventory_dir }}/../../ae_deploy_apps.yml
               mode=0640
 

@@ -316,7 +316,7 @@ F_HELP(){
 	echo
 	echo -e "    Mandatory:\n    ---------------------"
 	echo -e "\t--env [production | development | ...]"
-	echo -e "\t\t\tdefine the running environment ($ADIR/inventories/[your --env setting]/"
+	echo -e "\t\t\tdefine the running environment ($AINVENTORY/[your --env setting]/"
 	echo -e "\n    Optional:\n    ---------------------"
 	echo -e "\t--help\t\tWill show this\n"
 	echo -e "\t--advanced\tWill enable/show advanced option menu"
@@ -539,9 +539,9 @@ F_DEPLSYSC(){
 				# for shcmember, ...
 				#F_GVARDIR "$hgroup"
 				# update task etc stuff first
-				F_TPLUPDATE "roles/system" "$hgroup/$hex"
-				echo -e "Will play:\n$ABIN -i $HOSTFILE $PBDEPLSYSC -e \"target=$hgroup exp_host=$hex\"" >> $LOG
-				$ABIN -i $HOSTFILE $PBDEPLSYSC -e "target=$hgroup exp_host=$hex"
+				F_TPLUPDATE "${ROLEDIR}/system" "$hgroup/$hex"
+				echo -e "Will play:\n$ABIN -i $HOSTFILE ${PBDIR}/$PBDEPLSYSC -e \"target=$hgroup exp_host=$hex\"" >> $LOG
+				$ABIN -i $HOSTFILE ${PBDIR}/$PBDEPLSYSC -e "target=$hgroup exp_host=$hex"
 				ERR=$?
 				F_DIAERR "$ERR" "on \Zb\Z1<$hex>\Zn"
 				[ $ERR -ne 0 ]&& F_MSG "ERROR: ABORTED deployment!" && break 2 >>$LOG
@@ -780,8 +780,8 @@ F_ENAPP(){
 				fi
 				for tgroup in $HOSTSELECTION;do
 					F_GVARDIR $tgroup
-					echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''\":\n" >>$LOG
-					$ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG 2>&1
+					echo -e "will start playbook:\n$ABIN -i $HOSTFILE ${PBDIR}/$PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''\":\n" >>$LOG
+					$ABIN -i $HOSTFILE ${PBDIR}/$PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG 2>&1
 					[ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				done
 			done
@@ -1017,7 +1017,7 @@ F_PULLSYSC(){
 			DANGEROUS-Import|Pull)
 	  		    for host in $(echo "$HOSTSELEXPANDED"| cut -d : -f1);do
 				OWNDIR=$HOSTSELECTION/$host
-				SYScDIR=roles/system/$OWNDIR
+				SYScDIR=${ROLEDIR}/system/$OWNDIR
 				if [ ! -d "$SYScDIR/files" ];then
 				    mkdir -p "$SYScDIR"
 		    		    TPLMSG="Base directory structure created!"
@@ -1026,7 +1026,7 @@ F_PULLSYSC(){
 				fi
 	
 				# this initiates the template files but also ensures that we keep all tasks and stuff current!
-				F_TPLUPDATE "roles/system" $OWNDIR
+				F_TPLUPDATE "${ROLEDIR}/system" $OWNDIR
 	
 				# do stuff based on user selection
 				if [ "$ANS" == "DANGEROUS-Import" ];then
@@ -1175,7 +1175,7 @@ F_EDITSYSC(){
 			
 			echo "$FUNCNAME: Continuing after pull selection ($PERR)" >> $LOG
 
-			SYSDIR=roles/system/$HOSTSELECTION/$EDITHOST/system_local_configs/files/system/local
+			SYSDIR=${ROLEDIR}/system/$HOSTSELECTION/$EDITHOST/system_local_configs/files/system/local
 			unset OPTIONS
        			OPTIONS=($(for hostfile in $(find $SYSDIR -type f) ;do echo "${hostfile##*/}" "file";done|sort -f))
 		        while [ -z "$FTARGET" ];do
@@ -1756,12 +1756,12 @@ F_DEPLOYAPP(){
                 fi
         done
 	if [ "$ABORTED" -eq 0 ];then
-		for rolesapp in $(find roles/apps -maxdepth 1 -type d |egrep -v "(template|file|vars|tasks)");do
-			F_APPTPLUPDATE "roles/apps/app.template/tasks" "$rolesapp/tasks"
+		for rolesapp in $(find ${ROLEDIR}/apps -maxdepth 1 -type d |egrep -v "(template|file|vars|tasks)");do
+			F_APPTPLUPDATE "${ROLEDIR}/apps/app.template/tasks" "$rolesapp/tasks"
 		done
 		F_LOG "$FUNCNAME" "Re-creating deployment playbook to reflect any manual changes.. "
 
-		$ABIN -i $HOSTFILE ae_recreate_deploy.yml -e "target_env=$TARGETENV"
+		$ABIN -i $HOSTFILE ${PBDIR}/ae_recreate_deploy.yml -e "target_env=$TARGETENV"
 		
 		# do not buffer stdout!!
 		export PYTHONUNBUFFERED=1
@@ -2061,7 +2061,7 @@ else
         [ "$TARGETENV" == "ABORTED" ] && F_EXIT
     done
 
-    [ ! -d "$ADIR/inventories/$TARGETENV" ] && echo -e "\nERROR: specified environment $TARGETENV\n($ADIR/inventories/$TARGETENV)\ndoes not exist!" && F_HELP && F_EXIT
+    [ ! -d "$AINVENTORY/$TARGETENV" ] && echo -e "\nERROR: specified environment $TARGETENV\n($AINVENTORY/$TARGETENV)\ndoes not exist!" && F_HELP && F_EXIT
     [ -z "$MAINMENU" ]&& MAINMENU=F_MENUMAIN
     $MAINMENU
 fi

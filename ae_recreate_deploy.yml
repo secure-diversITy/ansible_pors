@@ -3,11 +3,11 @@
 
   tasks:
   - name: Find app roles
-    command: "ls roles/apps"
+    command: "ls {{ inventory_dir }}/../../roles/apps"
     register: app_roles
 
   - name: Create ae_deploy_apps.yml
-    template: src=roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
-              dest=inventories/{{ target_env }}/ae_deploy_apps.yml
+    template: src={{ inventory_dir }}/../../roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+              dest={{ inventory_dir }}/ae_deploy_apps.yml
               mode=0640
 

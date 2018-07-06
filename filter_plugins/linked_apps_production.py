@@ -3,7 +3,7 @@ import os
 import re
 
 def linked_app_list_production(app):
-  base_dir='inventories/' + 'production' + '/group_vars/'
+  base_dir = os.environ['AINVENTORY'] + '/production/' + '/group_vars/'
   eapp={}
   mopp={}
   overalldict={}
@@ -33,5 +33,5 @@ class FilterModule(object):
  def filters(self):
    return {'link_app_list_production': linked_app_list_production}
 
-mapp=os.listdir("roles/apps")
+mapp=os.listdir(os.environ['ROLEDIR'] +  "/apps")
 linked_app_list_production(mapp)
