@@ -55,6 +55,8 @@ VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 # # @details ..
 ##############################################################################################################
 
+# source an variable overwrite if available
+[ -f ${HOME}/.ae/vars ] && source ${HOME}/.ae/vars
 
 ## @var PYTHONUNBUFFERED
 ## @brief avoid buffering when exec python code (ansible)
@@ -74,11 +76,11 @@ declare BIN=${0##*/}
 declare WORKDIR=".$(echo ${BIN/.sh}|tr -d _)"
 [ ! -d "$WORKDIR" ]&& mkdir -p $WORKDIR
 
-# we resist on the bashrc alias so using pwd is fine here
-ADIR=${PWD}
+# the ae install dir (PWD is fine when using the bashrc alias - otherwise set the correct one in ~/.ae/vars 
+: "${ADIR:=$PWD}"
 
 # the path where your inventories (with their subdirs like development, production) are in
-AINVENTORY=$ADIR/inventories
+: "${AINVENTORY:=$ADIR/inventories}"
 
 # normally we want to have 1 instance running the same time. This avoids dozens of problems which could occur.
 KICKUSER=N
@@ -93,8 +95,8 @@ EXECBIT=$WORKDIR/.inuse
 ABIN=ansible-playbook
 
 # if you want you can run another ansible version by specifying the A2xx vars:
-A2PATH=/opt/splunk/ansible-git
-A2BIN=$A2PATH/bin/ansible-playbook
+: "${A2PATH:=/opt/splunk/ansible-git}"
+: "${A2BIN:=$A2PATH/bin/ansible-playbook}"
 
 ## @var LOG
 ## @brief The ae log file
@@ -112,13 +114,21 @@ declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
 
 ## @var EDITBIN
 ## @brief The editor which will be used e.g. when editing system/local files
+## @details Can be overwritten by ~/.ae/vars
 ## @showinitializer
-declare EDITBIN=/usr/bin/vim
+[ -z "$EDITBIN" ] && declare EDITBIN=/usr/bin/vim
 
 ## @var PBDIR
 ## @brief The directory where all playbooks are expected
+## @details Can be overwritten by ~/.ae/vars
 ## @showinitializer
-declare PBDIR="$PWD"
+[ -z "$PBDIR" ] && declare PBDIR="$PWD"
+
+## @var ROLEDIR
+## @brief The directory where all roles are expected
+## @details Can be overwritten by ~/.ae/vars
+## @showinitializer
+[ -z "$ROLEDIR" ] && declare ROLEDIR="$PBDIR/roles"
 
 ## @var PBNEWAPP
 ## @brief Adding/Linking new app(s) to ae
@@ -175,13 +185,15 @@ declare PBINSTALL=install_splunk.yml
 declare PBCONFPEER=${ADIR}/ae_configure_ix_peernode.yml
 
 # default splunk API admin
-DEFSPLAPIADMIN=admin
+: "${DEFSPLAPIADMIN:=admin}"
 
 # default filename where your hosts defined. can be changed interactive
-DEFHOSTFILE=hosts
+: "${DEFHOSTFILE:=hosts}"
 
 # gitlab authentication file
-GLABSETTINGS=$WORKDIR/gitlab.auth
+[ -f "${HOME}/.ae/gitlab.auth" ] && GLABSETTINGS="${HOME}/.ae/gitlab.auth"
+: "${GLABSETTINGS:=$WORKDIR/gitlab.auth}"
+
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT
