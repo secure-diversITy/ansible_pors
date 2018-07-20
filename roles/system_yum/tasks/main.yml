@@ -1,0 +1,6 @@
+---
+- include: add_elrepo.yml
+  when: system_yum.elrepo.enabled
+
+- include: install_elrepo_kernel.yml
+  when: 'system_yum.elrepo.kernel.setup == "yes"'

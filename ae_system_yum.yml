@@ -1,0 +1,8 @@
+- name: Add yum repos (elrepo.org)
+  hosts: "*:!repository"
+  user: ansible
+  become: yes
+  become_user: root
+
+  roles:
+    - system_yum

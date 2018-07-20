@@ -1,0 +1,21 @@
+---
+#####################################################################################################################
+# yum settings
+#####################################################################################################################
+
+system_yum:
+  elrepo:
+    enabled: true
+    # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail !!!!
+    
+    # enable (yes) or disable (no) this repo
+    main: "no"
+    kernel:
+        # enable (yes) or disable (no) this repo
+        setup: "yes"
+        # the kernel package name to install
+        name: "kernel-lt"
+        # RHEL/CentOS: use grub to set kernel on next boot (0 or any other id number)
+        setboot: "0"
+    # enable (yes) or disable (no) this repo
+    extras: "no"

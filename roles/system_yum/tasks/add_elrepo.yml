@@ -1,0 +1,38 @@
+- name: Add elrepo
+  yum_repository:
+    name: elrepo
+    description: ELRepo.org Community Enterprise Linux Repository
+    file: elrepo_org
+    baseurl: http://elrepo.org/linux/elrepo/el7/$basearch/
+    mirrorlist: http://mirrors.elrepo.org/mirrors-elrepo.el7
+    gpgcheck: yes
+    gpgkey: https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+    enabled: "{{ system_yum.elrepo.main }}"
+
+- name: Add elrepo-kernel
+  yum_repository:
+    name: elrepo-kernel
+    description: ELRepo.org Community Enterprise Linux Repository - Kernel
+    file: elrepo_org
+    baseurl: http://elrepo.org/linux/kernel/el7/$basearch/
+    mirrorlist: http://mirrors.elrepo.org/mirrors-elrepo-kernel.el7
+    gpgcheck: yes
+    gpgkey: https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+    enabled: "{{ system_yum.elrepo.kernel.setup }}"
+
+- name: Add elrepo-extras
+  yum_repository:
+    name: elrepo-extras
+    description: ELRepo.org Community Enterprise Linux Repository - Extras
+    file: elrepo_org
+    baseurl: http://elrepo.org/linux/extras/el7/$basearch/
+    mirrorlist: http://mirrors.elrepo.org/mirrors-elrepo-extras.el7
+    gpgcheck: yes
+    gpgkey: https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+    enabled: "{{ system_yum.elrepo.extras }}"
+
+- name: Update yum cache
+  yum:
+    name: "*"
+    update_cache: yes
+
