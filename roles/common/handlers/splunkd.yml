@@ -1,0 +1,37 @@
+---
+- name: splunk start
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk start --accept-license --answer-yes"
+  when: (splunk_start is defined and splunk_start) or ( splunk_action is defined and splunk_action == "start")
+  register: action_result
+
+- name: splunk stop
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk stop"
+  when: (splunk_stop is defined and splunk_stop) or ( splunk_action is defined and splunk_action == "stop")
+  register: action_result
+
+- name: splunk restart
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart --accept-license --answer-yes"
+  when: ((splunk_restart is defined and splunk_restart) or ( splunk_action is defined and splunk_action == "restart")) and splunk_action == "THIS ACTION IS DISABLED"
+  register: action_result
+        
+- name: splunk reload deploy-server
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk reload deploy-server -auth {{ splunk_user }}:{{ splunk_password }}"
+  when: splunk_reload_deploy_server is defined and
+        splunk_reload_deploy_server and
+        inventory_hostname in groups['deploymentserver']
+  register: action_result
+
+- name: splunk apply cluster-bundle
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk apply cluster-bundle --answer-yes -auth {{ splunk_user }}:{{ splunk_password }}"
+  when: splunk_apply_cluster_bundle is defined and
+        splunk_apply_cluster_bundle and
+        inventory_hostname in groups['masternode']
+  register: action_result
+
+- name: splunk apply shcluster-bundle
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk apply shcluster-bundle -target https://{{ groups['shcmember'][0] }}:8089 --answer-yes -auth {{ splunk_user }}:{{ splunk_password }}"
+  when: splunk_apply_shcluster_bundle is defined and
+        splunk_apply_shcluster_bundle and
+        inventory_hostname in groups['deployer']
+  register: action_result
+

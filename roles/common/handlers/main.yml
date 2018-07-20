@@ -1,0 +1,3 @@
+---
+- include: splunkd.yml
+- include: shelper.yml
