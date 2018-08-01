@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=testing
-VERSIONNUM=20180731
+VERSIONNUM=20180801
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -130,14 +130,10 @@ declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
 ## @showinitializer
 [ -z "$ROLEDIR" ] && declare ROLEDIR="$PBDIR/roles"
 
-## @var PBNEWAPP
+## @var PBENAPP
 ## @brief Adding/Linking new app(s) to ae
 ## @showinitializer
-declare PBNEWAPP=ae_add_app.yml
-## @var PBENAPP
-## @brief Adding/Linking new app(s) to ae (the real action)
-## @showinitializer
-declare PBENAPP=ae_enable_app_action.yml
+declare PBENAPP=ae_enable_app.yml
 ## @var PBDEPLAPP
 ## @brief Deploy apps to given targets
 ## @showinitializer
@@ -331,7 +327,12 @@ F_HELP(){
 	echo
 }
 
-# show app deployment state
+## @fn F_SHOWAPPS()
+## @brief Deprecated way of parsing and showing apps<->target
+## @param 1 The target group to parse for
+## @return a list of all apps linked to the target
+## @exception if env cant be found
+## @details This is superseeded by F_LISTAPPS and should not be used anymore
 F_SHOWAPPS(){
 	echo "$FUNCNAME started" >> $LOG
 	SEL="$1"
@@ -344,6 +345,24 @@ F_SHOWAPPS(){
 	echo "************************************************"
 	read -p "To continue press ENTER" DUMMY
 	echo "$FUNCNAME finished" >> $LOG
+}
+
+## @fn F_LISTAPPS()
+## @brief Parse and show apps<->target links
+## @param 1 The target group to parse for
+## @return a list of all apps linked to the target in the format: "type:app-name"
+## @exception if env cant be found
+## @details $SHOWAPPS is able to handle one or multiple targets at the same time
+F_LISTAPPS(){
+        F_LOG $FUNCNAME started
+        SEL="$1"
+        [ -z "$SEL" ]&& echo "ERROR:missing arg for $FUNCNAME"
+        if [ "$SEL" == "ALL" ];then
+                ./$SHOWAPPS -batch -env $AINVENTORY/$TARGETENV
+        else
+                ./$SHOWAPPS -batch -env $AINVENTORY/$TARGETENV "$SEL"
+        fi
+        F_LOG $FUNCNAME started
 }
 
 # do you wanna see all or choose
@@ -1860,15 +1879,22 @@ F_DEPLOYAPP(){
 		
 		# do not buffer stdout!!
 		export PYTHONUNBUFFERED=1
-
-		for tgroup in $HOSTSELECTION;do
-			# CHECK first!
-			F_LOG $FUNCNAME "will exec: $A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
-			#$A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
-			#$A2BIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup 2>&1 | tee -a $LOG
-			F_A2BIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Deploying <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
-			F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$LOG"
-		done
+ 
+        DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | sed 's/^/\\n - /g')
+        F_LOG $FUNCNAME "Will deploy these apps on $HOSTSELECTION:\n$DEPAPPS"
+        F_DIALOG --scrollbar --colors --yesno "ae will deploy on\Zb\Z1\n\n   $HOSTSELECTION\n\n\Znthe following apps (use Page-up/-down to scroll, select <yes> to proceed):\Zb\Z4\n$DEPAPPS\n\n\ZnAre you sure?" 40 100
+        if [ $? -eq 0 ];then
+		    for tgroup in $HOSTSELECTION;do
+			    # CHECK first!
+			    F_LOG $FUNCNAME "will exec: $A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
+			    #$A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			    #$A2BIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup 2>&1 | tee -a $LOG
+			    F_A2BIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Deploying <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
+			    F_ERRLOG "${PIPESTATUS[0]}" "<deploying apps to $tgroup>" "$LOG"
+		    done
+        else
+            F_ERRLOG 3 "Aborted by user\n" "$LOG"
+        fi
 	fi
 }
 
