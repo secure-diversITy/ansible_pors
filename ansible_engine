@@ -389,7 +389,7 @@ F_HOSTFILE(){
 		unset OPTIONS SELECTION HOSTFILE
 		# detect available host files
 		while [ -z "$SHOSTFILE" ];do
-			OPTIONS=($(for i in $(find $AINVENTORY/$TARGETENV -maxdepth 1 -type f -name "hosts*" |grep -v template);do echo ${i##*/} file;done))
+			OPTIONS=($(for i in $(find -L $AINVENTORY/$TARGETENV -maxdepth 1 -type f -name "hosts*" |grep -v template);do echo ${i##*/} file;done))
 			SHOSTFILE=$(F_DIALOG --menu "Select a hosts file:" 22 76 16 "${OPTIONS[@]}" manually "type in a path" 2>&1 >/dev/tty)
 			[ $? -ne 0 ] && HOSTFILE="ABORTED" && F_ABORTMAINMENU 
 		done
