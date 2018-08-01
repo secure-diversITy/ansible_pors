@@ -1,0 +1,8 @@
+---
+- hosts: all
+  user: ansible
+  become: yes
+  become_user: root
+
+  roles:
+    - system_sudo
