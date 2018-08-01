@@ -1,7 +1,7 @@
 #!/bin/bash
 ##################################################################################
 #
-# Desc:		Show the deployed apps for each type
+# Desc:		    Show the deployed apps for each target and type
 # Copyright:	2017-2018, Thomas Fischer <mail -AT- sedi -DOT- one>
 #
 ##################################################################################
@@ -31,7 +31,7 @@ F_USAGE(){
     Usage info:
 
 	-h|--help|help		this output
-        -dialog			machine friendly output
+        -batch			machine friendly output
 	-env			the target environement (production/development/...)
 	<targetname>		a valid target name (group_vars/xxx)
 				you can define multiple target names separated by 
@@ -56,7 +56,7 @@ while [ ! -z "$1" ];do
 	F_USAGE
 	exit
 	;;
-	-dialog)
+	-batch)
 	MF=1
 	shift
 	;;
@@ -77,70 +77,79 @@ done
 
 [ -z "$TARGETENV" ] && TARGETENV=group_vars
 
-# define fancy color output
-  RED=$(tput setaf 1)
-  BLUE=$(tput setaf 4)
-  MAGENTA=$(tput setaf 5)
-  ENDC=$(tput sgr0)
+if [ $MF -ne 1 ];then
+  # define fancy color output
+    RED=$(tput setaf 1)
+    BLUE=$(tput setaf 4)
+    MAGENTA=$(tput setaf 5)
+    ENDC=$(tput sgr0)
 
-F_COLORS
+    F_COLORS
+fi
 
 # do the magic
 if [ -z "$TARGET" ];then
-  echo -e "\nNo specific target group(s) given. Will show all (give me a second..)\n"
+  [ $MF -eq 0 ] && echo -e "\nNo specific target group(s) given. Will show all (give me a second..)\n"
     # walk through all var folders,
     # catch all app definition files,
     # check for enabled or disabled state
     # write the list into APPLIST variable
     APPLIST=$(for i in $(ls $TARGETENV/ |grep -v templates);do 
-	      echo -e "\nApps configured on $i";
+	       [ $MF -eq 0 ] && echo -e "\nApps configured on $i";
               for a in $(egrep -l '(bundle|git_repo)' $TARGETENV/$i/*);do
 	        egrep -ql "(\s+install:\s+[fF]alse)" $a
 	        if [ $? -eq 0 ];then
-	           echo "$RED${a##*/} (DISABLED)$ENDC"
-                else
+	           [ $MF -eq 0 ] && echo "$RED${a##*/} (DISABLED)$ENDC"
+               [ $MF -eq 1 ] && echo "disabled:${a##*/}"
+            else
 	          egrep -ql 'bundle' $a 
 	          if [ $? -eq 0 ];then
-                    echo "$BLUE${a##*/} (ansible hosted)$ENDC"
+                    [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
+                    [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}"
                   else
                     egrep -ql 'git_repo' $a
                     if [ $? -eq 0 ];then
-                       echo "$MAGENTA${a##*/} (git hosted)$ENDC"
+                        [ $MF -eq 0 ] && echo "$MAGENTA${a##*/} (git hosted)$ENDC"
+                        [ $MF -eq 1 ] && echo "git-hosted:${a##*/}"
 		    fi
                   fi
 	        fi
 	      done
 	     done)
 else
- echo -e "\nOne or multiple target group(s) given."
+  [ $MF -eq 0 ] && echo -e "\nOne or multiple target group(s) given."
  for dir in $TARGET; do
-    echo "Processing $dir..."
+     [ $MF -eq 0 ] && echo "Processing $dir..."
     if [ -d "$TARGETENV/$dir" ];then
-     APPLIST="${APPLIST}\n$(for i in $(ls $TARGETENV/ |grep $dir);do 
-              echo -e "\nApps configured on $i";
+     APPLIST="$(for i in $(ls $TARGETENV/ |grep $dir);do 
+              [ $MF -eq 0 ] && echo -e "\nApps configured on $i";
               for a in $(egrep -l '(bundle|git_repo)' $TARGETENV/$i/*);do
-                egrep -ql "(\s+install:\s+[fF]alse)" $a
+                egrep -ql "(\s+install:\s+[fF]alse)" $a >> /dev/null
                 if [ $? -eq 0 ];then
-                   echo "$RED${a##*/} (DISABLED)$ENDC"
+                   [ $MF -eq 0 ] && echo "$RED${a##*/} (DISABLED)$ENDC"
+                   [ $MF -eq 1 ] && echo "disabled:${a##*/}"
                 else
-                  egrep -ql 'bundle' $a 
+                  egrep -ql 'bundle' $a >> /dev/null 
                   if [ $? -eq 0 ];then
-                    echo "$BLUE${a##*/} (ansible hosted)$ENDC"
+                    [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
+                    [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}"
                   else
-                    egrep -ql 'git_repo' $a
+                    egrep -ql 'git_repo' $a >> /dev/null
                     if [ $? -eq 0 ];then
-                       echo "$MAGENTA${a##*/} (git hosted)$ENDC"
+                       [ $MF -eq 0 ] && echo "$MAGENTA${a##*/} (git hosted)$ENDC"
+                       [ $MF -eq 1 ] && echo "git-hosted:${a##*/}"
                     fi
                   fi
                 fi
               done
              done)"
     else
-      echo -e "\n${RED}**********************************************************\n\nTarget: >$TARGETENV/$dir< does not exists!!!\n\n**********************************************************$ENDC\n"
+      [ $MF -eq 0 ] && echo -e "\n${RED}**********************************************************\n\nTarget: >$TARGETENV/$dir< does not exists!!!\n\n**********************************************************$ENDC\n"
+      [ $MF -eq 1 ] && echo "ERROR: Target >$TARGETENV/$dir< does not exists!"
     fi
   done
 fi
 
 # Show the wonderful app list ;-)
-echo -e "$APPLIST\n\n"
+echo -e "$APPLIST"
 
