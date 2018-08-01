@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=testing
-VERSIONNUM=20180720
+VERSIONNUM=20180727
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1689,15 +1689,26 @@ F_INSTALLSPL(){
 
 # Upgrade splunk
 F_UPGRADESPL(){
-        F_LOG $FUNCNAME started
+        F_LOG $FUNCNAME "started with: $@"
 	# Prepare new version?
 	# -> Setup the configs
 	# -> Show the current staged version
 	# Ask for hostfile
 	# Ask for hosts OR/AND target groups?
 	# Use upgrade playbook
- 
-	UPGRADEHOSTS="$(F_SELHOST)"
+
+        unset AUTOMODE
+
+        AUTOMODE="$1"
+        if [ -z "$AUTOMODE" ];then
+    	    UPGRADEHOSTS="$(F_SELHOST)"
+	    CREDS=$(F_GETAPICREDS)
+	    SPLUSR="${CREDS/:*}"
+	    SPLPW="${CREDS/*:}"
+        else
+            UPGRADEHOSTS="$AUTOMODE"
+        fi
+
 	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\n/g')"
 
 	if  [ -z "$UPGRADEHOSTS" ] || [ -z $UPGRADEHOSTST ];then
@@ -1707,29 +1718,111 @@ F_UPGRADESPL(){
 		F_LOG $FUNCNAME "UPGRADEHOSTS and UPGRADEHOSTST are both set"
 	fi
 
-	CREDS=$(F_GETAPICREDS)
-	SPLUSR="${CREDS/:*}"
-	SPLPW="${CREDS/*:}"
-
 	F_LOG "$FUNCNAME" "Will upgrade <$UPGRADEHOSTS>"
 	F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
 	[ $? -ne 0 ] && F_ABORTMAINMENU
 
-	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
-	UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
-	echo '[tmpupgrade]' > $UTMPGRP
-	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
-	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+        if [ -z "$AUTOMODE" ];then
+	    # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	    UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
+	    echo '[tmpupgrade]' > $UTMPGRP
+	    for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
+	    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
 
-	F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
+	    F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 
- 	F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBUPGRADE '--limit tmpupgrade -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
+ 	    F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBUPGRADE '--limit tmpupgrade -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
 
-	# upgrade
-	F_A2BIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}" 
-        F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
+	    # upgrade
+	    F_A2BIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}" 
+            F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
+        else
+            F_LOG $FUNCNAME "F_A2BIN $HOSTFILE $PBUPGRADE '--limit $AUTOMODE -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
+            F_A2BIN "$HOSTFILE" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
+            F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
+        fi
 
         F_LOG $FUNCNAME ended
+}
+
+## @fn F_GUIDEDUPGRADE()
+## @brief Guided upgrade of several splunk servers and clusters
+## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
+## @details 
+## offer all avail groups / hosts(?)
+## let the user choose an order for the upgrades
+F_GUIDEDUPGRADE(){
+    F_LOG $FUNCNAME started
+
+
+    unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup TGRP
+    TGRP="$1"
+    if [ -z "$TGRP" ];then
+       source $AEUSRHOSTFILE
+       [ -f "$HOSTFILE" ] || F_HOSTFILE
+       while [ -z "$HOSTSELECT" ];do
+             HOSTSELECTION=$(F_TARGETS checklist)
+             if [ "$HOSTSELECTION" == "ABORTED" ];then
+                        ABORTED=1 && break
+             else
+                if [ -z "$HOSTSELECTION" ];then
+                        F_LOG $FUNCNAME "No selection made / HOSTSELECTION empty!"
+                        F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                else
+                        HOSTSELECT=1
+                        ABORTED=0
+                fi
+              fi
+        done
+      else
+                HOSTSELECTION="$TGRP"
+                ABORTED=0
+      fi
+
+    F_LOG $FUNCNAME "hostsel: $HOSTSELECTION"
+
+    FORMARGS='100 200 100 '
+
+    FLINE=1
+    for tg in $HOSTSELECTION;do
+        FORMARGS+=' '"$tg"' '$FLINE' 1 1 '$FLINE' 20 4 3'
+        FLINE=$((FLINE + 1))
+    done
+
+     F_LOG $FUNCNAME "FORMARGS: $FORMARGS"
+
+    #UPGRADEHOSTS="$(F_SELHOST)"
+    #UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\n/g')"
+
+    #if  [ -z "$UPGRADEHOSTS" ] || [ -z $UPGRADEHOSTST ];then
+    #            F_LOG $FUNCNAME "UPGRADEHOSTS ($UPGRADEHOSTS) or UPGRADEHOSTSST ($UPGRADEHOSTST) empty"
+    #            F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    #else
+    #            F_LOG $FUNCNAME "UPGRADEHOSTS and UPGRADEHOSTST are both set"
+    #fi
+    #F_LOG $FUNCNAME "UPGRADEHOSTS: $UPGRADEHOSTS\nUPGRADEHOSTSST: $UPGRADEHOSTST"
+
+    UPGORDER=$(F_DIALOG --form "Puzzle your custom upgrade-run\n\nHowto:\nweight each target group with a number from 1-999. The upgrade will be done from low to high based on these numbers" \
+               $FORMARGS \
+               3>&1 1>&2 2>&3 )
+    if [ "$UPGORDER" == "ABORTED" ];then
+        F_EXIT
+    fi
+    SORTED=$(for num in $UPGORDER;do \
+                F_LOG $FUNCNAME "prehostsel: $HOSTSELECTION"; \
+                CURSEL=$(echo "$HOSTSELECTION" |cut -d ' ' -f1); \
+                echo "${num}:${CURSEL}"; \
+                HOSTSELECTION=$(echo "$HOSTSELECTION" | sed "s/$CURSEL //g" ); \
+                F_LOG $FUNCNAME "posthostsel: $HOSTSELECTION CURSEL $CURSEL"; \
+             done | sort -u |sort -n)
+    
+    F_LOG $FUNCNAME "UPGORDER=$UPGORDER\nSORTED: $SORTED"
+
+    for utg in $SORTED;do
+        F_UPGRADESPL "${utg/*:/}"
+    done
+
+    F_LOG $FUNCNAME ended
 }
 
 # Deploy Apps to specified targets
@@ -1885,6 +1978,7 @@ F_MENUMAIN(){
 			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
 			"" "" \
 			Upgrade	"existing splunk> instance(s)" \
+			Guided-Upgrade	"of splunk> instance(s) in a specific order" \
 			Install	"splunk> on blank server(s)" \
 			Cluster "Indexer tasks" \
 			"" "" \
@@ -1925,6 +2019,9 @@ F_MENUMAIN(){
 			;;
 			Upgrade)
 			F_UPGRADESPL
+			;;
+			Guided-Upgrade)
+			F_GUIDEDUPGRADE
 			;;
 			UpgradeCluster)
                         F_UPGRADESPLC
