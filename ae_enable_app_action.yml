@@ -1,0 +1,86 @@
+---
+- hosts: repository
+ 
+  vars_prompt:
+    - name: "app_name"
+      prompt: "\n1) App source or git repo name (mandatory)\n 
+              \n   App source => basically this is the folder name in your local repo
+              \n   --> Repo defined in 'inventories/<target_env>/group_vars/all/splunk_repository'
+              \n   You have to place your app as 'tgz' in the subdirectory <splunk_repository.repository_root>/apps/<App source>/
+              \n   Example: 'splunk' or 'other' means '/var/lib/splunk_repository/apps' 
+              \n\n   git repo name => the real git project name (without .git)
+              \n   Example: TA-my-app
+              \n\n   Your answer"
+#      prompt: "\n1) App source (splunk or other) or git repo name (mandatory)\n   --> Repository location is defined in 'group_vars/all/splunk_repository'\n   (Example: TA-my-app or Splunk_TA-xxx)\n   Your answer"
+      private: no
+
+    - name: "app2group"
+      prompt: "\n2) Target group (mandatory)\n   (Example: heavyforwarder)\n   Your answer"
+      private: no
+
+    - name: "filename"
+      prompt: "\n3) Repository full filename (optional)\n   (Example: splunk-addon-xxx-v1.2.tgz) Leave empty if you want to use git\n   Your answer"
+      private: no
+
+    - name: "git_url"
+      prompt: "\n4) Change git base URL (optional)\n   leave empty if you want to use default or if you want to use local file\n   --> default defined in: inventories/< target_env >/group_vars/all/splunk_repository\n   Your answer"
+      private: no
+
+    - name: "git_branch"
+      prompt: "\n5) git branch (optional)\n   leave empty for default and if you want to use local file\n   Your answer"
+      private: no
+      default: "master"
+
+  pre_tasks:
+    - include_vars: inventories/{{ target_env }}/group_vars/all/splunk_repository
+    - include_vars: inventories/{{ target_env }}/group_vars/{{ app2group }}/deployment
+
+  tasks:
+  - name: Building full file path if defined
+    stat: path={{splunk_repository.repository_root}}/apps{{ app_type | default({}) }}/{{ filename }}
+    register: fqfilename
+    when: filename is defined
+
+  - name: Display filename properties (filled when app is not git)
+    debug: 
+       var: fqfilename.stat.path, fqfilename.stat.size
+    when: fqfilename is defined
+
+  - name: Check user input
+    fail: msg="A required value is empty or wrong ==> '{{ item }}' <===. Please restart and ensure all mandatory fields are set!"
+    with_items: [ app_name, app2group, filename ]
+    when: "(item == 'filename' and {{ item }} !='' and (fqfilename.stat.exists != true or fqfilename.stat.isreg != true or fqfilename.stat.size < 100))
+          or (item is not defined and item != 'filename') 
+          or (item is defined and {{ item }} == '' and item != 'filename')"
+
+
+  - name: Convert to ansible friendly name
+    set_fact:
+        app_variable: "{{ app_name | regex_replace('-', '_')}}"
+
+  - name: Copy template app template
+    command: cp -RfT roles/apps/app.template roles/apps/{{ app_name }} 
+
+  - name: Set app variables
+    template: src=roles/apps/{{ app_name }}/vars/main.yml.j2
+              dest=roles/apps/{{ app_name }}/vars/main.yml
+              mode=0640
+
+  - name: Set app variables within group_vars
+    template: src=roles/common/templates/add_app_groupvars.j2
+              dest=inventories/{{ target_env }}/group_vars/{{ app2group }}/{{ app_name }}
+              mode=0640
+
+  - name: Remove template file
+    file: path=roles/apps/{{ app_name }}/vars/main.yml.j2
+          state=absent
+ 
+  - name: Find app roles
+    command: "ls roles/apps"
+    register: app_roles
+
+  - name: (Re)create deploy_apps.yml
+    template: src=roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+              dest=inventories/{{ target_env }}/ae_deploy_apps.yml
+              mode=0640
+

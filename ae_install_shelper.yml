@@ -1,0 +1,10 @@
+- name: Install the splunk helper
+  hosts: "*:!repository"
+  remote_user: ansible
+  become: yes
+  become_user: root
+  #no_log: True 
+  gather_facts: False
+
+  roles:
+    - shelper

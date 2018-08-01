@@ -1,0 +1,18 @@
+- name: Install Splunk on all hosts
+  hosts: "*:!repository"
+  remote_user: ansible
+  become: yes
+  become_user: root
+  gather_facts: True
+
+  vars:
+        splunk_upgrade: False
+
+  roles:
+    - install
+
+- include: ae_install_shelper.yml
+  when: shelper_installation.enabled
+
+- include: ae_install_openvmtools.yml
+  when: ansible_virtualization_type == "VMware"

@@ -1,0 +1,16 @@
+---
+- hosts: repository
+  tasks:
+  - debug: msg="{{ file.linux_64_rpm.tools.name }}"
+
+  - name: Download open-vm-tools rpm packages
+    get_url: url="{{ item.value.repo }}/{{ item.value.name }}-{{ item.value.version }}-{{ item.value.release }}.{{ item.value.arch }}.rpm"
+             dest={{ splunk_repository.repository_root }}/packages 
+             owner={{ splunk_repository.repository_owner }} 
+             group={{ splunk_repository.repository_group }} 
+             mode=644
+    with_dict: "{{ vmtools_packages.linux_64_rpm }}"
+    when: vmtools_installation.package_format == "rpm" and
+          vmtools_packages.linux_64_rpm is defined
+          
+

@@ -1,0 +1,8 @@
+- name: Install open-vm-tools on all hosts
+  hosts: "*:!repository"
+  remote_user: ansible
+  become: yes
+  become_user: root
+
+  roles:
+    - openvmtools
