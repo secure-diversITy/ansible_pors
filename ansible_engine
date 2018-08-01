@@ -817,38 +817,48 @@ F_ENAPP(){
 			# get gitlab projects
 			F_DIALOG --begin 3 3 --infobox "\nPlease standby until all gitlab projects have been parsed..." 5 80
 			CSELAPPS=$(F_GITLABSRC|sort)
-                        echo "$CSELAPPS" |grep "returncode:0" >> $LOG
-                        if [ $? -eq 0 ];then
-                            SELAPPS="${CSELAPPS/returncode:0}"
-			    unset OPTIONS
+            echo "$CSELAPPS" |grep "returncode:0" >> $LOG
+            if [ $? -eq 0 ];then
+                    PREAPPS="${CSELAPPS/returncode:0}"
+			        unset OPTIONS
+                    # ensure only apps that are not already linked will be shown
+                    RMAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2)
+                    LAPPS=$(for papp in $PREAPPS;do echo "${papp##*/}" ;done)
+                    SELAPPS=$(echo "$LAPPS" "$RMAPPS" | sort |uniq -u)
+
+                    F_LOG $FUNCNAME "RMS: $RMAPPS\n\nPREAPPS: ${PREAPPS}\n\nSELAPPS: $SELAPPS"
         		    OPTIONS=($(echo "CUSTOM GIT-Project off" && for gapp in $SELAPPS;do echo ${gapp##*/} "GIT-Project" off; done))
 		            GLABAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-                            for gapp in $GLABAPP;do
-				if [ "$gapp" == "CUSTOM" ];then
-					gapp=$(F_DIALOG --inputbox '\nHINT: the project MUST exists already on the gitlab server!\nType in the gitlab project name (only the name):\n' 15 100 2>&1 >>/dev/tty)
-				fi
-				F_GITLABSRC | grep $gapp >>/dev/null
-				if [ $? -ne 0 ];then
-					F_MSG "ERROR: > $gapp < does not exists on gitlab! Please create the repository first. This app will be SKIPPED."
-				else
+                if [ $? -eq 0 ];then
+                    for gapp in $GLABAPP;do
+				        if [ "$gapp" == "CUSTOM" ];then
+					        gapp=$(F_DIALOG --inputbox '\nHINT: the project MUST exists already on the gitlab server!\nType in the gitlab project name (only the name):\n' 15 100 2>&1 >>/dev/tty)
+				        fi
+				        F_GITLABSRC | grep $gapp >>/dev/null
+				        if [ $? -ne 0 ];then
+					        F_MSG "ERROR: > $gapp < does not exists on gitlab! Please create the repository first. This app will be SKIPPED."
+				        else
 	                                app_full=$(echo "$SELAPPS" |tr " " "\n" |egrep "/${gapp}$")
 	       	                        app_dir=${app_full%/*}
 	       	                        app_namespace=${app_dir##*/}
-					F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
+					                F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
 	       	                        for tgroup in $HOSTSELECTION;do
                                         F_GVARDIR $tgroup
-						# TODO: may have an option for choosing branch?!
-	                                        echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
-						F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master'}"
-                                                LASTERR=$?
-                                                [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking $gapp to $tgroup\n\n" "$LOG"
+						                # TODO: may have an option for choosing branch?!
+	                                    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
+						                F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master'}"
+                                        LASTERR=$?
+                                        [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
 	                                done
-				fi
-                            done
-                            F_ERRLOG 0 "linking $GLABAPP to $tgroup\n\n" "$LOG"
-                        else
-                            F_DIAERR 9 "$FUNCNAME: GITLAB API ERROR!! CHECK $LOG"
-                        fi
+				          fi
+                       done
+                       F_ERRLOG 0 "linking $GLABAPP to $tgroup\n\n" "$LOG"
+                  else
+                        F_DIAERR 4 "Aborted by user"
+                  fi
+              else
+                       F_DIAERR 9 "$FUNCNAME: GITLAB API ERROR!! CHECK $LOG"
+              fi
 			;;
 			*)
 			echo NO SELECTION MADE..
