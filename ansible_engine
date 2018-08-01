@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=testing
-VERSIONNUM=20180727
+VERSIONNUM=20180731
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -133,11 +133,11 @@ declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
 ## @var PBNEWAPP
 ## @brief Adding/Linking new app(s) to ae
 ## @showinitializer
-declare PBNEWAPP=add_app.yml
+declare PBNEWAPP=ae_add_app.yml
 ## @var PBENAPP
 ## @brief Adding/Linking new app(s) to ae (the real action)
 ## @showinitializer
-declare PBENAPP=enable_app_action.yml
+declare PBENAPP=ae_enable_app_action.yml
 ## @var PBDEPLAPP
 ## @brief Deploy apps to given targets
 ## @showinitializer
@@ -145,7 +145,7 @@ declare PBDEPLAPP=ae_deploy_apps.yml
 ## @var PBDEPLSYSC
 ## @brief Deploy system/local configs to given targets 
 ## @showinitializer
-declare PBDEPLSYSC=deploy_systemconfigs.yml
+declare PBDEPLSYSC=ae_deploy_systemconfigs.yml
 ## @var PBGETTARGETS
 ## @brief Parsing inventories file and create an expanded host list for each target
 ## @showinitializer
@@ -153,31 +153,31 @@ declare PBGETTARGETS=ae_get_targets.yml
 ## @var PBUPGRADE
 ## @brief Upgrade splunk
 ## @showinitializer
-declare PBUPGRADE=upgrade_splunk.yml
+declare PBUPGRADE=ae_upgrade_splunk.yml
 ## @var  PBSHINSTALL
 ## @brief Install/Upgrade the splunk helper
 ## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
 ## @showinitializer
-declare PBSHINSTALL=install_shelper.yml
+declare PBSHINSTALL=ae_install_shelper.yml
 ## @var SHOWAPPS
 ## @brief Show app deployment state by target(s) and type (local, git, ...)
 ## @showinitializer
-declare SHOWAPPS=show_app_deploymentstate.sh
+declare SHOWAPPS=ae_show_app_deploymentstate.sh
 ## @var PBSHRELOAD
 ## @brief Execute splunk helper tasks
 ## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
 ## @showinitializer
-declare PBSHRELOAD=${ADIR}/maintenance/shelper_reload.yml
+declare PBSHRELOAD=${ADIR}/maintenance/ae_shelper_reload.yml
 ## @var PBSPLACT
 ## @brief Maintenance tasks for splunk
 ## @details Examples: splunk stop, start, restart
 ## @showinitializer
-declare PBSPLACT=${ADIR}/maintenance/splunk_tasks.yml
+declare PBSPLACT=${ADIR}/maintenance/ae_splunk_tasks.yml
 ## @var PBINSTALL
 ## @brief Install splunk
 ## @details Will install splunk on a single host or group of hosts
 ## @showinitializer
-declare PBINSTALL=install_splunk.yml
+declare PBINSTALL=ae_install_splunk.yml
 ## @var PBCONFPEER
 ## @brief Configures splunk as a peernode 
 ## @details This will configure an existing splunk installation as a peernode of an existing indexer cluster
@@ -436,7 +436,7 @@ F_HOSTFILE(){
 F_TARGETS(){
 	F_LOG "$FUNCNAME" "started with these arguments: $@"
 	
-	OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done))
+	OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort))
 	# OPTIONS EXPLANATION ABOVE
 
 	if [ -z "$1" ];then 
@@ -821,10 +821,12 @@ F_ENAPP(){
 						# TODO: may have an option for choosing branch?!
 	                                        echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
 						F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master'}"
-						F_ERRLOG "$?" "linking $gapp to $tgroup\n\n" "$LOG"
+                                                LASTERR=$?
+                                                [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking $gapp to $tgroup\n\n" "$LOG"
 	                                done
 				fi
                             done
+                            F_ERRLOG 0 "linking $GLABAPP to $tgroup\n\n" "$LOG"
                         else
                             F_DIAERR 9 "$FUNCNAME: GITLAB API ERROR!! CHECK $LOG"
                         fi
