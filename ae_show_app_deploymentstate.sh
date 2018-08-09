@@ -22,6 +22,11 @@ F_COLORS(){
                                 the deployment is disabled (therefore the app is not
                                 installed on the target)$ENDC
 
+        ${RED}DELETE-FLAG		Means the app is defined for this target group and on
+                                the next deployment it will be REMOVED from the remote target!$ENDC
+
+
+
 EOFCOL
 }
 
@@ -97,23 +102,30 @@ if [ -z "$TARGET" ];then
     APPLIST=$(for i in $(ls $TARGETENV/ |grep -v templates);do 
 	       [ $MF -eq 0 ] && echo -e "\nApps configured on $i";
               for a in $(egrep -l '(bundle|git_repo)' $TARGETENV/$i/*);do
-	        egrep -ql "(\s+install:\s+[fF]alse)" $a
-	        if [ $? -eq 0 ];then
-	           [ $MF -eq 0 ] && echo "$RED${a##*/} (DISABLED)$ENDC"
-               [ $MF -eq 1 ] && echo "disabled:${a##*/}"
-            else
-	          egrep -ql 'bundle' $a 
-	          if [ $? -eq 0 ];then
-                    [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
-                    [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}"
-                  else
-                    egrep -ql 'git_repo' $a
-                    if [ $? -eq 0 ];then
-                        [ $MF -eq 0 ] && echo "$MAGENTA${a##*/} (git hosted)$ENDC"
-                        [ $MF -eq 1 ] && echo "git-hosted:${a##*/}"
-		    fi
-                  fi
-	        fi
+                egrep -ql "(\s+delete:\s+[tT]rue)" $a >> /dev/null
+                if [ $? -eq 0 ];then
+                   [ $MF -eq 0 ] && echo "$RED${a##*/} (DELETE-FLAG)$ENDC"
+                   [ $MF -eq 1 ] && echo "flagged-for-removal:${a##*/}"
+                else 
+	                egrep -ql "(\s+install:\s+[fF]alse)" $a
+	                if [ $? -eq 0 ];then
+	                    [ $MF -eq 0 ] && echo "$RED${a##*/} (DISABLED)$ENDC"
+                        [ $MF -eq 1 ] && echo "disabled:${a##*/}"
+                    else
+	                    egrep -ql 'bundle' $a 
+	                    if [ $? -eq 0 ];then
+                            bundlefile=$(sed -n 's/\s*bundle:\s*\(.*\)/\1/p' $a)
+                            [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
+                            [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}:$bundlefile"
+                        else
+                            egrep -ql 'git_repo' $a
+                            if [ $? -eq 0 ];then
+                                [ $MF -eq 0 ] && echo "$MAGENTA${a##*/} (git hosted)$ENDC"
+                                [ $MF -eq 1 ] && echo "git-hosted:${a##*/}"
+		                    fi
+                        fi
+	                fi
+                fi
 	      done
 	     done)
 else
@@ -124,23 +136,30 @@ else
      APPLIST="$(for i in $(ls $TARGETENV/ |grep $dir);do 
               [ $MF -eq 0 ] && echo -e "\nApps configured on $i";
               for a in $(egrep -l '(bundle|git_repo)' $TARGETENV/$i/*);do
-                egrep -ql "(\s+install:\s+[fF]alse)" $a >> /dev/null
+                egrep -ql "(\s+delete:\s+[tT]rue)" $a >> /dev/null
                 if [ $? -eq 0 ];then
-                   [ $MF -eq 0 ] && echo "$RED${a##*/} (DISABLED)$ENDC"
-                   [ $MF -eq 1 ] && echo "disabled:${a##*/}"
+                   [ $MF -eq 0 ] && echo "$RED${a##*/} (DELETE-FLAG)$ENDC"
+                   [ $MF -eq 1 ] && echo "flagged-for-removal:${a##*/}"
                 else
-                  egrep -ql 'bundle' $a >> /dev/null 
-                  if [ $? -eq 0 ];then
-                    [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
-                    [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}"
-                  else
-                    egrep -ql 'git_repo' $a >> /dev/null
+                    egrep -ql "(\s+install:\s+[fF]alse)" $a >> /dev/null
                     if [ $? -eq 0 ];then
-                       [ $MF -eq 0 ] && echo "$MAGENTA${a##*/} (git hosted)$ENDC"
-                       [ $MF -eq 1 ] && echo "git-hosted:${a##*/}"
+                        [ $MF -eq 0 ] && echo "$RED${a##*/} (DISABLED)$ENDC"
+                        [ $MF -eq 1 ] && echo "disabled:${a##*/}"
+                    else
+                        egrep -ql 'bundle' $a >> /dev/null 
+                        if [ $? -eq 0 ];then
+                            bundlefile=$(sed -n 's/\s*bundle:\s*\(.*\)/\1/p' $a)
+                            [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
+                            [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}:$bundlefile"
+                        else
+                            egrep -ql 'git_repo' $a >> /dev/null
+                            if [ $? -eq 0 ];then
+                                [ $MF -eq 0 ] && echo "$MAGENTA${a##*/} (git hosted)$ENDC"
+                                [ $MF -eq 1 ] && echo "git-hosted:${a##*/}"
+                            fi
+                        fi
                     fi
-                  fi
-                fi
+                 fi
               done
              done)"
     else
