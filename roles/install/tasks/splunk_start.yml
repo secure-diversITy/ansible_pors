@@ -30,6 +30,8 @@
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk start"
   async: 1800
   poll: 0
+  become: yes
+  become_user: "{{ splunk_install_user }}"
   register: splunk_started_by_bin
   when:
         - splunk_restate.rc != 0
@@ -42,6 +44,8 @@
   register: splunk_bin_started_result
   until: splunk_bin_started_result.finished
   retries: 360
+  become: yes
+  become_user: "{{ splunk_install_user }}"
   when:
         - splunk_restate.rc != 0
         - splunk_started_by_bin.changed is defined and splunk_started_by_bin.changed == True
