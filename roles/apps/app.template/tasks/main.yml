@@ -11,3 +11,6 @@
 
 - include: configure_local.yml
 - include: remove_app.yml
+  when: (vars[app_variable].apps is defined and (vars[app_variable].apps.delete is defined and vars[app_variable].apps.delete == true )) or
+        (vars[app_variable].master_apps is defined and (vars[app_variable].master_apps.delete is defined and vars[app_variable].master_apps.delete == true )) or
+        (vars[app_variable].shcluster_apps is defined and (vars[app_variable].shcluster_apps.delete is defined and vars[app_variable].shcluster_apps.delete == true ))
