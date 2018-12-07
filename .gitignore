@@ -3,3 +3,4 @@ deploy_apps.yml
 ae_deploy_apps.yml
 hosts
 *.retry
+*.swp
