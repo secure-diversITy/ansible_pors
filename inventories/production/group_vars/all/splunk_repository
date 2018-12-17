@@ -3,7 +3,7 @@
 # Repository Variables
 #####################################################################################################################
 splunk_repository:
-  repository_root: /var/lib/splunk_repository
+  repository_root: /opt/ae_repo/production
   repository_owner: splunk
   repository_group: splunk
-  git_url: git@xxxxxxxxxxxxxxxxxxggit02.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunk
+  git_url: git@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunk
