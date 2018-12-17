@@ -4,8 +4,8 @@
 #####################################################################################################################
 
 # change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
-globversion: "6.6.8"
-globhash: "6c27a8439c1e"
+globversion: "6.6.10"
+globhash: "2b5f6c3d5f96"
 
 # construct the full file name
 tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
