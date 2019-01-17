@@ -1,6 +1,7 @@
 - name: Deploy Apps
   hosts: "{{ '{{' }} target {{ '}}' }}"
-  user: splunk
+  become: yes
+  become_user: splunk
   strategy: free
   
   roles:

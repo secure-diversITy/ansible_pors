@@ -1,6 +1,7 @@
 - name: Configure splunk peernodes
   hosts: peernode
-  user: splunk
+  become: yes
+  become_user: "{{ splunk_install_user }}"
 
   roles:
     - conf/web

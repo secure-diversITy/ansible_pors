@@ -1,6 +1,7 @@
 - name: Deploy System Configs
   hosts: "{{ exp_host }}"
-  user: splunk
+  become: yes
+  become_user: "{{ splunk_install_user }}"
 
 #  pre_tasks: 
 #     shell: /usr/bin/hostname
