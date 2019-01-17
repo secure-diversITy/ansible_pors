@@ -48,7 +48,7 @@
 - include: set_perms.yml
 
 - include: splunk_start.yml
-  when:
-    - splpeernode.stdout != "slave" 
+#  when:
+#    - splpeernode.stdout != "slave" 
     #- splunk_upgrade == True
 
