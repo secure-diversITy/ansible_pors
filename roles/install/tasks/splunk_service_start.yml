@@ -1,0 +1,11 @@
+---
+- name: Start Splunk (pre-v7.2)
+  service: name=splunk
+           state=started
+  when: splunkversionnum < 720
+
+- name: Start Splunk (>= v7.2)
+  systemd: name=Splunkd
+           state=started
+  when: splunkversionnum >= 720
+

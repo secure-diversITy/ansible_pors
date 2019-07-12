@@ -1,0 +1,2 @@
+alias ae-prod='cd /opt/ae && ./ansible_engine --env production -i /opt/ae/inventories/production/hosts'
+alias ae-dev='cd /opt/ae && ./ansible_engine --env development -i /opt/ae/inventories/development/hosts'

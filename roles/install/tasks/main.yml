@@ -4,10 +4,15 @@
 - include: prepare_splunk.yml
   when: splunk_upgrade == False
 
-- include: operation_mode.yml
+#- include: operation_mode.yml
+
+- include: transfer_pkg.yml
 
 - include: splunk_stop.yml
   when: splunk_upgrade == True
+
+- include: backup_splunk.yml
+  when: splunk_installation.backup is defined and splunk_installation.backup == true
 
 - include: install_splunk.yml
 
@@ -16,16 +21,16 @@
 
 - include: enable_boot_start_splunk.yml
 
-- include: change_default_password.yml
-  when: splunk_upgrade == False
-
 - include: add_authorized_key.yml
   when: splunk_upgrade == False
 
-- include: firewalld_open_splunkports.yml
+- include: firewalld.yml
   when: splunk_upgrade == False
 
 - include: splunk_startstop.yml
+  when: splunk_upgrade == False
+
+- include: change_default_password.yml
   when: splunk_upgrade == False
 
 - include: fetch_distserverkeys.yml
@@ -40,7 +45,8 @@
   when: 
     - splunk_optimize.initd is defined
     - splunk_optimize.initd == True
-
+    - splunkversionnum < 720
+    
 - include: optimize_selinux.yml
   when: 
     - splunk_optimize.selinux is defined
@@ -51,4 +57,7 @@
 #  when:
 #    - splpeernode.stdout != "slave" 
     #- splunk_upgrade == True
+
+- include: post_actions.yml
+  when: splunk_upgrade == False
 

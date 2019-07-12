@@ -1,0 +1,10 @@
+- name: Deploy Journal Configs
+  hosts: all
+  become: yes
+  become_user: root
+
+  pre_tasks:
+    - include_vars: inventories/{{ target_env }}/group_vars/all/ansible
+
+  roles:
+    - system_journal

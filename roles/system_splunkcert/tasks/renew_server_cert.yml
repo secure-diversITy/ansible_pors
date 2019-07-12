@@ -1,0 +1,4 @@
+---
+- name: Renew splunk server certificate 
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk createssl server-cert -d {{ splunk_installation.splunk_home_path }}/etc/auth -n server -c $(hostname -f) -l 4096"
+

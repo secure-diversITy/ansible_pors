@@ -4,5 +4,7 @@
   become: yes
   become_user: root
 
+  # http://mirror.centos.org/centos-7/7/os/x86_64/Packages/
+
   roles:
     - openvmtools

@@ -10,11 +10,15 @@
   with_dict: "{{ vars['app_variable'] }} | app_default"
 
 - name: Get all unmanaged config files
-  shell: grep -Li '^# ANSIBLE FILE-MANAGED' {{ splunk_installation.splunk_home_path }}/etc/system/local/*.conf || true
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  shell: egrep -Li '^#+\s+ANSIBLE FILE-MANAGED' {{ splunk_installation.splunk_home_path }}/etc/system/local/*.conf || true
   register: grep_unmanaged
   changed_when: false
 
 - name: Add '-unmanaged' suffix to all unmanaged files
+  become: yes
+  become_user: "{{ splunk_install_user }}"
   shell: mv {{ item }} {{ item }}-unmanaged
   with_items: grep_unmanaged.stdout_lines
   when: handle_unmanaged

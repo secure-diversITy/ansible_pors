@@ -4,6 +4,6 @@
 #####################################################################################################################
 
 splunk_auth:
-  admin_password: xxxxxxxxxxxxxxxxxx
+  admin_password: "{{ vault_splunk_admin_password }}"
   splunk_secret: xxxxxxxxxxxxxxxxxx
 

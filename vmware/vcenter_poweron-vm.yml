@@ -1,0 +1,14 @@
+---
+- name: power on VM and wait for IP
+  vmware_guest:
+      hostname: '{{ vsphere.host[vsphere_var].dest }}'
+      username: '{{ vsphere.host[vsphere_var].user }}'
+      password: '{{ vsphere.host[vsphere_var].password }}'
+      validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+      esxi_hostname: "{{ vsphere_esx_host }}"
+      datacenter: "{{ vsphere_datacenter }}"
+      name: '{{ server_hostname }}'
+      folder: "/{{ vsphere_datacenter }}/vm"
+      state: poweredon
+      wait_for_ip_address: true
+ 

@@ -1,0 +1,6 @@
+---
+systemd_journal_storage: "persistent"
+systemd_journal_compress: "true"
+systemd_journal_system_max_use: 1G
+systemd_journal_system_max_file_size: 100M
+systemd_journal_restart_state: "restarted"

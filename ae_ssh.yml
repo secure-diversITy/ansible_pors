@@ -1,0 +1,26 @@
+- name: Check ssh
+  hosts: '*'
+  connection: local
+
+  tasks:
+
+    - name: "Check known_hosts for {{ inventory_hostname }}"
+      local_action: "shell ssh-keygen -F {{ inventory_hostname }}"
+      register: has_entry_in_known_hosts_file
+      changed_when: false
+      ignore_errors: yes
+
+    - name: debugg
+      debug: msg="has_entry_in_known_hosts_file = {{ has_entry_in_known_hosts_file }}"
+
+    - name: Ignore host key on first run
+      when: has_entry_in_known_hosts_file.rc == 1
+      set_fact:
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+    - name: connect and save key (when first run)
+      connection: ssh
+      remote_user: ansible
+      command: echo successfully added host key
+      when: has_entry_in_known_hosts_file.rc == 1
+    

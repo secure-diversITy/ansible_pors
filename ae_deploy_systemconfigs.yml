@@ -1,7 +1,7 @@
 - name: Deploy System Configs
   hosts: "{{ exp_host }}"
-  become: yes
-  become_user: "{{ splunk_install_user }}"
+  remote_user: ansible
+  gather_facts: False
 
 #  pre_tasks: 
 #     shell: /usr/bin/hostname

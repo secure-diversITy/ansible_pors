@@ -1,0 +1,4 @@
+---
+- include: splunk_stop.yml
+- include: renew_server_cert.yml
+- include: splunk_start.yml

@@ -1,4 +1,8 @@
 ---
+- include: transfer_splpkg.yml
 - include: splunk_stop.yml
+- include: backup_splunk.yml
+  when: (vars[splunk_installation].backup is defined and vars[splunk_installation].backup == true)
 - include: upgrade_splunk.yml
+- include: ../../system_splunkcert/tasks/main.yml
 - include: splunk_start.yml

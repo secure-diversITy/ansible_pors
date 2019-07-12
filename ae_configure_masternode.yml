@@ -1,0 +1,10 @@
+- name: Configure splunk masternode
+  hosts: masternode
+  remote_user: ansible
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  roles:
+    - conf/web
+    - conf/outputs
+    - conf/server

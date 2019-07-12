@@ -1,0 +1,17 @@
+---
+- name: Shows local defined vCenter definitions
+  hosts: localhost
+
+  tasks:
+    # networks
+    - name: Clear/Prepare vCenters temp file
+      copy:
+        content: ""
+        dest: "{{ inventory_dir }}/tmp/vcenters.list"
+
+    - name: Collecting defined vCenters (sorted by occurence)
+      lineinfile:
+        line: "{{ item }}"
+        path: "{{ inventory_dir }}/tmp/vcenters.list"
+      with_items: "{{ vsphere.host }}"
+

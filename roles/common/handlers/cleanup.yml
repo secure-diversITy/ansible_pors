@@ -1,0 +1,9 @@
+---
+- name: clear history root
+  command: rm /root/.bash_history
+
+- name: clear history splunk
+  command: rm ~/.bash_history
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+

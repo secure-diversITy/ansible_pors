@@ -1,0 +1,54 @@
+- name: Add new disk storage
+  hosts: "{{ server_hostname }}*"
+  gather_facts: False
+  connection: local
+
+  tasks:
+    - name: Gather disk facts from {{ server_hostname }}
+      vmware_guest_facts:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        name: '{{ server_hostname }}'
+      register: vgf
+
+    - name: debug out
+      debug: msg="{{vgf}}"
+      when: debug_on is defined
+
+    - name: Shutdown {{ server_hostname }} if needed
+      vmware_guest:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        name: '{{ server_hostname }}'
+        esxi_hostname: "{{ vsphere_esx_host }}"
+        state: shutdownguest
+      when: vgf.instance['hw_power_status'] != 'poweredOff'
+
+    - name: Waiting for shutdown...
+      command: sleep 1m
+      when: vgf.instance['hw_power_status'] != 'poweredOff'
+
+    - name: Add additional disk to {{ server_hostname }} - hint
+      debug: msg="You have selected {{ server_disk_type }} - Please be patient as this can take a while. Watch the vCenter for the progress."
+      when: server_disk_type != "thin"
+       
+    - name: Add additional disk to {{ server_hostname }}
+      vmware_guest_disk:
+            hostname: '{{ vsphere.host[vsphere_var].dest }}'
+            username: '{{ vsphere.host[vsphere_var].user }}'
+            password: '{{ vsphere.host[vsphere_var].password }}'
+            validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+            datacenter: "{{ vsphere_datacenter }}"
+            name: '{{ server_hostname }}'
+            folder: "/{{ vsphere_datacenter }}/vm"
+            disk: 
+            - size_gb: "{{ server_disk_sizegb }}"
+              scsi_controller: "{{ server_scsi_controller }}"
+              unit_number: "{{ server_disk_num }}"
+              datastore: "{{ vsphere_datastore }}"
+              type: "{{ server_disk_type }}"

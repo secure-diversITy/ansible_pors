@@ -1,0 +1,11 @@
+---
+- name: Stop Splunk (pre-v7.2)
+  service: name=splunk
+           state=stopped
+  when: splunkversionnum < 720
+
+- name: Stop Splunk (>= 7.2)
+  service: name=Splunkd
+           state=stopped
+  when: splunkversionnum >= 720
+

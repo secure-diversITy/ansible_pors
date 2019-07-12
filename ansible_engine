@@ -1,10 +1,10 @@
 #!/bin/bash
 ########################################################################################
-## @file			ansible_engine.sh
-## @brief			-THE- GUI for using ansible + splunk
-## @author			Thomas Fischer <mail -AT- sedi -DOT- one>
-## @date                        2017-2018
-## @copyright			LGPL v3
+## @file	ansible_engine.sh
+## @brief       -THE- GUI for using ansible + splunk
+## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
+## @date        2017-2019
+## @copyright	GPL v3
 ## @details
 ##    This program is free software: you can redistribute it and/or modify<br>
 ##    it under the terms of the GNU General Public License as published by<br>
@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=stable
-VERSIONNUM="2.0-1"
+VERSIONNUM="3.2-0"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -77,30 +77,50 @@ export PYTHONUNBUFFERED=1
 ## @showinitializer
 declare BIN=${0##*/}
 
+
+## @var REQAVERSION
+## @brief The minimal required Ansible version
+## @details the version string in the format: X.x.x
+## @showinitializer
+declare REQAVERSION="2.8.0"
+
+# ensure we run in a proper environment
+if [ -z "$CALLUSR" ];then
+    MYHOME=${HOME}/.$(echo ${BIN/.sh}|tr -d _)
+else
+    MYHOME=/tmp/ae-${CALLUSR}
+fi
+
 ## @var WORKDIR
 ## @brief The working directory where all run files of ae will be stored
+## @details Every user running AE has its own temp directory accessible only by the AE user
 ## @showinitializer
-declare WORKDIR=".$(echo ${BIN/.sh}|tr -d _)"
+declare WORKDIR="$MYHOME"
 [ ! -d "$WORKDIR" ]&& mkdir -p $WORKDIR
+chown $USER $WORKDIR
+chmod 700 $WORKDIR  
 
 ## @var ADIR
 ## @brief auto generate the path name of the bin
 ## @showinitializer
-## @details  the ae install dir. can be overwritten in ~/.ae/vars 
+## @details the ae install dir. can be overwritten in ~/.ae/vars 
 [ -z "$ADIR" ] && declare ADIR="${0%/*}"
 
 # the path where your inventories (with their subdirs like development, production) are in
 : "${AINVENTORY:=$ADIR/inventories}"
 
-# normally we want to have 1 instance running the same time. This avoids dozens of problems which could occur.
-KICKUSER=N
+## @var KICKUSER
+## @brief Default setting for overtaken a running session
+## @showinitializer
+## @details normally we want to have 1 instance running the same time. This avoids dozens of problems which could occur.
+## The default when pressing just enter can be y (remove and take the lock) or N (quit)
+declare KICKUSER=N
 
-EXECBIT=$WORKDIR/.inuse
-[ -f $EXECBIT ]&& echo -e "\n\nWARNING: It seems ansible-engine is already opened?!\nIf you feel this is an error remove >$EXECBIT< and start again. or..." && read -p "....do you want ME to override, delete the execbit and continue anyways (no risk no fun heh?)? (y/N)" KICKUSER
-
-[ -f $EXECBIT ]&&[ "$KICKUSER" != "y" ] && exit
-
-> $EXECBIT
+## @var EXECBIT
+## @brief execution lock file
+## @showinitializer
+## @details A simple lock file to detect an already running AE session
+declare EXECBIT=/tmp/.ae_inuse
 
 ## @var ABIN
 ## @brief The full path to the regular ansible playbook binary
@@ -114,16 +134,13 @@ ABIN="/usr/bin/ansible-playbook"
 ## @var LOG
 ## @brief The ae log file
 ## @showinitializer
-declare LOG=$WORKDIR/${BIN}.log
+declare LOG=${WORKDIR}/${BIN}.log
 
 ## @var AEINFOHOSTFILE
 ## @brief the user choosen hostfile will be written into this file
 ## @details can be sourced like: source $AEUSRHOSTFILE - will set HOSTFILE=
 ## @showinitializer
 declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
-
-# reset any previous set user host file
-> $AEUSRHOSTFILE
 
 ## @var EDITBIN
 ## @brief The editor which will be used e.g. when editing system/local files
@@ -204,26 +221,154 @@ declare PBSPLACT=${PBDIR}/maintenance/ae_splunk_tasks.yml
 ## @showinitializer
 declare PBINSTALL=${PBDIR}/ae_install_splunk.yml
 
+## @var PBCONFMN
+## @brief Configures splunk as a master node
+## @details This will configure an existing splunk installation as a MasterNode for a new cluster
+## @showinitializer
+declare PBCONFMN=${PBDIR}/ae_configure_masternode.yml
+
 ## @var PBCONFPEER
 ## @brief Configures splunk as a peernode 
 ## @details This will configure an existing splunk installation as a peernode of an existing indexer cluster
 ## @showinitializer
 declare PBCONFPEER=${PBDIR}/ae_configure_ix_peernode.yml
 
-# default splunk API admin
+## @var PBCONFSH
+## @brief Configures splunk as a searchhead
+## @details This will configure an existing splunk installation as a SearchHead
+## @showinitializer
+declare PBCONFSH=${PBDIR}/ae_configure_searchhead.yml
+
+## @var PBCONFHF
+## @brief Configures splunk as a heavy forwarder
+## @details This will configure an existing splunk installation as a Heavy Forwarder
+## @showinitializer
+declare PBCONFHF=${PBDIR}/ae_configure_heavyforwarder.yml
+
+## @var INSTDEF
+## @brief splunk installation conf
+## @details Used to configure several splunk installation relevant stuff like tgz/rpm/version etc
+## @showinitializer
+declare INSTDEF=splunk_installation
+
+## @var PBDLSPL
+## @brief Downloader for splunk tar's
+## @details Will download a defined splunk release (hard coded type: linux/64bit/tar.gz) directly from splunk
+## @showinitializer
+declare PBDLSPL=${PBDIR}/ae_download_splunk.yml 
+
+## @var PBVCINFO
+## @brief Collecting vCenter information
+## @details Will connect to a vCenter and grabs all relevant information for VM deployment
+## @showinitializer
+declare PBVCINFO="${PBDIR}/vmware/vcenter_get-info.yml"
+
+## @var PBVCVMDEPLOY
+## @brief Deploys a VM over a given vCenter to a ESX host
+## @details Will connect to a vCenter and deploys a new VM to it (based on a given template)
+## @showinitializer
+declare PBVCVMDEPLOY="${PBDIR}/vmware/vcenter_deploy-vm.yml"
+
+## @var PBVCSHOW
+## @brief Parse and show all local defined vCenters
+## @details vCenter definitions are taken in:
+## $INVENTORY/$TARGETENV/group_vars/all/bare_install
+## The playbook $PBVCSHOW will parse and write the results to a tmp file defined in $PBVCSHOW
+## @showinitializer
+declare PBVCSHOW="${PBDIR}/vmware/vcenter_show-avail.yml"
+
+## @var PBVMNEWDISK
+## @brief Add an additional disk to an existing VM
+## @details ..
+## @showinitializer
+declare PBVMNEWDISK="${PBDIR}/ae_vm_add-new-disk.yml"
+
+## @var PBVMDISKFORMAT
+## @brief Formatting a given disk in a VM
+## @details ..
+## @showinitializer
+declare PBVMDISKFORMAT="${PBDIR}/ae_vm_format-new-disk.yml"
+
+## @var PBSYSYUM
+## @brief Execute yum tasks
+## @details El-Repo kernel and system upgrades are just 2 examples here
+## @showinitializer
+declare PBSYSYUM="${PBDIR}/ae_system_yum.yml"
+
+## @var PBSSHCHK
+## @brief Initial SSH connect
+## @details Will add the host key when none exists yet. Add will be skipped when a host key changed!
+## @showinitializer
+declare PBSSHCHK="${PBDIR}/ae_ssh.yml"
+
+## @var DEFSPLAPIADMIN
+## @brief default splunk API (target:8089) admin account
+## @details Defaults to "admin" user and can be changed interactively in AE when asked.
+## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
+## This account needs privileges to run API calls so either the admin or an user with at least the following capabilities (not tested and so maybe incomplete):
+## - rest_apps_view
+## - rest_properties_get
+## - rest_properties_set
+## - restart_splunkd
+## @showinitializer
 : "${DEFSPLAPIADMIN:=admin}"
 
-# default filename where your hosts defined. can be changed interactive
+## @var DEFHOSTFILE
+## @brief default filename for host/group definitions in ansible
+## @details Defaults to "hosts" and can be changed interactively in AE when asked.
+## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
+## @showinitializer
 : "${DEFHOSTFILE:=hosts}"
 
-# gitlab authentication file
+## @var GLABSETTINGS
+## @brief gitlab authentication file
+## @details stores the gitlab token for communicationg with gitlab API
+## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
+## @showinitializer
 [ -f "${HOME}/.ae/gitlab.auth" ] && GLABSETTINGS="${HOME}/.ae/gitlab.auth"
 : "${GLABSETTINGS:=$WORKDIR/gitlab.auth}"
 
+## @var AEUSER
+## @brief local username for running AE
+## @details Defaults to "splunk" as it is meant for multi-user environments to keep track of actions in AE. 
+## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
+## @showinitializer
+: "${AEUSER:=splunk}"
+
+## @var ENABLEVAULT
+## @brief Make use of the Ansible Vault
+## @details When set to "yes" AE will ask for the Vault password on certain actions
+## hint: to operate seamless the typed password gets stored locally but only until the cookie authentication has finished.
+## after that the temporary file gets deleted automatically.
+## If you are scared about storing a password even temporary do not enable this functionality.
+## @showinitializer
+declare ENABLEVAULT=yes
+
+## @var SESSIONBASEDVAULT
+## @brief Store the Ansible Vault temp file for the whole session
+## @details When set to "yes" AE will not remove the temporary Vault password (req: ENABLEVAULT=yes)
+## for the whole session (less questions but less secure).
+## If you are scared about storing a password even temporary do not enable this functionality.
+## @showinitializer
+declare SESSIONBASEDVAULT=yes
 
 #################################################################################################
-# NO CHANGES BEHIND THIS POINT
+# NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
 #################################################################################################
+
+
+## @var VAULTTEMPFILE
+## @brief The temporary file holding the Ansible Vault password
+## @details Only relevant if $ENABLEVAULT is set to yes.
+## to operate seamless the typed password gets stored locally but only until the cookie authentication has finished.
+## after that the temporary file gets deleted automatically.
+## If you are scared about storing a password even temporary do *not* set ENABLEVAULT=yes .
+## The temporary file is placed in $WORKDIR which is accessible by the AE user only!
+## @showinitializer
+VAULTTEMPFILE="${WORKDIR}/.avtmp"
+
+unset A2VAULTARG
+[ "$ENABLEVAULT" == "yes" ] && declare A2VAULTARG="--vault-password-file $VAULTTEMPFILE" && declare ABIN="$ABIN ${A2VAULTARG}"
 
 # logging in a specific format
 F_LOG(){
@@ -241,36 +386,58 @@ F_LOG(){
 	fi
 }
 
+## @fn F_RMVAULTPW()
+## @brief removes the temporary Ansible Vault pw file
+## @param 1 optional force/override SESSIONBASEDVAULT setting
+## @details Checks for $VAULTTEMPFILE and if that exists it gets deleted.
+## This should be used whenever F_VAULTPW was used before.
+F_RMVAULTPW(){ F_LOG $FUNCNAME started
+    if [ -f $VAULTTEMPFILE ];then
+        [ "$1" == "force" ] && F_LOG $FUNCNAME "deleting vault temp file (forced)" && rm $VAULTTEMPFILE && return 0
+        [ "$SESSIONBASEDVAULT" != "yes" ] && F_LOG $FUNCNAME "deleting vault temp file (regular)" && rm $VAULTTEMPFILE && return 0
+        [ "$SESSIONBASEDVAULT" == "yes" ] && F_LOG $FUNCNAME "skipped removing vault temp file" && return 0
+        F_LOG $FUNCNAME "deleting vault temp file (no SESSIONBASEDVAULT)" && rm $VAULTTEMPFILE
+    fi
+    
+    F_LOG $FUNCNAME ended
+}
+
 ## @fn F_ENDSESS()
 ## @brief Clear ae session
 ## @details ae ensures it will not be executed more then 1 time by the EXECBIT var
 F_ENDSESS(){
 	F_LOG $FUNCNAME started
-	F_LOG $FUNCNAME "$(rm -vf $EXECBIT)"
+        F_RMVAULTPW force
+	F_LOG $FUNCNAME "deleting session file:"
+    rm -vf $EXECBIT 2>&1 >> $LOG
 	F_LOG $FUNCNAME ended
 }
 
 ## @fn F_EXIT()
-## @brief The regular exit
-## @param 1 when set to 'NOSESSEXIT' no session exit will happen (rare)
-## @return 0
-## @details If just executed without param ae will not clear the session
-## but when a full abort is required use param 1 accordingly
-F_EXIT(){
-	F_LOG $FUNCNAME started
-	
-	if [ "$1" == "NOSESSEXIT" ];then
-		echo "$FUNCNAME: No session exit" >> $LOG
-	else
-		# clear the execbit
-		F_ENDSESS
-	fi
+## @brief regular AE exit
+## @details clean exit including clearing the session bit
+F_EXIT(){ F_LOG $FUNCNAME started
+        ERRCODE=$1
+
+	F_ENDSESS
 	# finally terminate
     F_LOG $FUNCNAME "ended $ERRCODE" 
 	exit $ERRCODE
 }
 
-# catch ctrl+c !! to terminate cleanly..
+## @fn F_EXITUNCLEAN()
+## @brief exit the program unclean but controlled
+## @param 1 optional: exit code (default 0)
+## @details will not clear the session bit so only needed in rare cases (e.g. --help)
+F_EXITUNCLEAN(){ F_LOG $FUNCNAME started
+    ERRCODE=$1
+    echo "$FUNCNAME: No session exit" >> $LOG
+    F_LOG $FUNCNAME "ended $ERRCODE"
+    #trap - SIGINT SIGHUP TERM
+    exit $ERRCODE
+}
+
+# catch ctrl+c, kills etc to terminate cleanly..
 trap F_EXIT SIGINT SIGHUP TERM
 
 # check requirements first
@@ -281,7 +448,7 @@ else
     $ABIN --version >> /dev/null 2>&1
     if [ $? -ne 0 ];then
         echo -e "\nReally?? You want to use ansible deployment without ansible??! Coooool.. Install ansible and try again..\n"
-	    export ERRCODE=99
+	    export ERRCODE=90
         F_EXIT
     fi
     for i in $(echo $SHOWAPPS $PBNEWAPP $PBENAPP $PBDEPLSYSC);do
@@ -292,15 +459,13 @@ else
     done
 fi
 
-echo "Starting new log - $(date +%Y-%m-%d_%T)" >$LOG
-
 # function to start A2BIN takes all args without any proof / verification!
 # TODO: parse args and do a basic validation?!
 F_A2BIN(){
 	# returns error code of the playbook run
 	#
 	# requires these parameters:
-	A2HOSTFILE="$1" # the ansible hostfile
+	A2HOSTFILE="$1" # the ansible hostfile or the special "version" tag
 	A2PB="$2"	# the ansible playbook
 	BOXTITLE="$3"	# the title for the progressbox of the playbook run
 
@@ -317,29 +482,36 @@ F_A2BIN(){
 	F_LOG $FUNCNAME "ARGS: $A2ARGS"
 	
 	if [ -z "$A2HOSTFILE" ]||[ -z "$A2PB" ]||[ ! -f "$A2HOSTFILE" ]||[ ! -f "$A2PB" ];then
-		if [ "$RUNMODE" == "batch" ];then
-            echo "ERROR: Missing or wrong ARGS in $FUNCNAME (A2HOSTFILE:$A2HOSTFILE,A2PB:$A2PB)!"
-            return 1
-        else
-            F_DIAERR 3 "INTERNAL ERROR: Missing or wrong ARGS for $FUNCNAME (A2HOSTFILE:$A2HOSTFILE,A2PB:$A2PB)!"
-        fi
-		F_EXIT $FUNCNAME 3
+            if [ "$A2HOSTFILE" != "version" ];then
+	        if [ "$RUNMODE" == "batch" ];then
+                    echo "ERROR: Missing or wrong ARGS in $FUNCNAME (A2HOSTFILE:$A2HOSTFILE,A2PB:$A2PB)!"
+                    return 1
+                else
+                    F_DIAERR 3 "INTERNAL ERROR: Missing or wrong ARGS for $FUNCNAME (A2HOSTFILE:$A2HOSTFILE,A2PB:$A2PB)"
+                fi
+	        F_EXIT $FUNCNAME 3
+            fi
 	fi
 
 	F_LOG $FUNCNAME "$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB"
-    OLDPP="$PYTHONPATH"
+        OLDPP="$PYTHONPATH"
 	F_LOG $FUNCNAME "python path before: $OLDPP"
 	export PYTHONPATH=${A2PATH}/lib
 	F_LOG $FUNCNAME "python path after: $PYTHONPATH"
-    if [ "$RUNMODE" == "interactive" ];then
-	    $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
-	    A2ERR="${PIPESTATUS[0]}"
-    else
-        $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} 2>&1 | tee -a $LOG
-	    A2ERR="${PIPESTATUS[0]}"
-    fi
-    export PYTHONPATH="$OLDPP"
-    F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
+        if [ "$A2HOSTFILE" == "version" ];then
+            $A2BIN --version
+        else
+            if [ "$RUNMODE" == "interactive" ];then
+                [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
+	        $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+	        A2ERR="${PIPESTATUS[0]}"
+            else
+                $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
+	        A2ERR="${PIPESTATUS[0]}"
+            fi
+        fi
+        export PYTHONPATH="$OLDPP"
+        F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
 	F_LOG $FUNCNAME "finished with errcode $A2ERR"
 	return $A2ERR
 }
@@ -347,7 +519,7 @@ F_A2BIN(){
 # main dialog form
 F_DIALOG(){
     if [ "$RUNMODE" == "interactive" ];then
-	    dialog --title "ae for splunk> v$VERSION (${TARGETENV})" "$@"
+	    dialog --no-mouse --title "ae for splunk> v$VERSION/$MAXAVERSION (${TARGETENV})" "$@"
     else
         echo "$@"
     fi
@@ -359,25 +531,29 @@ F_HELP(){
 	echo -e "    USAGE/HELP for $BIN (v$VERSION)"
 	echo
 	echo -e "    Interactive / GUI mode:\n    ------------------------------------------"
-	echo -e "\t--env [production | development | ...]"
-	echo -e "\t\t\tdefine the running environment ($AINVENTORY/[your --env setting]/"
-	echo -e "\t--help\t\tWill show this\n"
-	echo -e "\t--advanced\tWill enable/show advanced option menu"
-	echo -e "\t--testing\tUnfinished menu options"
-	echo -e "\t-i|--inventory <full path to your hosts filename>"
-	echo -e "\n    Batch / API mode: !!!WORK-IN-PROGRESS!!!\n    ------------------------------------------"
-	echo -e "\t--batch|--api\t\tEnables full automated way of using ansible-engine"
-	echo -e "\n\t  mandantory:"
-	echo -e "\t    --env <environment> (e.g. production or development, ...)"
-	echo -e "\t      define the running environment ($AINVENTORY/[your --env setting]/)"
-	echo -e "\t    -i|--inventory <full path to your hosts filename>"
-	echo -e "\t    -t|--target <targetgroup> (as defined in your inventory)"
+    echo -e "    The regular way of using ae\n"
+	echo -e "\t--env <environment>\t\t\tdefine the running environment ($AINVENTORY/[your --env setting]/, e.g. production or development, ...)"
+	echo -e "\t--help\t\t\t\t\tWill show this\n"
+	echo -e "\t--advanced\t\t\t\tWill enable/show advanced option menu"
+	echo -e "\t--testing\t\t\t\tUnfinished menu options"
+	echo -e "\t-i|--inventory <hosts-file>\t\tThe full path to your hosts filename"
+	echo -e "\n\n    Batch / API mode: !!!WORK-IN-PROGRESS!!!\n    ------------------------------------------"
+    echo -e "    Enables full automated way of using ae\n"
+	echo -e "\t--batch"
+	echo -e "\n\t  mandatory:"
+	echo -e "\t    --env <environment>\t\t\tdefine the running environment ($AINVENTORY/[your --env setting]/, e.g. production or development, ...)"
+	echo -e "\t    -i|--inventory <hosts-file>\t\tThe full path to your hosts filename"
+	echo -e "\t    -t|--target <targetgroup>\t\tThe group name as defined in your inventory"
     echo -e "\n\t  Action OR Play:"
 	echo -e "\t    -p|--play <playbookname>\t\tavailable playbooks are in $ADIR"
     echo -e "\t   OR" 
 	echo -e "\t    -a|--action <predefined action>\tcurrent predefined actions are: deploy"
 	echo -e "\n\t  optional:"
-	echo -e "\t    -1 (will force to use ansible v1 as v2 is defaul¶t"
+	echo -e "\t    -1\t\t\t\t\twill force to use ansible v1 as v2 is default"
+	echo -e "\t    --deployapp \"<app name(s)>\"\t\tQUOTED list separated by a PIPE (|) of app names to deploy - if you do *not* want to deploy ALL apps for a target!"
+	echo -e "\t\t\t\t\t\tThis quoted list is egrep regex so may match unwanted things if not being careful."
+	echo -e "\t\t\t\t\t\tExample:\n\t\t\t\t\t\tIf you set --deployapp \"my-app|my-other-app\" it will match my-app and my-other-app - but also my-app-bla, my-apps, etc"
+	echo -e "\t\t\t\t\t\tIf you want to ensure that only the name \"my-app\" matches use the $ char at the end: like --deployapp \"my-app$|my-other-app\""
 	echo -e "\n"
 }
 
@@ -465,6 +641,9 @@ F_RMAPP(){
     case $SELECTION in
         Remove)
            for app in $RMAPPS;do
+                # ensure migrated linked apps can be handled properly on the next step
+                egrep "\s*delete:" $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app || echo "    delete: false" >> $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 
+                # set removal flag
                 sed -i "s/\(^\s*\)\(delete:\s*[Ff]alse\)/\1delete: true/g" $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 2>> $LOG
             done
             F_DIALOG --yesno "\nDo you want to remove the choosen apps now?\n(otherwise this will just happen on next deployment run)\n\nThis will delete theses apps on $HOSTSELECTION:\n\n$RMAPPS" 15 80 
@@ -810,7 +989,9 @@ F_EXPANDHOSTS(){
 		TGFILE="$AINVENTORY/$TARGETENV/${FUNCNAME}_${TGROUP}"
 
 		# get all hosts via playbook (will expand groups in groups etc)
+                [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
 		$ABIN -i $HOSTFILE $PBGETTARGETS -e "target=$TGROUP expandfile=$TGFILE" 2>&1 | sort >> $LOG
+                F_RMVAULTPW
 	
 		# parse the resulted FILE and massage its content
 	        if [ -r "$TGFILE" ];then
@@ -850,17 +1031,17 @@ F_CLEANCONF(){
 
 # dialog box providing errorcde
 F_DIAERR(){
-	echo "$FUNCNAME started" >> $LOG
+	echo "$FUNCNAME started with args: $@" >> $LOG
 	ERRC="$1"
 	TASK="$2"
 
 	[ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
 
 	if [ "$ERRC" != "0" ];then
-		F_DIALOG --colors --msgbox "ERROR:\n\nTask $TASK ended with errorcode >$ERRC<!" 50 100
+		F_DIALOG --colors --msgbox "ERROR:\n\nTask\n\n$TASK\n\nended with errorcode >$ERRC<!" 50 150
 		# TODO: option to abort completely?
 	else
-		F_DIALOG --colors --msgbox "SUCCESS:\n\nTask $TASK ended successfully" 10 50
+		F_DIALOG --colors --msgbox "SUCCESS:\n\nTask\n\n$TASK\n\nended successfully" 20 100
 	fi
 	echo "$FUNCNAME finished" >> $LOG
 }
@@ -875,11 +1056,11 @@ F_ERRLOG(){
         [ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
 
         if [ "$ERRC" != "0" ];then
-                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask ${TASK}\nended with errorcode >$ERRC<!" 40 100
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask:\n\n${TASK}\n\nended with errorcode >$ERRC<!" 20 150
                 # TODO: option to abort completely?
 		exit_status=$?
         else
-                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask ${TASK}\nended successfully" 40 100
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask:\n\n${TASK}\n\nended successfully" 20 150
 		exit_status=$?
         fi
 	if [ $exit_status -eq 3 ]; then
@@ -1232,9 +1413,10 @@ F_PULLSYSC(){
 				SYScDIR=${ROLEDIR}/system/$OWNDIR
 				if [ ! -d "$SYScDIR/files" ];then
 				    mkdir -p "$SYScDIR"
-		    		    TPLMSG="Base directory structure created!"
+		    		TPLMSG="Base directory structure created!"
 				else
-				    TPLMSG="Target dir exists already. Skipped copying template skeleton!"
+                    rm -vf"$SYScDIR" && mkdir -p "$SYScDIR"
+				    TPLMSG="Target dir exists already. CLEANED!"
 				fi
 	
 				# this initiates the template files but also ensures that we keep all tasks and stuff current!
@@ -1314,8 +1496,8 @@ F_SHOWHOSTS(){
 	unset OPTIONS HTARGETS HOSTSELEXPANDED host ABORTED DIAOPT
 	DIAOPT="$1"
 	HOSTSELEXPANDED="$2"
-	[ -z "$DIAOPT" ]&& echo "ABORTED! Missing arg for dialog in $FUNCNAME!" && F_EXIT
-	[ -z "$HOSTSELEXPANDED" ]&& echo "ABORTED! Missing arg for target group in $FUNCNAME!" && F_EXIT
+	[ -z "$DIAOPT" ]&& echo "ABORTED! Missing arg for dialog in $FUNCNAME!" && F_EXIT 1
+	[ -z "$HOSTSELEXPANDED" ]&& echo "ABORTED! Missing arg for target group in $FUNCNAME!" && F_EXIT 2
 
 	OPTIONS=($(for host in $HOSTSELEXPANDED;do echo "$host $host off";done))
 
@@ -1470,15 +1652,31 @@ F_SHELPER(){
 	done
 }
 
-# calculate a temporary group based on user selected values
+## @fn F_CALCTGROUP()
+## @brief create a temporary target group with selected hosts
+## @param 1 required: temporary filename
+## @param 2 optional: temporary target group-name within the hosts file
+## @param 3 optional: a given target group for just generating host names
+## @exception when param1 missing
+## @details calculate a temporary group based on user selected values
+## the result is a list of hosts all added to one group which allows easy
+## handling when running playbooks
 F_CALCTGROUP(){ F_LOG "$FUNCNAME" started
-	# returns: N/A
-	# requires: tempfile name as arg1
+    unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
+    TMPGRP=aetmpgrp
 
-	[ -z $1 ] && echo "ERROR: missing arg1" && F_EXIT
+	[ -z $1 ] && F_LOG $FUNCNAME "ERROR: missing filename for temp hosts file" && F_EXIT
+
+    if [ ! -z "$3" ];then
+        TMPGRP="$2"
+        HOSTSELECT=1
+        HOSTSELECTION="$3"
+    else
+        [ ! -z "$2" ] && TMPGRP="$2"
+    fi
+
 	CALCGRPF=${AINVENTORY}/${TARGETENV}/$1
 
-        unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
         F_HOSTFILE
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS checklist)
@@ -1527,7 +1725,7 @@ F_CALCTGROUP(){ F_LOG "$FUNCNAME" started
 	[ $? -ne 0 ] && F_ABORTMAINMENU
 
 	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
-	echo '[aetmpgrp]' > $CALCGRPF
+	echo '['$TMPGRP']' > $CALCGRPF
 	for h in $CALCEDHOSTS;do echo "$h" >> $CALCGRPF; done
 	F_LOG "$FUNCNAME" "Temporary group: $(cat $CALCGRPF)"
 }
@@ -1554,44 +1752,60 @@ F_SPLACT(){ F_LOG "$FUNCNAME" started
 		fi
 	done
 
-	# calc temp hosts file
-	F_CALCTGROUP splacthosts 
+        while [ -z "$HOSTSELECT" ];do
+            HOSTSELECTION=$(F_TARGETS checklist)
+            if [ "$HOSTSELECTION" == "ABORTED" ];then
+                ABORTED=1 && break
+                [ $? -ne 0 ] && F_ABORTMAINMENU
+            else
+                if [ -z "$HOSTSELECTION" ];then
+                    F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                else
+                    HOSTSELECT=1
+                    ABORTED=0
+                fi
+            fi
+        done
+        [ $ABORTED -eq 1 ] && F_ABORTMAINMENU
 
-    OLDPP="$PYTHONPATH"
-    F_LOG $FUNCNAME "python path before: $OLDPP"
-    export PYTHONPATH=${A2PATH}/lib
-	export PYTHONUNBUFFERED=1
+        OLDPP="$PYTHONPATH"
+        F_LOG $FUNCNAME "python path before: $OLDPP"
+        export PYTHONPATH=${A2PATH}/lib
         F_LOG $FUNCNAME "python path after: $PYTHONPATH"
+	export PYTHONUNBUFFERED=1
 
-	$A2BIN -i "${AINVENTORY}/${TARGETENV}/splacthosts" "$PBSPLACT" --limit aetmpgrp -e "{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','splunk_action':'$SPLEXE'}" 2>&1 \
+        ACTGRP=aedosomething
+        FINISHED=0
+
+        while [ $FINISHED -ne 1 ];do
+            # calc temp hosts file
+            F_CALCTGROUP splacthosts $ACTGRP "$HOSTSELECTION"
+            F_LOG $FUNCNAME "calctgrp ended with $?"
+
+	    $A2BIN -i "${AINVENTORY}/${TARGETENV}/splacthosts" "$PBSPLACT" --limit $ACTGRP -e "{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','splunk_action':'$SPLEXE'}" 2>&1 \
 		| tee -a $LOG \
 		| sed -u -r 's/(.*DEPRECATION.*)//Ig' \
 		| F_DIALOG --scrollbar --colors --progressbox "\\Za\\Z1running splunk $SPLEXE on $CALCEDHOSTS ...\\Z\\n" 1000 1000
-        F_ERRLOG "${PIPESTATUS[0]}" "splunk $SPLEXE for:\n\n$CALCEDHOSTST" "$LOG"
+            F_ERRLOG "${PIPESTATUS[0]}" "splunk $SPLEXE for:\n\n$CALCEDHOSTST" "$LOG"
+        done
 
-    export PYTHONPATH="$OLDPP"  
-    F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
+        export PYTHONPATH="$OLDPP"  
+        F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
 	F_LOG "$FUNCNAME" ended
 	F_MENUMAIN
 }
 
 # shelper execute
 F_SHEXEC(){ F_LOG "$FUNCNAME" started
-	# splunk_user=
-	# splunk_password=
-	# shelper_action='reload custom'
-	# shelper_custom='panels'
-
-	CREDS=$(F_GETAPICREDS)
-	SPLUSR="${CREDS/:*}"
-	SPLPW="${CREDS/*:}"
-
 	unset ANS
 
 	while [ -z "$ANS" ];do
 		ANS=$(F_DIALOG --radiolist "\nChoose your shelper action:\n \
 		(use the space-bar to select)" 15 100 5 \
 			reload-all "shelperreload all - so a full debug refresh" on \
+			DS-reload "reloads the serverclass on a DS (deploymentserver)" off \
+			SHC-apply-cb "apply cluster-bundle on a DEP (deployer)" off \
+			MN-apply-cb "apply cluster-bundle on a MN (masternode)" off \
 			custom-reload "define your own reload command" off \
 			2>&1 >/dev/tty)
 		ERR=$?
@@ -1604,6 +1818,9 @@ F_SHEXEC(){ F_LOG "$FUNCNAME" started
 		[ "$ANS" == "----" ]&&unset ANS
 	done
 
+    TMPGRP=aetmpgrp
+    unset ADDIGRP
+
 	case $ANS in 
 		custom-reload)
 			unset SHCUST
@@ -1614,9 +1831,10 @@ F_SHEXEC(){ F_LOG "$FUNCNAME" started
 			SHEXE="reload custom"
 			#SHCUST=$(echo $SHCUSTRAW | sed 's/ /SPACE/g')
 		;;
-		reload-all)
-			SHEXE="reload all"
-		;;
+		reload-all) SHEXE="reload all" ;;
+        DS-reload) SHEXE="reload deploy-server" ;TMPGRP=deploymentserver ;;
+        MN-apply-cb) SHEXE="apply cluster-bundle" ; TMPGRP=masternode ;;
+        SHC-apply-cb) SHEXE="apply shcluster-bundle"; TMPGRP=deployer ; SCNDGRP=shcmember ;;
 		*)	# TODO: do not exit but go to MAIN
 			F_LOG $FUNCNAME "no answer given! aborted!"
 			F_EXIT
@@ -1624,15 +1842,38 @@ F_SHEXEC(){ F_LOG "$FUNCNAME" started
 	esac
 
 	# calc temp hosts file
-	F_CALCTGROUP shelperhosts 
-		
+	F_CALCTGROUP shelperhosts $TMPGRP
+
+    # some targets require other groups as a dependency in the tmp host file we generated in F_CALCTGROUP
+    if [ ! -z "$SCNDGRP" ];then
+        HOSTSELECTION=$(F_TARGETS checklist $SCNDGRP)
+        unset HOSTLIST['expanded']
+        F_DIALOG --begin 3 3 --infobox "\nPlease standby until all group members are generated" 5 80
+        for hostlist in $HOSTSELECTION;do
+            if [ -z "${HOSTLIST['expanded']}" ];then
+                HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
+            else
+                HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
+            fi
+        done
+        echo -e '\n['$SCNDGRP']' >> ${AINVENTORY}/${TARGETENV}/shelperhosts
+        echo "${HOSTLIST['expanded']}" >> ${AINVENTORY}/${TARGETENV}/shelperhosts
+    fi
+
     OLDPP="$PYTHONPATH"
     F_LOG $FUNCNAME "python path before: $OLDPP"
     export PYTHONPATH=${A2PATH}/lib
 	export PYTHONUNBUFFERED=1
     F_LOG $FUNCNAME "python path after: $PYTHONPATH"
 
-	$A2BIN -i "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" --limit aetmpgrp -e "{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}" 2>&1 \
+    #[ ! -z "$SPLPW" ] && SHEXE="$SHEXE with auth"
+    F_LOG $FUNCNAME "will use >$SHEXE<"
+
+	CREDS=$(F_GETAPICREDS)
+	SPLUSR="${CREDS/:*}"
+	SPLPW="${CREDS/*:}"
+
+	$A2BIN -i "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" --limit $TMPGRP -e "{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}" 2>&1 \
 		| tee -a $LOG \
 		| sed -u -r 's/(.*DEPRECATION.*)//Ig' \
 		| F_DIALOG --scrollbar --colors --progressbox "\\Za\\Z1shelper running with $SHEXE $SHCUST on $UPGRADEHOSTS ...\\Z\\n" 1000 1000
@@ -1727,7 +1968,7 @@ F_GETAPICREDS(){
 		[ "$SPLPW" != "$SPLPWR" ] && F_DIAERR "3" "ERROR: Passwords doesn't match!"
 	done
 
-	[ -z "$SPLPW" ]&& SPLPW=undefined
+	[ -z "$SPLPW" ]&& F_LOG $FUNCNAME "No password set!"
 	echo "$SPLUSR:$SPLPW"
 }
 
@@ -1743,27 +1984,43 @@ F_LISTSPLREPO() { F_LOG $FUNCNAME started
 
 ## @fn F_DLSPLUNK()
 ## @brief Downloads a specific splunk release
-## @param 1 Download URL for the splunk release
 ## @return success/error
 ## @details Takes an URL parses the relevant parts out of it and downloads splunk to the local repo
 F_DLSPLUNK() { F_LOG $FUNCNAME started
-	# ask for version number
-	# ask for version hash
-
-    while [ -z "$DLURL" ];do
-        DLURL=$(F_DIALOG --inputbox '\n:\n' 15 100 2>&1 >>/dev/tty)
-        ERRHOST=$?
-        [ "$ERRHOST" -ne 0 ]&& break
-    done 
-	# ask for staging (F_STAGESPL)
-#	group_vars/all/splunk_installation:
-#	Answer for:	globversion: "6.5.5"
-#			globhash: "586c3ec08cfb"
-#	replace those vars and download
-	echo "$ABIN -i $HOSTFILE stage_splunk.yml -e \"globversion=$splver globhash=$splhash\""
-
-
-
+    while [ -z "$VERINFO" ];do
+        VERINFO=$(F_DIALOG --colors --inputbox 'This will download splunk based on just the version number & the hash value.\nGuide to get version and hash:\n\n1) open https://www.splunk.com/page/previous_releases#x86_64linux\n   (select the URL and use your terminal copy-hotkey)\n2) find the wanted version but do not click on it\n3) identify the version and hash from the package name\n\nExample:\nsplunk-\Zb7.0.1-2b5b15c4ee89\ZB-Linux-x86_64.tgz\n\nResult: \n7.0.1 = version, 2b5b15c4ee89 = hash\n\nType or paste in the version & hash ONLY.\nThe format must be exactly like this: 7.0.1-2b5b15c4ee89 (X.x.x-hash):\n' 30 100 2>&1 >>/dev/tty || echo 1)
+        F_LOG $FUNCNAME "input was: $VERINFO"
+        [ "$VERINFO" == "1" ] && unset VERINFO && return 3
+        
+        echo "$VERINFO" | egrep -q "[0-9]*\.[0-9]*\.[0-9]*-\w*"
+        if [ $? -eq 0 ];then
+            NVER=$(echo "$VERINFO" | cut -d "-" -f 1 | tr -d " ")
+            NHASH=$(echo "$VERINFO" | cut -d "-" -f 2 | tr -d " ")
+            if [ -z "$NVER" ];then
+                unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Cannot parse the splunk version! Try again" "$LOG"
+            else
+                echo "$NVER" | egrep -q "^[[:digit:]]"
+                [ $? -ne 0 ] && unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Version does not start with a number! Try again" "$LOG"
+            fi  
+            [ -z "$NHASH" ] && unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Cannot parse the splunk hash! Try again" "$LOG"
+        else
+            F_ERRLOG "3" "$FUNCNAME: You typed: $VERINFO which is not in the correct format!" "$LOG"
+            unset VERINFO
+        fi
+    done
+    # auto-stage the given version 
+    F_STAGESPL "${NVER}:${NHASH}"
+   
+    F_LOG $FUNCNAME "Parsed version: $NVER, parsed hash: $NHASH"
+    
+    # download the auto-staged version
+    [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
+    F_A2BIN $HOSTFILE $PBDLSPL "Downloading splunk <$NVER>..."
+    F_RMVAULTPW
+    ERR=$?
+    F_DIAERR $ERR "Downloading splunk version: $NVER"
+    [ $ERR -eq 0 ] && F_DIALOG --infobox "\nSplunk $NVER has been staged automatically." 5 80
+    
     F_LOG $FUNCNAME ended
 }
 
@@ -1772,9 +2029,8 @@ F_DLSPLUNK() { F_LOG $FUNCNAME started
 ## @return version string of the current staged splunk package
 ## @details Parses the local global var to identify the current staged splunk version
 F_GETSTAGEDSPL(){ F_LOG $FUNCNAME started
-    INSTDEF=$AINVENTORY/$TARGETENV/group_vars/all/splunk_installation
     # extract repo dir for apps
-    STAGEDVER="$(grep ^globversion "$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+')"
+    STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+')"
  
     if [ ! -z "$STAGEDVER" ];then
         echo "$STAGEDVER"
@@ -1785,31 +2041,39 @@ F_GETSTAGEDSPL(){ F_LOG $FUNCNAME started
 
 ## @fn F_STAGESPL()
 ## @brief Stage a specific splunk version from the local repository
-## @param -
+## @param 1 OPTIONAL: splunk version:hash -> will auto-stage the given version + hash
 ## @return success/error
 ## @details Parses the local repository for available splunk versions, let the user choose and stage that version for the ae upgrade function
-F_STAGESPL(){ F_LOG $FUNCNAME started
-    unset FVER VER VERHASH SELECTION
-    # TODO: get current staged version and show that one in the intro text
+F_STAGESPL(){ F_LOG $FUNCNAME "started with $@"
+    unset FVER VER VERHASH SELECTION AUTOVER
+    AUTOVER="$1"
     STAGEDSPLVER=$(F_GETSTAGEDSPL)
+    
+    if [ -z "$AUTOVER" ];then
+        # get the local avail versions
+        OPTIONS=($(for i in $(F_LISTSPLREPO | grep -P -o "splunk-(\d+\.\d+\.\d+)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
 
-    # get the local avail versions
-    OPTIONS=($(for i in $(F_LISTSPLREPO | grep -P -o "splunk-(\d+\.\d+\.\d+)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
+	    F_LOG $FUNCNAME "splunk packages found in local repo:\n$(F_LISTSPLREPO)"
 
-	F_LOG $FUNCNAME "splunk packages found in local repo:\n$(F_LISTSPLREPO)"
-
-    SELECTION=$(F_DIALOG --colors --ok-label "Stage" --radiolist "\nThe following shows your local repository for splunk Enterprise packages\n\nCurrently active/staged splunk version: \Zb\Zu${STAGEDSPLVER}\ZB\ZU\n\nTo stage another version simply select (space bar) and choose select.\n\n" \
+        SELECTION=$(F_DIALOG --colors --ok-label "Stage" --radiolist "\nThe following shows your local repository for splunk Enterprise packages\n\nCurrently active/staged splunk version:\n\n \Zb\Zu${STAGEDSPLVER}\ZB\ZU\n\nTo stage another version simply select (space bar) and choose select.\n\n" \
                 40 80 40 \
                 "${OPTIONS[@]}" \
                 2>&1 >/dev/tty)
 
-    [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && return 4
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && return 4
 
-    FVER=$(echo "${OPTIONS[@]}" | grep "$SELECTION" | cut -d " " -f 1-2)
-    VER=$(echo "${FVER}" | cut -d " " -f 1)
-    VERHASH=$(echo "${FVER}" | cut -d " " -f 2)
-    F_LOG $FUNCNAME "User stages version: $SELECTION (VER: $VER, VERHASH: $VERHASH)"
+        FVER=$(echo "${OPTIONS[@]}" | egrep -o "$SELECTION.*" | cut -d " " -f 1-2)
+        VER=$(echo "${FVER}" | cut -d " " -f 1)
+        VERHASH=$(echo "${FVER}" | cut -d " " -f 2)
+    else
+        SELECTION="$AUTOVER"
+        VER="${SELECTION/:*}"
+        VERHASH="${SELECTION/*:}"
+    fi
+	sed -i "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g" $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF
+    [ -z "$AUTOVER" ] && F_DIAERR $? "Staging splunk (VER: $VER, VERHASH: $VERHASH)"
 
+    F_LOG $FUNCNAME "staged version: $SELECTION (FVER: $FVER, VER: $VER, VERHASH: $VERHASH)"
     F_LOG $FUNCNAME ended
 }
 
@@ -1872,11 +2136,14 @@ F_SELHOST(){
         F_LOG $FUNCNAME started
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup TGRP
 	TGRP="$1"
+        F_LOG $FUNCNAME "LISTTYPE=$LISTTYPE"
+        [ -z "$LISTTYPE" ] && LISTTYPE=checklist && F_LOG $FUNCNAME "Using default list type: $LISTTYPE"
+
 	if [ -z "$TGRP" ];then
 	  source $AEUSRHOSTFILE
           [ -f "$HOSTFILE" ] || F_HOSTFILE
           while [ -z "$HOSTSELECT" ];do
-                HOSTSELECTION=$(F_TARGETS checklist)
+                HOSTSELECTION=$(F_TARGETS $LISTTYPE)
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
                         ABORTED=1 && break
                 else
@@ -1915,7 +2182,7 @@ F_SELHOST(){
 		# select hosts interactive or not depending on how we get called
 		if [ -z "$TGRP" ];then
 			  while [ -z "$EDITHOST" ];do
-			        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
+			        EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
 				if [ -z "$EDITHOST" ];then
 					F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
 					F_DIALOG --yesno "No selection made! Retry?" 10 40
@@ -1955,7 +2222,9 @@ F_INSTALLSPL(){
 
 	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
 	ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
-	echo '[tmpgrp]' > $ITMPGRP
+
+        echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
+	echo '[tmpgrp]' >> $ITMPGRP
 	for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
 	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
 
@@ -1964,8 +2233,8 @@ F_INSTALLSPL(){
  	F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
 
 	# doit
-	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp" 
-    F_ERRLOG "${PIPESTATUS[0]}" "Installing splunk on:\n\n$SHOSTST" "$LOG"
+	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp " 
+        F_ERRLOG "${PIPESTATUS[0]}" "Installing splunk on:\n\n$SHOSTST" "$LOG"
 
 	# cleanup
 	[ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
@@ -1986,8 +2255,9 @@ F_UPGRADEMENU(){ F_LOG $FUNCNAME started
                         "" "" \
                         Download "Downloads a specific splunk version" \
                         Stage "Shows and sets a specific version for the upgrade tasks" \
-                        Upgrade "existing splunk instance(s)" \
+                        Upgrade-Splunk "existing splunk instance(s)" \
                         Guided-Upgrade "of splunk instance(s) in a specific order" \
+                        Upgrade-System "the operating system of a splunk server" \
                         "" "" \
                         "" "" \
                         3>&1 1>&2 2>&3)
@@ -2001,15 +2271,23 @@ F_UPGRADEMENU(){ F_LOG $FUNCNAME started
         case "$SELECTION" in
             Download)
                 F_DLSPLUNK
+                F_UPGRADEMENU
             ;;
             Stage)
                 F_STAGESPL
+                F_UPGRADEMENU
             ;;
-            Upgrade)
+            Upgrade-Splunk)
                 F_UPGRADESPL
+                F_UPGRADEMENU
             ;;
             Guided-Upgrade)
                 F_GUIDEDUPGRADE
+                F_UPGRADEMENU
+            ;;
+            Upgrade-System)
+                F_SYSUPGRADE
+                F_UPGRADEMENU
             ;;
             *)
                 F_ABORTMAINMENU
@@ -2163,8 +2441,49 @@ F_GUIDEDUPGRADE(){
     F_LOG $FUNCNAME ended
 }
 
+## @fn F_DEPLOYMENU()
+## @brief A submenu for app deployment tasks
+## @return a submenu action
+## @details Shows several deployment tasks in an own submenu
+F_DEPLOYMENU(){ F_LOG $FUNCNAME started
+    unset SELECTION DEPLOYAPPSUBSET
+    SELECTION=$(F_DIALOG --ok-label "Select an entry" --cancel-label "Back" --colors \
+                    --menu "\nSelect an option:" \
+                        20 90 80 \
+                        '' '\Zb\ZuApp-Deployment Tasks\ZB\ZU'\
+                        "" "" \
+                        Choose "(Re-)Deploy only specific App(s) on a target" \
+                        ALL-Apps "Deploy all linked Apps of a target" \
+                        "" "" \
+                        "" "" \
+                        3>&1 1>&2 2>&3)
+
+    F_LOG $FUNCNAME "selected task: $SELECTION"
+    if [ "$?" != "0" ]; then
+              MENUDONE=1
+              F_LOG $FUNCNAME "aborted by user"
+              F_ABORTMAINMENU
+    else
+        case "$SELECTION" in
+            Choose)
+                DEPLOYAPPSUBSET=1 F_DEPLOYAPP
+                F_DEPLOYMENU
+            ;;
+            ALL-Apps)
+                DEPLOYAPPSUBSET=0 F_DEPLOYAPP
+                F_DEPLOYMENU
+            ;;
+            *)
+                F_ABORTMAINMENU
+            ;;
+        esac
+    fi
+    F_LOG $FUNCNAME ended
+}
+
+
 # Deploy Apps to specified targets
-F_DEPLOYAPP(){
+F_DEPLOYAPP(){ F_LOG $FUNCNAME "started with: $@"
 	# Ask for hostfile
 	# update all apps based on template
 	# re-create deploy playbook to reflect manual changes like deleting an app
@@ -2173,11 +2492,17 @@ F_DEPLOYAPP(){
         echo "$FUNCNAME started" >> $LOG
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
 
+        F_LOG $FUNCNAME "DEPLOYAPPSUBSET=$DEPLOYAPPSUBSET"
         FMODE=$1
 
         F_HOSTFILE $FMODE
         while [ -z "$HOSTSELECT" ];do
-            if [ "$RUNMODE" == "interactive" ]&&[ -z "$FMODE" ];then HOSTSELECTION=$(F_TARGETS checklist); else HOSTSELECTION=$(F_TARGETS checklist $BTARGET); fi
+            if [ "$RUNMODE" == "interactive" ]&&[ -z "$FMODE" ];then 
+                HOSTSELECTION=$(F_TARGETS checklist)
+            else
+                HOSTSELECTION=$(F_TARGETS checklist $BTARGET)
+                SUBSETAPPS="$BDEPAPP"
+            fi
             
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
                         ABORTED=1 && break
@@ -2196,13 +2521,23 @@ F_DEPLOYAPP(){
 		done
 		F_LOG "$FUNCNAME" "Re-creating deployment playbook to reflect any manual changes.. "
 
-		$ABIN -i $HOSTFILE $PBREGENDEPLOY -e "target_env=$TARGETENV"
+        [ $DEPLOYAPPSUBSET == 0 ] && DEPTYPE="'deploy_type':'all'" && SUBSETAPPS=".*"
+        if [ $DEPLOYAPPSUBSET == 1 ];then 
+            LNKAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2)
+            F_LOG $FUNCNAME "Linked apps:\n$LNKAPPS"
+            OPTIONS=($(for gapp in $LNKAPPS;do echo ${gapp##*/} "App" off; done))
+            if [ "$RUNMODE" == "interactive" ];then
+                SUBSETAPPS=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty | sed 's/$/$/g;s/\ /|/g')
+            fi
+            F_LOG $FUNCNAME "Selected apps for deploy:\n$SUBSETAPPS"
+            DEPTYPE="'deploy_type':custom,'deploy_sub_apps':'$SUBSETAPPS'"
+        fi
+                F_LOG $FUNCNAME "will exec: $A2BIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
+		F_A2BIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE}"
 		
-		# do not buffer stdout!!
-		export PYTHONUNBUFFERED=1
- 
-        DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 1-2 | sed 's/^/\\n - /g')
+        DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 1-2 | egrep "($SUBSETAPPS)" | sed 's/^/\\n - /g')
         F_LOG $FUNCNAME "Will deploy these apps on $HOSTSELECTION:\n$DEPAPPS"
+
         [ "$RUNMODE" == "interactive" ] && F_DIALOG --scrollbar --colors --yesno "ae will deploy on\Zb\Z1\n\n   $HOSTSELECTION\n\n\Znthe following apps (use Page-up/-down to scroll, select <yes> to proceed):\Zb\Z4\n$DEPAPPS\n\n\ZnAre you sure?" 40 100
         if [ $? -eq 0 ]||[ "$RUNMODE" == "batch" ];then
 		    for tgroup in $HOSTSELECTION;do
@@ -2214,7 +2549,7 @@ F_DEPLOYAPP(){
                 ERRCODE=$?
                 F_LOG $FUNCNAME "deploying apps to $tgroup ended with $ERRCODE"
                 if [ $ERRCODE -eq 0 ];then    
-                    for app in $(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2);do
+                    for app in $(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2 | tr -d '$');do
                         APPP="$AINVENTORY/$TARGETENV/group_vars/$tgroup/$app"
                         egrep -ql "^\s*delete:\s*[Tt]rue" $APPP && F_LOG $FUNCNAME "$app has been removed on $tgroup. removing local link..." && rm -vf $APPP 2>&1 >> $LOG
                     done
@@ -2239,7 +2574,6 @@ F_CLUSTER(){ F_LOG $FUNCNAME started
                     	20 90 80 \
                         '' '\Zb\ZuMaintenance\ZB\ZU'\
                         "" "" \
-                        AddPeer "configure a peer to be part of an existing IX cluster" \
                         OfflinePeer "NOT-READY-YET" \
                         RemovePeer "NOT-READY-YET" \
                         "" "" \
@@ -2252,14 +2586,108 @@ F_CLUSTER(){ F_LOG $FUNCNAME started
               F_ABORTMAINMENU
         else
                 case "$SELECTION" in
-                        AddPeer)
-			F_ADDPEER
-                        ;;
                         *)
                         F_ABORTMAINMENU
                         ;;
 		esac
 	fi
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_CONFMENU()
+## @brief Configure splunk server roles
+## @exception ..
+## @details Provides a menu to configure several splunk server roles
+F_CONFMENU(){ F_LOG $FUNCNAME started
+        unset SELECTION
+        SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
+                   --menu "\nSelect an option:" \
+                        20 90 80 \
+                        '' '\Zb\ZuConfigure splunk\ZB\ZU'\
+                        "" "" \
+                        SearchHead "configure splunk as SearchHead" \
+                        PeerNode "configure splunk as an Indexer peernode" \
+                        MasterNode "configure splunk as an Indexer MasterNode" \
+                        HeavyForwarder "configure splunk as Heavy Forwarder" \
+                        "" "" \
+                        "" "" \
+                        3>&1 1>&2 2>&3)
+
+        if [ "$?" != "0" ]; then
+              MENUDONE=1
+              F_LOG $FUNCNAME "aborted by user"
+              F_ABORTMAINMENU
+        else
+                case "$SELECTION" in
+                        SearchHead)
+                        F_ADDSH
+                        ;;
+                        PeerNode)
+                        F_ADDPEER
+                        ;;
+                        MasterNode)
+                        F_ADDMN
+                        ;;
+                        HeavyForwarder)
+                        F_ADDHF
+                        ;;
+                        *)
+                        F_ABORTMAINMENU
+                        ;;
+                esac
+        fi
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_ADDMN()
+## @brief Configures splunk to be a MasterNode
+## @exception ..
+## @details ..
+F_ADDMN(){ F_LOG $FUNCNAME started
+    unset SHOSTS SHOSTST
+    export LISTTYPE=radiolist
+
+    SHOSTS="$(F_SELHOST)"
+    [ "$SHOSTS" == ABORTED ] && return 4
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+
+    if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
+            F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+            F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+            F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+    fi
+
+    F_LOG "$FUNCNAME" "Will configure indexer MasterNode on <$SHOSTS>"
+    F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas indexer masternode. Are you sure?" 30 100
+    [ $? -ne 0 ] && F_ABORTMAINMENU
+
+    # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+
+    # target env must be set always
+    echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
+    echo '[masternode]' >> $ITMPGRP
+    for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+
+    # we need the LM in any case:
+    LMHOST=$(F_SELHOST licensemaster)
+    echo -e '\n[licensemaster]' >> $ITMPGRP
+    echo "$LMHOST" >> $ITMPGRP
+
+    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+
+    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
+
+    # check ssh first
+    F_CHECKSSH "$SHOSTS" "$ITMPGRP"
+
+    # doit
+    F_A2BIN "$ITMPGRP" "$PBCONFMN" "\Za\Z1Configure ...\Z\n" "--limit masternode"
+    F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer MasterNode on:\n\n$SHOSTST" "$LOG"
+
+    unset LISTTYPE
     F_LOG $FUNCNAME ended
 }
 
@@ -2288,7 +2716,9 @@ F_ADDPEER(){
 
         # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
         ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
-        echo '[peernode]' > $ITMPGRP
+
+        echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
+        echo '[peernode]' >> $ITMPGRP
         for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
         if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
 
@@ -2311,8 +2741,646 @@ F_ADDPEER(){
         F_LOG $FUNCNAME ended	
 }
 
+## @fn F_ADDSH()
+## @brief Configures splunk to be a SearchHead
+## @exception ..
+## @details ..
+F_ADDSH(){ F_LOG $FUNCNAME started
+    unset SHOSTS SHOSTST
+
+    SHOSTS="$(F_SELHOST)"
+    [ "$SHOSTS" == ABORTED ] && return 4
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+
+    if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
+            F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+            F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+            F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+    fi
+
+    F_LOG "$FUNCNAME" "Will configure <$SHOSTS> as a SearchHead"
+    F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas SearchHead(s). Are you sure?" 30 100
+    [ $? -ne 0 ] && F_ABORTMAINMENU
+
+    # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+
+    echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
+    echo '[searchhead]' >> $ITMPGRP
+    for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+
+    # we need the MN and LM in any case:
+    LMHOST=$(F_SELHOST licensemaster)
+    MNHOST=$(F_SELHOST masternode)
+    PNHOST=$(F_SELHOST peernode)
+    echo -e '\n[peernode]' >> $ITMPGRP
+    for h in $PNHOST ;do
+        echo "$h" >> $ITMPGRP
+    done
+    echo -e '\n[masternode]' >> $ITMPGRP
+    echo "$MNHOST" >> $ITMPGRP
+    echo -e '\n[licensemaster]' >> $ITMPGRP
+    echo "$LMHOST" >> $ITMPGRP
+
+    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+
+    # doit
+    F_A2BIN "$ITMPGRP" "$PBCONFSH" "\Za\Z1Configure ...\Z\n" "--limit searchhead"
+    F_ERRLOG "${PIPESTATUS[0]}" "configuration as SearchHead on:\n\n$SHOSTST" "$LOG"
+
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_ADDHF()
+## @brief Configures splunk to be a Heavy Forwarder
+## @exception ..
+## @details ..
+F_ADDHF(){ F_LOG $FUNCNAME started
+    unset SHOSTS SHOSTST
+
+    SHOSTS="$(F_SELHOST)"
+    [ "$SHOSTS" == ABORTED ] && return 4
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+
+    if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
+            F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+            F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+            F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+    fi
+
+    F_LOG "$FUNCNAME" "Will configure <$SHOSTS> as a Heavy Forwarder"
+    F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas Heavy Forwarder(s). Are you sure?" 30 100
+    [ $? -ne 0 ] && F_ABORTMAINMENU
+
+    # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+
+    echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
+    echo '[heavyforwarder]' >> $ITMPGRP
+    for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+
+    # we need the MN and LM in any case:
+    LMHOST=$(F_SELHOST licensemaster)
+    MNHOST=$(F_SELHOST masternode)
+    PNHOST=$(F_SELHOST peernode)
+    echo -e '\n[peernode]' >> $ITMPGRP
+    for h in $PNHOST ;do
+        echo "$h" >> $ITMPGRP
+    done
+    echo -e '\n[masternode]' >> $ITMPGRP
+    echo "$MNHOST" >> $ITMPGRP
+    echo -e '\n[licensemaster]' >> $ITMPGRP
+    echo "$LMHOST" >> $ITMPGRP
+
+    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+
+    # doit
+    F_A2BIN "$ITMPGRP" "$PBCONFHF" "\Za\Z1Configure ...\Z\n" "--limit heavyforwarder"
+    F_ERRLOG "${PIPESTATUS[0]}" "configuration as Heavy Forwarder on:\n\n$SHOSTST" "$LOG"
+
+    F_LOG $FUNCNAME ended
+}
+
+
+## @fn F_VAULTPW()
+## @brief Ask for the Vault password if required
+## @exception ..
+## @details Ansible Vault dialog to grab the pass and store it temporary
+## After using this you HAVE TO ensure using F_RMVAULTPW after the pw file is not needed anymore.
+F_VAULTPW(){ F_LOG $FUNCNAME started
+
+    RETRY=1
+
+    # skip if vault tmp file exists
+    [ -s "$VAULTTEMPFILE" ] && return 0
+
+    while [ $RETRY -ne 0 ];do
+        FPW=$(F_DIALOG --insecure --mixedform \
+                "\nAnsible Vault is enabled (ENABLEVAULT variable).\nPlease type in the Vault password to unlock protected variables:\n" 10 80 0 \
+                "Password:" 1 1 '' 1 20 20 0 1 \
+                 2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+        SPW=$(F_DIALOG --insecure --mixedform "\nPlease re-type the Vault password for verification:\n" 10 80 0 "Password:" 1 1 '' 1 20 20 0 1  2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Re-typing aborted by user" && return 5
+
+        if [ "$FPW" != "$SPW" ];then 
+            RETRY=1
+            F_DIAERR 9 "ERROR: Passwords do not match. Try again.."
+            unset FPW SPW
+        else
+            RETRY=0
+        fi
+    done
+
+    # write the vault temp file
+    echo "$FPW" > $VAULTTEMPFILE
+
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_VCDEFS()
+## @brief Collects every AE relevant vCenter information
+## @details Connects to a given vCenter and stores all collected stuff in 
+## $AINVENTORY/$TARGETENV/vmware (defined in $PBVCINFO playbook)
+F_VCDEFS(){ F_LOG $FUNCNAME started
+    F_A2BIN $HOSTFILE $PBVCSHOW "Collecting vCenter definitions..."
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_VCGETINFO()
+## @brief Collects and sets every AE relevant vCenter information
+## @details Connects to a given vCenter and stores all collected stuff in 
+## $AINVENTORY/$TARGETENV/tmp (defined in $PBVCINFO playbook) and let the user choose from it
+F_VCGETINFO(){ F_LOG $FUNCNAME started
+
+    VCWORKDIR="$AINVENTORY/$TARGETENV/tmp"
+
+    F_LOG $FUNCNAME $VMCPU
+
+    # collect configured vcenter definitions
+    F_VCDEFS
+
+    OPTIONS=($(for i in $(cat $VCWORKDIR/vcenters.list);do echo "${i/*:}" "${i/:*}" off;done))
+    VCENTER=$(F_DIALOG --radiolist \
+            "\nThese are the currently defined vCenters\n($INVENTORY/$TARGETENV/group_vars/all/bare_install)\n\nPlease use the space-bar to make your selection:" \
+            80 80 70 \
+            "${OPTIONS[@]}" \
+            2>&1 >/dev/tty)
+    [ $? -ne 0 ] && F_DIAERR 9 "Aborted by user" && break
+
+    F_LOG $FUNCNAME "Choosen vCenter was: $VCENTER"   
+ 
+    # check previous lists, if one of them is not here or 0 bytes a refresh will be forced
+    VCLIST="$VCWORKDIR/vcenters.list"
+    VCHOSTLIST="$VCWORKDIR/${VCENTER}_vchosts.list"
+    VCNETLIST="$VCWORKDIR/${VCENTER}_networks.list"
+    VCDCLIST="$VCWORKDIR/${VCENTER}_datacenters.list"
+    VCDSLIST="$VCWORKDIR/${VCENTER}_datastores.list"
+    VCREFRESH=0
+
+    for list in $VCLIST $VCHOSTLIST $VCNETLIST $VCDCLIST $VCDSLIST; do
+        LISTSAVAIL=0
+        F_LOG $FUNCNAME "CHECK: $list ..."
+        test -s $list || break
+        F_LOG $FUNCNAME "CHECK: $list exists already and is not 0 bytes..."
+        LISTSAVAIL=1
+    done
+    F_LOG $FUNCNAME "LISTSAVAIL ended with $LISTSAVAIL"
+
+    if [ $LISTSAVAIL -eq 1 ];then
+        F_DIALOG --colors --yesno "\nAE has detected cached vCenter information for:\n\n     \Zb$VCENTER\ZB\n\nDo you want to use the cache (choose: yes)\nor force a refresh (choose: no)?\n" 13 80
+        VCREFRESH=$?
+    fi
+    if [ $LISTSAVAIL -eq 0 -o $VCREFRESH -eq 1 ];then
+        F_A2BIN $HOSTFILE $PBVCINFO "Collecting vCenter information ..." "-e {'vsphere_var':'$VCENTER'}"
+    else
+        F_LOG $FUNCNAME "Using cached vCenter lists"
+    fi
+
+    for list in $VCLIST $VCHOSTLIST $VCNETLIST $VCDCLIST $VCDSLIST; do
+        LISTSAVAIL=0
+        F_LOG $FUNCNAME "CHECK: $list ..."
+        test -s $list || break
+        F_LOG $FUNCNAME "CHECK: $list exists already and is not 0 bytes..."
+        LISTSAVAIL=1
+    done
+    F_LOG $FUNCNAME "LISTSAVAIL ended with $LISTSAVAIL"
+
+    if [ $LISTSAVAIL -ne 1 ];then
+        F_ERRLOG "9" "Error collecting ESX information!" "$LOG"
+        F_ABORTMAINMENU
+    fi
+
+    # Target ESX
+    FINISHED=0
+    while [ $FINISHED -eq 0 ];do
+        OPTIONS=($(for i in $(tail -n +2 $VCHOSTLIST);do echo "${i/;*}" "${i/*;}" off;done))
+        VCHOST=$(F_DIALOG --colors --radiolist \
+            "\nThe following ESX hosts are handled by the choosen vCenter:\n\n    \Zb$VCENTER\ZB\n\nWhich one of the following should be used for provisioning\n(space-bar selects)?\n" \
+            100 80 100 \
+            "${OPTIONS[@]}" \
+            2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
+        F_LOG $FUNCNAME "Choosen: $VCHOST"
+        HOSTFILTER=$(echo $VCHOST | cut -d "." -f1)
+        [ ! -z "$VCHOST" ] && FINISHED=1
+    done
+
+    # Target Network name
+    FINISHED=0
+    while [ $FINISHED -eq 0 ];do
+        OPTIONS=($(for i in $(tail -n +2 $VCNETLIST );do echo "${i/;*}" "${i/;*}" off;done))
+        VCNET=$(F_DIALOG --colors --radiolist \
+            "\nThe following Networks are handled by the choosen vCenter:\n\n    \Zb$VCENTER\ZB\n\nWhich one of the following should be used for provisioning\n(space-bar selects)?\n" \
+            100 80 100 \
+            "${OPTIONS[@]}" \
+            2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
+        F_LOG $FUNCNAME "Choosen: $VCNET"   
+        [ ! -z "$VCNET" ] && FINISHED=1
+    done
+
+    # Target Datacenter name
+    FINISHED=0
+    while [ $FINISHED -eq 0 ];do
+        OPTIONS=($(for i in $(tail -n +2 $VCDCLIST );do echo "${i/;*}" "${i/;*}" off;done))
+        VCDC=$(F_DIALOG --colors --radiolist \
+            "\nThe following Datacenters are handled by the choosen vCenter:\n\n    \Zb$VCENTER\ZB\n\nWhich one of the following should be used for provisioning\n(space-bar selects)?\n" \
+            100 80 100 \
+            "${OPTIONS[@]}" \
+            2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
+        F_LOG $FUNCNAME "Choosen: $VCDC"
+        [ ! -z "$VCDC" ] && FINISHED=1
+    done
+
+    # Target Datastore name
+    FINISHED=0
+    while [ $FINISHED -eq 0 ];do
+        OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
+        VCDS=$(F_DIALOG --colors --radiolist \
+            "\nThe following Datastorages are handled by the choosen vCenter (\Zb$VCENTER\ZB)\nWhich one of the following should be used for provisioning\n(space-bar selects)?\n\nThe datastorage to store the\n\n   \ZbOperating System\ZB\n\n should be:\n" \
+            100 80 100 \
+            "${OPTIONS[@]}" \
+            2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
+        F_LOG $FUNCNAME "Choosen: $VCDS"   
+        [ ! -z "$VCDS" ] && FINISHED=1
+    done
+
+    # DEPLOY IT
+    F_DEPLOYVMDO
+    ERR=$?
+    F_LOG $FUNCNAME "F_DEPLOYVMDO ended with $ERR"
+    return $ERR
+
+    F_LOG $FUNCNAME ended
+} 
+
+## @fn F_DEPLOYVMDO()
+## @brief Deploys the VM
+## @exception ..
+## @details The actual doing is done here while it all starts in F_DEPLOYVM
+F_DEPLOYVMDO(){ F_LOG $FUNCNAME started
+
+    F_LOG "$FUNCNAME" "VCENTER,VMHOST,VMCPU,VMRAM,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VCHOST,VCDC,VCDS,VCNET,VMGUESTOS,VMDISK,VMDISKTYPE,VMDISKSIZEGB,VMDISKOPTS,VMDISKDEV"
+    F_LOG "$FUNCNAME" "$VCENTER,$VMHOST,$VMCPU,$VMRAM,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VCHOST,$VCDC,$VCDS,$VCNET,$VMGUESTOS,$VMDISK,$VMDISKTYPE,$VMDISKSIZEGB,$VMDISKOPTS,$VMDISKDEV"
+
+    if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" -o -z "$VMSDOMAIN" -o -z "$VCHOST" -o -z "$VCDC" -o -z "$VCDS" -o -z "$VCNET" ];then
+        F_DIAERR 9 "A required field is missing! ABORTED."
+        F_LOG $FUNCNAME "ERROR: A required field is missing!"
+        F_ABORTMAINMENU
+    else            
+        ABORTED=0
+    fi
+
+    # make all user defined settings available here
+    source $TMPHWPROFILE
+
+    # sum up (makes uses of real tab spaces in dialog):
+    F_DIALOG --no-collapse --colors --yesno "\nAE is about to provision a VM with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t'"$VMCPU\n    RAM (MB):"$'\t\t'"$VMRAM\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 50 80
+    DEPLOYIT=$?
+
+    [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && break 99
+
+    F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
+
+    F_A2BIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
+#2>&1 >> $LOG
+    DEPERR=$?
+    F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
+    F_DIAERR $DEPERR "Deploying $VMHOST to $VCENTER" 
+    [ $DEPERR -ne 0 ] && return 99
+
+    if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
+        # add as many disk(s) as needed
+
+        VMDISKCNT=0
+        while [ $VMDISKCNT -ne $VMDISK ];do
+            VMDISKCNT=$((VMDISKCNT +1))
+
+            # dynamic variable names..
+            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+
+            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+            VMDISKFS="VMDISK${VMDISKCNT}FS"
+            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+
+            # Target Datastore name
+            FINISHED=0    
+            while [ $FINISHED -eq 0 ];do        
+                OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
+                VCDS=$(F_DIALOG --colors --radiolist \
+                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} - ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
+                100 80 100 \
+                "${OPTIONS[@]}" \
+                2>&1 >/dev/tty)
+                [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
+                F_LOG $FUNCNAME "Choosen: $VCDS"
+                [ ! -z "$VCDS" ] && FINISHED=1
+            done
+
+            # sum up (makes uses of real tab spaces in dialog):
+            F_DIALOG --no-collapse --colors --yesno "\nAE is about to add a new disk to VM $VMHOST with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n\nDo you want to continue?\n" 50 80
+            DEPLOYIT=$?
+
+            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
+
+            F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
+            F_A2BIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
+            ADDERR=$?
+            [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
+
+            F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
+        done
+        VMDISKCNT=0
+        while [ $VMDISKCNT -ne $VMDISK ];do
+            VMDISKCNT=$((VMDISKCNT +1))
+            
+            # dynamic variable names..
+            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+            VMDISKFS="VMDISK${VMDISKCNT}FS"
+            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+   
+            F_A2BIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            ERR=$?
+            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
+            
+       done
+    else
+        F_LOG $FUNCNAME "No additional disk config needed"
+    fi
+
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_DEPLOYVM()
+## @brief Deploy a new blank VM based on a template
+## @exception ..
+## @details The VM template used to clone 
+## should be setup and prepared in a a way that ansible is able
+## to connect and work with afterwards.
+## Only vSphere / ESX is supported.
+F_DEPLOYVM(){ F_LOG $FUNCNAME started
+
+    unset SROLE
+
+    FINISHED=0
+    ABORTED=0
+
+    HWCONFIG="$ADIR/vmware/splunk_hardware-defaults_"
+
+    for srole in $(cat ${HWCONFIG}*.config |grep "SERVER_ROLE" | cut -d "=" -f 2);do
+        SROLE="$SROLE $srole"
+    done
+
+    F_LOG $FUNCNAME "Detected hardware profiles: $SROLE"
+    
+    while [ $FINISHED -eq 0 ];do
+        OPTIONS=($(for i in $SROLE;do echo "$i" "$i" off;done))
+        HWPROFILE=$(F_DIALOG --colors --radiolist \
+            "\nSplunk VMware hardware profiles have been found.\nSelect any (space-bar) or choose 'Empty' \nif you want to start with an empty template:\n" \
+            100 80 100 \
+            "${OPTIONS[@]}" \
+            "Empty" "Empty template " off \
+            2>&1 >/dev/tty)
+
+        [ ! -z "$HWPROFILE" ] && FINISHED=1
+    done
+    F_LOG $FUNCNAME "Choosen hardware profile: $HWPROFILE"
+    FINISHED=0
+
+    if [ "$HWPROFILE" != "Empty" ];then
+        if [ ! -f ${HWCONFIG}${HWPROFILE}.config ];then
+            F_ERRLOG 9 "Cannot find ${HWCONFIG}${HWPROFILE}.config!"
+            TMPHWPROFILE="$ADIR/vmware/${FUNCNAME}_empty.config"
+            > $TMPHWPROFILE
+        else
+            source "${HWCONFIG}${HWPROFILE}.config"
+            F_LOG $FUNCNAME "Loading $HWPROFILE template.."
+            TMPHWPROFILE="$ADIR/vmware/${FUNCNAME}_${HWPROFILE}.config"
+            cp ${HWCONFIG}${HWPROFILE}.config $TMPHWPROFILE
+        fi
+    fi
+
+    # default SCSI controller if not set in the HW profile
+    [ -z "$VMSCSI" ] && VMSCSI=0
+    # default mount options when additional disk
+    [ -z "$VMDISKOPTS" ] && VMDISKOPTS="defaults"
+
+    while [ $FINISHED -eq 0 ];do
+        DIAOUT=$(F_DIALOG --form "\nSetup your new VM - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
+                "Hostname" 1 1 "$VMHOST" 1 20 70 60  \
+                "Server Domain Name" 2 1 "$VMSDOMAIN" 2 20 70 60 \
+                "CPU count" 3 1 "$VMCPU" 3 20 4 3 \
+                "RAM (MB)" 4 1 "$VMRAM" 4 20 10 10 \
+                "Host IP" 5 1 "$VMIP" 5 20 27 28 \
+                "Netmask (x.x.x.x)" 6 1 "$VMNETMASK" 6 20 27 28 \
+                "Gateway IP" 7 1 "$VMGW" 7 20 27 28 \
+                "DNS #1" 8 1 "$VMDNS1" 8 20 27 28 \
+                "DNS #2" 9 1 "$VMDNS2" 9 20 27 28 \
+                3>&1 1>&2 2>&3)
+
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && ABORTED=1 && FINISHED=1 && break
+        F_LOG $FUNCNAME "diaout:\n$DIAOUT"
+
+        # normalize the output so it can be parsed correctly
+        NDIAOUT=$(echo -e "$DIAOUT" | tr "\n" "|")
+        
+        VMHOST=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")
+        VMSDOMAIN=$(echo $NDIAOUT | cut -d "|" -f2 | tr -d " ")
+        VMCPU=$(echo $NDIAOUT | cut -d "|" -f3 | tr -d " ")
+        VMRAM=$(echo $NDIAOUT | cut -d "|" -f4 | tr -d " ")
+        VMIP=$(echo $NDIAOUT | cut -d "|" -f5 | tr -d " ")
+        VMNETMASK=$(echo $NDIAOUT | cut -d "|" -f6 | tr -d " ")
+        VMGW=$(echo $NDIAOUT | cut -d "|" -f7 | tr -d " ")
+        VMDNS1=$(echo $NDIAOUT | cut -d "|" -f8 | tr -d " ")
+        VMDNS2=$(echo $NDIAOUT | cut -d "|" -f9 | tr -d " ")
+
+        F_LOG "$FUNCNAME" "VMHOST,VMCPU,VMRAM,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN"
+        F_LOG "$FUNCNAME" "$VMHOST,$VMCPU,$VMRAM,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN"
+
+        if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" -o -z "$VMSDOMAIN" ];then
+            F_DIAERR 9 "A required field is missing.. try again"
+            F_LOG $FUNCNAME "ERROR: A required field is missing!"
+            VMERR=99
+        else
+            FINISHED=1
+            VMERR=0
+        fi
+
+        # add as many disk(s) as needed
+        if [ $VMERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
+            echo "\n\n# The following may override the above defaults\n" >> $TMPHWPROFILE
+            echo "VMHOST='$VMHOST'" >> $TMPHWPROFILE
+            echo "VMCPU='$VMCPU'" >> $TMPHWPROFILE
+            echo "VMRAM='$VMRAM'" >> $TMPHWPROFILE
+            echo "VMIP='$VMIP'" >> $TMPHWPROFILE
+            echo "VMNETMASK='$VMNETMASK'" >> $TMPHWPROFILE
+            echo "VMGW='$VMGW'" >> $TMPHWPROFILE
+            echo "VMDNS1='$VMDNS1'" >> $TMPHWPROFILE
+            echo "VMDNS2='$VMDNS2'" >> $TMPHWPROFILE
+            echo "VMSDOMAIN='$VMSDOMAIN'" >> $TMPHWPROFILE
+
+            VMDISKCNT=0
+            while [ $VMDISKCNT -ne $VMDISK ];do
+                VMDISKCNT=$((VMDISKCNT +1))
+
+                # dynamic variable names..
+                VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+                VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+                VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+                VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+                VMDISKFS="VMDISK${VMDISKCNT}FS"
+                VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+                VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+                VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+
+                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST- Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
+                            "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
+                            "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
+                            "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
+                            "Disk type (thin|eagerzeroedthick|thick)" 4 1 "${!VMDISKTYPE}" 4 42 40 16 \
+                            "Mountpoint" 5 1 "${!VMDISKMNTP}" 5 42 40 40 \
+                            "LVM VG name" 6 1 "${!VMDISKLVMVG}" 6 42 40 40 \
+                            "LVM LV name" 7 1 "${!VMDISKLVMLV}" 7 42 40 40 \
+                            "Mount options" 8 1 "${!VMDISKOPTS}" 8 42 40 100 \
+                            3>&1 1>&2 2>&3)
+
+                # normalize the output so it can be parsed correctly
+                NDIAOUT=$(echo -e "$DIAOUT" | tr "\n" "|")
+
+                UVMDISKDEV=$(echo "$NDIAOUT" | cut -d "|" -f 1 | tr -d " ")
+                UVMDISKFS=$(echo "$NDIAOUT" | cut -d "|" -f 2 | tr -d " ")
+                UVMDISKSIZEGB=$(echo "$NDIAOUT" | cut -d "|" -f 3 | tr -d " ")
+                UVMDISKTYPE=$(echo "$NDIAOUT" | cut -d "|" -f 4 | tr -d " ")
+                UVMDISKMNTP=$(echo "$NDIAOUT" | cut -d "|" -f 5 | tr -d " ")
+                UVMDISKLVMVG=$(echo "$NDIAOUT" | cut -d "|" -f 6 | tr -d " ")
+                UVMDISKLVMLV=$(echo "$NDIAOUT" | cut -d "|" -f 7 | tr -d " ")
+                UVMDISKOPTS=$(echo "$NDIAOUT" | cut -d "|" -f 8 | tr -d " ")
+
+                echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}FS=${UVMDISKFS}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}OPTS=${UVMDISKOPTS}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}" >> $TMPHWPROFILE
+
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}OPTS=${UVMDISKOPTS}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}FS=${UVMDISKFS}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}"
+ 
+                F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
+            done
+            VMERR=$?
+        else
+            F_LOG $FUNCNAME "No additional disk config needed or a prev error occured"
+        fi
+
+        if [ $VMERR -eq 0 ];then
+            HSETOK=99
+            while [ $HSETOK -ne 0 ];do
+                grep "${VMHOST}.${VMSDOMAIN}" "$HOSTFILE" -q
+                HSETOK=$?
+                if [ $HSETOK -ne 0 ];then
+                    F_DIALOG --msgbox "\nThe server is not in $HOSTFILE.\nIt must be added now before we can continue.\n\n${VMHOST}.${VMSDOMAIN}\n(mouse to select, ctrl+shift+C to copy)\n\nmust be added to $HOSTFILE before you can continue.\nWhen you press OK $EDITBIN will be used to open it." 16 100
+                    $EDITBIN $HOSTFILE
+                fi
+            done
+        
+            # switch to vCenter information and actions
+            VCENTER=$(F_VCGETINFO 2>&1 >/dev/tty)
+            VMERR=$?
+            F_DIAERR $VMERR "Deploying $VMHOST"
+        fi
+    done
+
+    if [ $VMERR -eq 0 ];then
+        F_SYSUPGRADE "${VMHOST}.${VMSDOMAIN}"
+        F_DIAERR $? "Upgrading System"
+    fi
+    
+    # close function when aborted
+    [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "closing func due to abort state" && continue
+
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_SYSUPGRADE()
+## @brief system upgrade tasks
+## @exception ..
+## @details N/A
+F_SYSUPGRADE(){ F_LOG $FUNCNAME started
+    GHOST="$1"
+    unset AUTOMODE PARENTPID
+    export PARENTPID=$BASHPID
+    AUTOMODE="$1"
+
+    if [ -z "$AUTOMODE" ];then
+        SELHOSTS="$(F_SELHOST)"
+        [ "$SELHOSTS" == ABORTED ] && return 4
+            CREDS=$(F_GETAPICREDS)
+            SPLUSR="${CREDS/:*}"
+            SPLPW="${CREDS/*:}"
+    else
+        SELHOSTS="$AUTOMODE"
+    fi
+
+    F_LOG $FUNCNAME "selected hosts for upgrade: $SELHOSTS"
+
+    [ -z "$SELHOSTS" ] && F_DIAERR 9 "missing param for $FUNCNAME" && break 99
+
+    for uhost in $(echo "$SELHOSTS" |tr " " "\n" | cut -d ":" -f 1);do
+        # check ssh first
+        F_CHECKSSH "$uhost"
+        F_A2BIN $HOSTFILE $PBSYSYUM "Upgrading $uhost ..." "--limit $uhost" || break
+    done
+    F_DIAERR $? "System Upgrade(s) on:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!"
+    
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_CHECKSSH()
+## @brief system upgrade tasks
+## @param 1 required: the host from the inventory to be checked
+## @param 2 optional: the full path to another hostfile
+## @details N/A
+F_CHECKSSH(){ F_LOG $FUNCNAME started
+
+    CHOST="$1"
+    DHOSTF="$2"
+
+    [ -z "$CHOST" ] && F_DIAERR 9 "missing arg in $FUNCNAME" && break 99
+    [ -z "$DHOSTF" ] && DHOSTF="$HOSTFILE"
+
+    F_A2BIN $HOSTFILE $PBSSHCHK "checking $CHOST ..." "--limit $CHOST"
+
+    F_LOG $FUNCNAME ended
+}
+
 # the main menu window in regular mode
 F_MENUMAIN(){
+    F_HOSTFILE
 	MENUDONE=0
  	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
@@ -2321,7 +3389,7 @@ F_MENUMAIN(){
 			'' '\Zb\ZuAPPS\ZB\ZU'\
 			"" "" \
 			Link-app "Link an app (local file or git project) to a group" \
-			Deploy-apps "Deploy all active apps for a target group" \
+			Deploy-apps "Deploy linked apps for a target group" \
 			Remove-app "Unlink or completely remove an app of a group" \
 			Show-apps "Show all already linked apps" \
 			"" "" \
@@ -2338,7 +3406,9 @@ F_MENUMAIN(){
 			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
 			"" "" \
 			Upgrade	"Opens a submenu with upgrade tasks" \
-			Install	"splunk> on blank server(s)" \
+			VM-Deploy "Deploy a new blank VM (OS + ansible-ready)" \
+			Install	"splunk> on ansible-ready server(s)" \
+                        Configure "Configure splunk> on fresh installed splunk instances" \
 			Cluster "Indexer tasks" \
 			"" "" \
 			"" "" \
@@ -2358,7 +3428,7 @@ F_MENUMAIN(){
 			F_ENAPP
 			;;
 			Deploy-apps)
-			F_DEPLOYAPP
+			F_DEPLOYMENU
 			;;
 			Remove-app)
 			F_RMAPP
@@ -2385,7 +3455,7 @@ F_MENUMAIN(){
 			;;
 			shelper)
 			F_SHELPER
-            F_ABORTMAINMENU F_SHELPER
+                        F_ABORTMAINMENU F_SHELPER
 			;;
 			gitlab)
 			F_SETUP_GITLAB
@@ -2396,17 +3466,25 @@ F_MENUMAIN(){
 			Cluster)
 			F_CLUSTER
 			;;
+                        VM-Deploy)
+                        F_DEPLOYVM
+                        ;;
+                        Configure)
+                        F_CONFMENU
+                        ;;
 		esac
 	     done
 }
 
 # the main menu window in testing mode
 F_MENUTESTING(){
+    F_HOSTFILE
+    MENUDONE=0
+    [ "$ENABLEVAULT" == "yes" ] && [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
 	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --colors --ok-label "Select Entry" --cancel-label "Exit" \
 			--menu "\nStart the ansible engine\n\n\Zb\Z1TESTING AREA - TESTING AREA - TESTING AREA\Zn\n\nSelect an option:" \
 			25 76 25 \
-			______________ "MANAGE APPS  ______________" \
 			"" "" \
 			3>&1 1>&2 2>&3)
 		if [ "$?" != "0" ]; then
@@ -2451,12 +3529,48 @@ F_MENUADVANCED(){
 
 # ugly but efficient
 echo "$@" |grep -q "\-help"
-[ $? -eq 0 ]&& F_HELP && F_EXIT
+[ $? -eq 0 ]&& F_HELP && F_EXITUNCLEAN
 
-echo "$@" |egrep -q "(noninteractive|batch|api)"
+# ensure we know the real user and deny starting AE directly as SPLUSER
+ME=$(id -un)
+[ "$ME" == "$AEUSER" -a -z "$CALLUSR" ] && echo -e "\n\nERROR: Starting AE as user $AEUSER has been denied.\nAE must be started as your REAL user since v2.3!\n\nSo .. logout as user splunk and try again with your regular user\n\n" && F_EXIT
+if [ "$ME" != "$AEUSER" ] || [ -z "$CALLUSR" ];then
+    echo "Thanks for choosing AE $ME, starting AE now ($@) ..."
+    sudo -u $AEUSER /usr/bin/env CALLUSR=$ME $0 $@ 
+    F_EXITUNCLEAN
+fi
+
+echo "starting the engine as user $ME"
+
+# pre-check Ansible reqs
+# check ansible version first
+unset AVERSF AVERS A2VERSF A2VERS
+MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
+AVERSF=$($ABIN --version |head -n 1 | egrep -o "[1-9]\.[0-9]\.[0-9]")
+AVERS=$(echo $AVERSF | tr -d ".")
+[ -f "$A2BIN" ] && A2VERSF=$(F_A2BIN version |head -n 1 | egrep -o "[1-9]\.[0-9]\.[0-9]") && A2VERS=$(echo $A2VERSF | tr -d ".")
+F_LOG MAIN "Detected Ansible version(s):\nAVERS: $AVERS\nA2VERS: $A2VERS\nMin required: $MREQAVERSION"
+
+if [ -z "$A2VERS" ];then
+   [ "$AVERS" -lt "$MREQAVERSION" ] && F_DIAERR 999 "No suitable Ansible version found!!!\nRequired: $REQAVERSION\nFound: $AVERSF" && F_EXIT
+    export MAXAVERSION=$AVERSF
+else
+   [ "$A2VERS" -lt "$MREQAVERSION" ] && F_DIAERR 999 "No suitable Ansible version found!!!\nRequired: $REQAVERSION\nFound: $A2VERSF" && F_EXIT
+    export MAXAVERSION=$A2VERSF
+fi
+ 
+echo "$@" |egrep -q "(noninteractive|batch)"
 if [ $? -eq 0 ];then
    # enter batch mode
     export LOG=$WORKDIR/${BIN}_batchmode.log
+    # detect running session and kill/ask
+    [ -f $EXECBIT ] && echo -e "\n\nWARNING: It seems ansible-engine is already running by user: $(cat $EXECBIT)! ABORTED!" && F_LOG "$BIN" "ansible-engine is already running by $(cat $EXECBIT). ABORTED!" && exit 99
+
+    echo "$CALLUSR" > $EXECBIT && chmod o+w $EXECBIT
+    echo "Starting new log - $(date +%Y-%m-%d_%T)" > $LOG
+    # reset any previous set user host file
+    > $AEUSRHOSTFILE
+
    # parse args
    while [ ! -z "$1" ];do
      case "$1" in
@@ -2467,6 +3581,11 @@ if [ $? -eq 0 ];then
 	    -t|--target) BTARGET="$2"; shift 2;;
         -i|--inventory) export HOSTFILE="$2"; export SHOSTFILE="$HOSTFILE"; FORCEDHOSTFILE="$2"; shift 2;;
         --env) TARGETENV=$2; shift 2 ;;
+        --deployapp)
+        export BDEPAPP="$2"
+        export BDEPAPPSUBSET=1
+        shift 2
+        ;;
 	    *) echo -e "ERROR unknown argument: $1\n"; F_EXIT ;;
      esac
    done
@@ -2486,7 +3605,7 @@ if [ $? -eq 0 ];then
     else
         case $BACT in
             deploy)
-            F_DEPLOYAPP 
+            DEPLOYAPPSUBSET=$BDEPAPPSUBSET F_DEPLOYAPP
             ;;
             *)
             echo "ERROR: Action $BACT does not exists!"
@@ -2497,6 +3616,15 @@ if [ $? -eq 0 ];then
 else
     # interactive mode
     MENUDONE=0
+    # detect running session and kill/ask
+    [ -f "$EXECBIT" ] && echo -e "\n\nWARNING: It seems ansible-engine is already opened by >$(cat $EXECBIT)<?!\nIf you feel this is an error remove >$(cat $EXECBIT)< and start again. or..." && read -p "....do you want ME to override, delete the execbit and continue anyways (no risk no fun heh?)? (y/N)" KICKUSER
+    echo KICK: $KICKUSER
+    [ -f "$EXECBIT" ]&&[ "$KICKUSER" != "y" ] && F_EXITUNCLEAN
+   
+    echo "$CALLUSR" > $EXECBIT && chmod 777 $EXECBIT
+    echo "Starting new log - $(date +%Y-%m-%d_%T)" > $LOG
+    # reset any previously set user host file
+    > $AEUSRHOSTFILE
 
     while [ ! -z "$1" ]; do
       case "$1" in

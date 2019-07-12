@@ -11,7 +11,7 @@
 
 - name: splunk restart
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart --accept-license --answer-yes"
-  when: ((splunk_restart is defined and splunk_restart) or ( splunk_action is defined and splunk_action == "restart")) and splunk_action == "THIS ACTION IS DISABLED"
+  when: ((splunk_restart is defined and splunk_restart) or ( splunk_action is defined and splunk_action == "restart"))
   register: action_result
         
 - name: splunk reload deploy-server

@@ -1,0 +1,9 @@
+---
+
+- name: Start Splunk again
+  become: yes
+  become_user: root
+  service: name=splunk
+           state=started
+           args="--accept-license --answer-yes"
+

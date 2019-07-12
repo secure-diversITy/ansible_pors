@@ -1,0 +1,29 @@
+---
+#####################################################################################################################
+# Configurations for Splunk web.conf
+#####################################################################################################################
+
+#####################################################################################################################
+# [settings]
+#####################################################################################################################
+
+# privKeyPath
+
+- name: "Configure web.conf [settings] - privKeyPath state=present"
+  ini_file: dest="{{ splunk_conf_path }}/web.conf"
+            section=settings
+            option=privKeyPath
+            value={{ splunk_web_conf.settings.privKeyPath }}
+            state=present
+  when: splunk_web_conf.settings.privKeyPath is defined and
+        splunk_web_conf.settings.privKeyPath != "etc/auth/splunkweb/privkey.pem"
+  notify: splunk restart
+
+- name: "Configure web.conf [settings] - privKeyPath state=absent (default)"
+  ini_file: dest="{{ splunk_conf_path }}/web.conf"
+            section=settings
+            option=privKeyPath
+            state=absent
+  when: splunk_web_conf.settings.privKeyPath is undefined or 
+        splunk_web_conf.settings.privKeyPath == "etc/auth/splunkweb/privkey.pem"
+  notify: splunk restart

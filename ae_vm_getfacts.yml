@@ -1,0 +1,40 @@
+- name: Add new disk storage
+  hosts: "{{ server_hostname }}*"
+  gather_facts: False
+  connection: local
+
+  tasks:
+    - name: Gather disk facts from {{ server_hostname }}
+      vmware_guest_disk_facts:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        name: '{{ server_hostname }}'
+      register: vf
+
+    - name: debug out
+      debug: msg="{{vf}}"
+
+    - name: Add additional disk to {{ server_hostname }}
+      vmware_guest:
+            hostname: '{{ vsphere.host[vsphere_var].dest }}'
+            username: '{{ vsphere.host[vsphere_var].user }}'
+            password: '{{ vsphere.host[vsphere_var].password }}'
+            validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+            esxi_hostname: "{{ vsphere_esx_host }}"
+            datacenter: "{{ vsphere_datacenter }}"
+            name: '{{ server_hostname }}'
+            folder: "/{{ vsphere_datacenter }}/vm"
+            disk: 
+            # as we KNOW that there is only one disk already (OS) we can do it that way
+            - size_kb: "{{ vf.guest_disk_facts['0'].capacity_in_kb }}"
+              #datastore: "{{ vf.guest_disk_facts['0'].backing_datastore }}"
+            # AE AUTOADDED ADDITIONAL DISK(S)
+            - size_kb: 10485760
+              datastore: "HDD_splunkesx21"
+              type: thin
+            - size_kb: 10485760
+              datastore: "HDD_splunkesx21"
+              type: thin             

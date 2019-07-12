@@ -1,0 +1,9 @@
+---
+- name: Clean 1/2
+  debug: msg="clearing.."
+  notify: clear history splunk
+
+- name: Clean 2/2
+  debug: msg="clearing.."
+  notify: clear history root
+

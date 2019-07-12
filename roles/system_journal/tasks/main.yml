@@ -1,0 +1,38 @@
+---
+
+- name: enable the journal for logging
+  file: state=directory mode=2755 owner=root group=systemd-journal path=/var/log/journal
+  notify:
+   - restart journald
+
+- name: limit the total size of journald logs
+  lineinfile:
+    dest: /etc/systemd/journald.conf
+    regexp: ^SystemMaxUse=
+    line: SystemMaxUse={{ systemd_journal_system_max_use }}
+  notify:
+   - restart journald
+
+- name: limit the size of each journald log file
+  lineinfile:
+    dest: /etc/systemd/journald.conf
+    regexp: ^SystemMaxFileSize=
+    line: SystemMaxFileSize={{ systemd_journal_system_max_file_size }}
+  notify:
+   - restart journald
+
+- name: enable/disable compression
+  lineinfile:
+    dest: /etc/systemd/journald.conf
+    regexp: ^Compress=
+    line: Compress={{ systemd_journal_compress }}
+  notify:
+   - restart journald
+
+- name: configure storage type
+  lineinfile:
+    dest: /etc/systemd/journald.conf
+    regexp: ^Storage=
+    line: Storage={{ systemd_journal_storage }}
+  notify:
+   - restart journald

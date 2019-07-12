@@ -1,0 +1,21 @@
+---
+#####################################################################################################################
+# Currently VMware vSphere is supported only
+#####################################################################################################################
+
+vsphere:
+    host:
+       xxxxxxxxxxxxxxxxxxvc01:
+            dest: "xxxxxxxxxxxxxxxxxxvc01.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com"
+            validate_certs: "no"
+            user: "ansible"
+            password: "{{ vault_vsphere_password }}"
+            ansible_template_name: "xxxxxxxxxxxxxxxxxx_ansible_template"
+
+       xxxxxxxxxxxxxxxxxxvc03:
+            dest: "xxxxxxxxxxxxxxxxxxvc03.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com"
+            validate_certs: "no"
+            user: "ansible"
+            password: "{{ vault_vsphere_password }}"
+            ansible_template_name: "xxxxxxxxxxxxxxxxxx_ansible_template_DISABLED"
+

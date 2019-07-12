@@ -1,0 +1,48 @@
+---
+- name: Get VMWare Tools Version
+  shell: "vmware-toolbox-cmd -v"
+  register: vmtoolsversion_start
+  ignore_errors: yes
+
+- name: Copy tools package
+  copy: src="{{ splunk_repository.repository_root }}/packages/{{ files.linux_64_rpm.tools.name }}"
+        dest="/{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.tools.name }}"
+        mode=600
+
+- name: Copy fuse package
+  copy: src="{{ splunk_repository.repository_root }}/packages/{{ files.linux_64_rpm.fuse.name }}"
+        dest="/{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.fuse.name }}"
+        mode=600
+
+- name: Copy libfuse package
+  copy: src="{{ splunk_repository.repository_root }}/packages/{{ files.linux_64_rpm.libfuse.name }}"
+        dest="/{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.libfuse.name }}"
+        mode=600
+
+- name: Install tools from rpm
+  yum: 
+     name:
+       - "{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.tools.name }}"
+       - "{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.libfuse.name }}"
+       - "{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.fuse.name }}"
+     state: present
+  when: vmtools_installation.package_format == "rpm"
+
+- name: Remove temporary package files
+  file:
+    name: 
+      - "{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.fuse.name }}"
+      - "{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.libfuse.name }}"
+      - "{{ splunk_installation.remote_package_temp_path }}/{{ files.linux_64_rpm.tools.name }}"
+    state: absent
+  when: vmtools_installation.delete_package_after_install != false
+
+- name: Get VMWare Tools Version
+  shell: "vmware-toolbox-cmd -v"
+  register: vmtoolsversion_end
+  ignore_errors: yes
+
+- name: Install/Upgrade result
+  debug:
+     msg: "VMware tools version before: {{ vmtoolsversion_start.stdout }} {{ vmtoolsversion_start.stderr }} and afterwards: {{ vmtoolsversion_end.stdout }} {{ vmtoolsversion_end.stderr }}"
+

@@ -1,0 +1,22 @@
+---
+##########################################################################################################
+#
+# Default settings for the system/local/ handling
+# 
+################################
+#
+# remove_absent_files - feature:
+#     When you set the "remove_absent_files = true" in the config file all files without
+#     the above phrase will be RENAMED (to $file-unmanaged).
+#     Exact phrase = "^#+\sAnSiBLe\sFiLE-MANaGeD"
+#       - whole phrase is case insensitive (e.g.: ansible or ANSIBLE or AnSIbLE will all match)
+#       - "^#+" => search for "#" at the beginning of a line
+#       - "\s"  => 1 white space (no TAB! and not more then 1)
+#       - the full file! will be checked for this phrase (no need to have it on top but its recommended)
+##########################################################################################################
+
+system_local_configs:
+  system:
+    install: true
+    # remove files which do not exists (anymore) on the target
+    remove_absent_files: false

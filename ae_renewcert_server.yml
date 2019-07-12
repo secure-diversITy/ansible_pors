@@ -1,0 +1,8 @@
+- name: Renew splunk server certificate
+  hosts: all
+  remote_user: ansible
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  roles:
+    - system_splunkcert 

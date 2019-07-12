@@ -4,10 +4,26 @@
 - include: clustering/cluster_label.yml
 - include: clustering/master_uri.yml
 - include: clustering/mode.yml
+
 - include: clustering/multisite.yml
+  when: 
+    - splunk_server_conf.clustering is defined
+    - splunk_server_conf.clustering.multisite is defined
+
 - include: clustering/replication_factor.yml
+  when: 
+    - splunk_server_conf.clustering is defined
+    - splunk_server_conf.clustering.replication_factor is defined
+
 - include: clustering/search_factor.yml
+  when:
+    - splunk_server_conf.clustering is defined
+
 - include: clustering/site_replication_factor.yml
+  when:
+    - splunk_server_conf.clustering is defined
+    - splunk_server_conf.clustering.site_replication_factor is defined
+
 - include: clustering/pass4SymmKey.yml
 - include: diskUsage/minFreeSpace.yml
 - include: general/pass4SymmKey.yml

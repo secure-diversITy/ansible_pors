@@ -1,0 +1,13 @@
+- name: Configure splunk HF
+  hosts: 
+        - heavyforwarder
+        - httpeventcollector
+  user: ansible
+  become: yes
+  become_user: root
+
+  roles:
+    - conf/web
+    - conf/inputs
+    - conf/server
+    - conf/outputs

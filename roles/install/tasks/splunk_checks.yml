@@ -1,0 +1,21 @@
+---
+# check for existence of splunk init file
+- name: Check Splunk init existence
+  stat: path=/etc/init.d/splunk
+  register: splunkinitfile
+
+# check for existence of splunk bin file
+- stat: path="{{ splunk_installation.splunk_home_path }}/bin/splunk"
+  register: splunkbin
+  ignore_errors: yes
+
+# check for running splunk daemon (independent from systemd, init etc!!)
+- name: Status Splunk
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  register: splunk_state
+  failed_when: splunk_state.rc == 0
+  ignore_errors: yes
+
+# check for existence of splunk systemd file
+- stat: path=/etc/systemd/system/Splunkd.service
+  register: splunksystemdfile

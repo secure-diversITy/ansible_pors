@@ -1,5 +1,6 @@
 - name: Configure splunk peernodes
   hosts: peernode
+  remote_user: ansible
   become: yes
   become_user: "{{ splunk_install_user }}"
 

@@ -1,0 +1,13 @@
+---
+# do not use copy due to its limitations
+# copy facility does not scale to lots of files
+- name: Backup the current splunk dir
+  become: yes
+  become_user: root
+  shell: "cp -av {{ splunk_installation.splunk_home_path }} {{ splunk_installation.remote_backup_path }}/splunk/"
+        
+#  synchronize:  archive=yes
+#                compress=no
+#                src={{ splunk_installation.splunk_home_path }}
+#                dest={{ splunk_installation.remote_backup_path }}
+

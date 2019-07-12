@@ -4,8 +4,12 @@
 #####################################################################################################################
 
 # change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
-globversion: "6.6.10"
-globhash: "2b5f6c3d5f96"
+globversion: "6.6.11"
+globhash: "a4e9ea700cba"
+
+# several things are changing in newer versions (e.g. 7.2 do not have the needed init.d script anymore)
+# so the following can be used to identify the version in playbooks: when splunkversionnum <= 123 ..
+splunkversionnum: "{{ globversion | replace('.','') | int }}"
 
 # construct the full file name
 tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
@@ -14,6 +18,7 @@ splunk_installation:
   splunk_home_path: /opt/splunk
   version: "{{ globversion }}"
   ssh_public_key: xxxxxxxxxxxxxxxxxx
+   #"xxxxxxxxxxxxxxxxxx
 
   package_format: tgz
 
@@ -23,6 +28,12 @@ splunk_installation:
 
   remote_app_temp_path: /tmp
 
+  # backup before upgrade (can be yes|no)
+  backup: false
+  remote_backup_path: /opt/backup/
+
+  # default no-prompt/silence args for starting splunk non-interactive
+  splunk_args_noninteractive: "--answer-yes --accept-license --no-prompt"
 
 splunk_optimize:
   initd: True

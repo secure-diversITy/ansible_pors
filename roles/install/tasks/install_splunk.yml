@@ -1,10 +1,4 @@
 ---
-
-- name: Copy Splunk package
-  copy: src="{{ splunk_repository.repository_root }}/packages/{{ splunk_installation.package_file }}"
-        dest="/{{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}"
-        mode=600
-
 - name: Install Splunk package from rpm
   yum: name="{{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}" 
        state=present
@@ -26,3 +20,7 @@
         group="{{ splunk_install_group }}"
         recurse=yes
   when: splunk_installation.package_format == "tgz"
+
+- name: Set directory permissions for splunk
+  file: path={{ splunk_installation.splunk_home_path }}/
+        mode=0750

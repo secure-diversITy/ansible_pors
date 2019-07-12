@@ -1,4 +1,7 @@
 ---
+- include: update.yml
+  when: system_yum.upgrade_system is defined and system_yum.upgrade_system == True
+
 - include: add_elrepo.yml
   when: system_yum.elrepo.enabled
 

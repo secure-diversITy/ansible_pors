@@ -1,0 +1,11 @@
+---
+- name: Prepare cookie authentication
+  uri:
+    url: https://{{ vsphere_var }}/rest/com/vmware/cis/session
+    force_basic_auth: yes
+    validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+    method: POST
+    user: "{{ vsphere.host[vsphere_var].user }}"
+    password: "{{ vsphere.host[vsphere_var].password }}"
+  register: login
+

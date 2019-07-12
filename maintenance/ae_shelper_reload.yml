@@ -4,8 +4,7 @@
   hosts: "*"
   remote_user: ansible
   become: yes
-  become_user: root
-  #no_log: True 
+  become_user: "{{ splunk_install_user }}"
   gather_facts: False
 
   handlers:

@@ -12,6 +12,10 @@
 - name: Remove existing init.d script
   file: path=/etc/init.d/splunk
         state=absent
+  when: splunkversionnum < 720
+
+- name: Remove an existing systemd script 
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start -user splunk --answer-yes --accept-license --no-prompt"
 
 - name: Enable Splunk boot-start
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt"
@@ -20,5 +24,6 @@
   shell: systemctl daemon-reload
   when: 
     - "run_in_docker.rc == 1"
-    - "splunk_optimize.initd == true | default(false)"
+
+#    - "splunk_optimize.initd == true | default(false)"
 
