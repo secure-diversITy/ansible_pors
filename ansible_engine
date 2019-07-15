@@ -5,7 +5,7 @@
 ## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
 ## @date        2017-2019
 ## @copyright	GPL v3
-## @details
+## @details     
 ##    This program is free software: you can redistribute it and/or modify<br>
 ##    it under the terms of the GNU General Public License as published by<br>
 ##    the Free Software Foundation, either version 3 of the License, or<br>
@@ -36,15 +36,23 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=stable
-VERSIONNUM="3.2-0"
+VERSIONNUM="3.2-1"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
+#
+# This script is automatically documented by doxygen (http://doxygen.nl)
+#
+# There are a few things you have to do so though:
+# - every var must be exported or declared to get identified properly
+# - every function must start like that: "<name>(){ <EOL>" 
+#   So func name, brackets and { must be all in the same line and you have to start code at the next line first.
+# - bash advanced if-var-empty syntax like: ': "${DEFSPLAPIADMIN:=admin}"' won't get detected, 
+#   use test -z and declare instead
 #
 # doxygen copy templates:
 #
 # # @var 
 # # @brief 
-# # @showinitializer
 # # @details 
 #
 # # @fn F_NAME()
@@ -104,7 +112,8 @@ chmod 700 $WORKDIR
 ## @brief auto generate the path name of the bin
 ## @showinitializer
 ## @details the ae install dir. can be overwritten in ~/.ae/vars 
-[ -z "$ADIR" ] && declare ADIR="${0%/*}"
+[ -z "$ADIR" ] && \
+declare ADIR="${0%/*}"
 
 # the path where your inventories (with their subdirs like development, production) are in
 : "${AINVENTORY:=$ADIR/inventories}"
@@ -125,7 +134,7 @@ declare EXECBIT=/tmp/.ae_inuse
 ## @var ABIN
 ## @brief The full path to the regular ansible playbook binary
 ## @showinitializer
-ABIN="/usr/bin/ansible-playbook"
+declare ABIN="/usr/bin/ansible-playbook"
 
 # if you want you can run another ansible version by specifying the A2xx vars:
 : "${A2PATH:=/opt/splunk/ansible-git}"
@@ -136,7 +145,7 @@ ABIN="/usr/bin/ansible-playbook"
 ## @showinitializer
 declare LOG=${WORKDIR}/${BIN}.log
 
-## @var AEINFOHOSTFILE
+## @var AEUSRHOSTFILE
 ## @brief the user choosen hostfile will be written into this file
 ## @details can be sourced like: source $AEUSRHOSTFILE - will set HOSTFILE=
 ## @showinitializer
@@ -146,19 +155,22 @@ declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
 ## @brief The editor which will be used e.g. when editing system/local files
 ## @details Can be overwritten by ~/.ae/vars
 ## @showinitializer
-[ -z "$EDITBIN" ] && declare EDITBIN=/usr/bin/vim
+[ -z "$EDITBIN" ] && \
+declare EDITBIN=/usr/bin/vim
 
 ## @var PBDIR
 ## @brief The directory where all playbooks are expected
 ## @details Can be overwritten by ~/.ae/vars
 ## @showinitializer
-[ -z "$PBDIR" ] && declare PBDIR="$ADIR"
+[ -z "$PBDIR" ] && \
+declare PBDIR="$ADIR"
 
 ## @var ROLEDIR
 ## @brief The directory where all roles are expected
 ## @details Can be overwritten by ~/.ae/vars
 ## @showinitializer
-[ -z "$ROLEDIR" ] && declare ROLEDIR="$PBDIR/roles"
+[ -z "$ROLEDIR" ] && \
+declare ROLEDIR="$PBDIR/roles"
 
 ## @var PBENAPP
 ## @brief Adding/Linking new app(s) to ae
@@ -169,7 +181,7 @@ declare PBENAPP=${PBDIR}/ae_enable_app.yml
 ## @brief Regenerate ae_deploy_apps.yml
 ## @showinitializer
 ## @details This playbook generates $PBDEPLAPP based on the linked apps<-->targets
-PBREGENDEPLOY=${PBDIR}/ae_recreate_deploy.yml
+declare PBREGENDEPLOY=${PBDIR}/ae_recreate_deploy.yml
 
 ## @var PBDEPLAPP
 ## @brief Deploy apps to given targets
@@ -311,14 +323,18 @@ declare PBSSHCHK="${PBDIR}/ae_ssh.yml"
 ## - rest_properties_set
 ## - restart_splunkd
 ## @showinitializer
-: "${DEFSPLAPIADMIN:=admin}"
+#: "${DEFSPLAPIADMIN:=admin}"
+[ -z "$DEFSPLAPIADMIN" ] && \
+declare DEFSPLAPIADMIN=admin
 
 ## @var DEFHOSTFILE
 ## @brief default filename for host/group definitions in ansible
 ## @details Defaults to "hosts" and can be changed interactively in AE when asked.
 ## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
 ## @showinitializer
-: "${DEFHOSTFILE:=hosts}"
+#: "${DEFHOSTFILE:=hosts}"
+[ -z "$DEFHOSTFILE" ] && \
+declare DEFHOSTFILE=hosts
 
 ## @var GLABSETTINGS
 ## @brief gitlab authentication file
@@ -326,14 +342,18 @@ declare PBSSHCHK="${PBDIR}/ae_ssh.yml"
 ## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
 ## @showinitializer
 [ -f "${HOME}/.ae/gitlab.auth" ] && GLABSETTINGS="${HOME}/.ae/gitlab.auth"
-: "${GLABSETTINGS:=$WORKDIR/gitlab.auth}"
+#: "${GLABSETTINGS:=$WORKDIR/gitlab.auth}"
+[ -z "$GLABSETTINGS" ] && \
+declare GLABSETTINGS="$WORKDIR/gitlab.auth"
 
 ## @var AEUSER
 ## @brief local username for running AE
 ## @details Defaults to "splunk" as it is meant for multi-user environments to keep track of actions in AE. 
 ## Do not change it here, for this define AEUSER in {HOME}/.ae/vars instead
 ## @showinitializer
-: "${AEUSER:=splunk}"
+#: "${AEUSER:=splunk}"
+[ -z "$AEUSER" ] && \
+declare AEUSER=splunk
 
 ## @var ENABLEVAULT
 ## @brief Make use of the Ansible Vault
@@ -359,23 +379,23 @@ declare SESSIONBASEDVAULT=yes
 
 ## @var VAULTTEMPFILE
 ## @brief The temporary file holding the Ansible Vault password
-## @details Only relevant if $ENABLEVAULT is set to yes.
+## @details Only relevant if ENABLEVAULT is set to yes.
 ## to operate seamless the typed password gets stored locally but only until the cookie authentication has finished.
 ## after that the temporary file gets deleted automatically.
 ## If you are scared about storing a password even temporary do *not* set ENABLEVAULT=yes .
-## The temporary file is placed in $WORKDIR which is accessible by the AE user only!
-## @showinitializer
-VAULTTEMPFILE="${WORKDIR}/.avtmp"
+## The temporary file is placed in WORKDIR which is accessible by the AE user only!
+declare VAULTTEMPFILE="${WORKDIR}/.avtmp"
 
 unset A2VAULTARG
 [ "$ENABLEVAULT" == "yes" ] && declare A2VAULTARG="--vault-password-file $VAULTTEMPFILE" && declare ABIN="$ABIN ${A2VAULTARG}"
 
-# logging in a specific format
-F_LOG(){
-	# takes 2 args:
-	#  $1 = the calling function
-	#  $2 = the message to be logged
 
+## @fn F_LOG()
+## @brief Logging function
+## @param 1 (required) the calling parent function
+## @param 2 (required) the message to be logged
+## @details Logging function
+F_LOG(){
 	CALLER="$1"
 	MSG="$2"
 	if [ -z "$MSG" ]||[ -z "$CALLER" ];then
@@ -388,17 +408,17 @@ F_LOG(){
 
 ## @fn F_RMVAULTPW()
 ## @brief removes the temporary Ansible Vault pw file
-## @param 1 optional force/override SESSIONBASEDVAULT setting
+## @param 1 (optional) force/override SESSIONBASEDVAULT setting
 ## @details Checks for $VAULTTEMPFILE and if that exists it gets deleted.
 ## This should be used whenever F_VAULTPW was used before.
-F_RMVAULTPW(){ F_LOG $FUNCNAME started
-    if [ -f $VAULTTEMPFILE ];then
-        [ "$1" == "force" ] && F_LOG $FUNCNAME "deleting vault temp file (forced)" && rm $VAULTTEMPFILE && return 0
-        [ "$SESSIONBASEDVAULT" != "yes" ] && F_LOG $FUNCNAME "deleting vault temp file (regular)" && rm $VAULTTEMPFILE && return 0
+F_RMVAULTPW(){
+    F_LOG $FUNCNAME started
+    if [ -f "$VAULTTEMPFILE" ];then
+        [ "$1" == "force" ] && F_LOG $FUNCNAME "deleting vault temp file - forced" && rm $VAULTTEMPFILE && return 0
+        [ "$SESSIONBASEDVAULT" != "yes" ] && F_LOG $FUNCNAME "deleting vault temp file - regular" && rm $VAULTTEMPFILE && return 0
         [ "$SESSIONBASEDVAULT" == "yes" ] && F_LOG $FUNCNAME "skipped removing vault temp file" && return 0
-        F_LOG $FUNCNAME "deleting vault temp file (no SESSIONBASEDVAULT)" && rm $VAULTTEMPFILE
+        F_LOG $FUNCNAME "deleting vault temp file - no SESSIONBASEDVAULT" && rm $VAULTTEMPFILE
     fi
-    
     F_LOG $FUNCNAME ended
 }
 
@@ -406,7 +426,7 @@ F_RMVAULTPW(){ F_LOG $FUNCNAME started
 ## @brief Clear ae session
 ## @details ae ensures it will not be executed more then 1 time by the EXECBIT var
 F_ENDSESS(){
-	F_LOG $FUNCNAME started
+    F_LOG $FUNCNAME started
         F_RMVAULTPW force
 	F_LOG $FUNCNAME "deleting session file:"
     rm -vf $EXECBIT 2>&1 >> $LOG
@@ -416,7 +436,8 @@ F_ENDSESS(){
 ## @fn F_EXIT()
 ## @brief regular AE exit
 ## @details clean exit including clearing the session bit
-F_EXIT(){ F_LOG $FUNCNAME started
+F_EXIT(){
+    F_LOG $FUNCNAME started
         ERRCODE=$1
 
 	F_ENDSESS
@@ -429,7 +450,8 @@ F_EXIT(){ F_LOG $FUNCNAME started
 ## @brief exit the program unclean but controlled
 ## @param 1 optional: exit code (default 0)
 ## @details will not clear the session bit so only needed in rare cases (e.g. --help)
-F_EXITUNCLEAN(){ F_LOG $FUNCNAME started
+F_EXITUNCLEAN(){
+    F_LOG $FUNCNAME started
     ERRCODE=$1
     echo "$FUNCNAME: No session exit" >> $LOG
     F_LOG $FUNCNAME "ended $ERRCODE"
@@ -448,7 +470,7 @@ else
     $ABIN --version >> /dev/null 2>&1
     if [ $? -ne 0 ];then
         echo -e "\nReally?? You want to use ansible deployment without ansible??! Coooool.. Install ansible and try again..\n"
-	    export ERRCODE=90
+	export ERRCODE=90
         F_EXIT
     fi
     for i in $(echo $SHOWAPPS $PBNEWAPP $PBENAPP $PBDEPLSYSC);do
@@ -459,9 +481,17 @@ else
     done
 fi
 
-# function to start A2BIN takes all args without any proof / verification!
-# TODO: parse args and do a basic validation?!
+## @fn F_A2BIN()
+## @brief start ansible v2 (instead of PATH bin)
+## @param 1 (required) the ansible hostfile or the special "version" tag
+## @param 2 (required) the ansible playbook
+## @param 3 (required) the title for the progressbox of the playbook run
+## @param 4 (optional) ansible extra args. space separated parameters like -e 'var1=moo var2=cow' need to be defined in JSON format<br>
+## @details start A2BIN. takes all args without any proof / verification!
+## TODO: parse args and do a basic validation?!<br>
+## example args: F_A2BIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
 F_A2BIN(){
+        F_LOG $FUNCNAME started
 	# returns error code of the playbook run
 	#
 	# requires these parameters:
@@ -474,7 +504,6 @@ F_A2BIN(){
 	# e.g.: F_A2BIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
 	A2ARGSRAW="$4"	
 
-	F_LOG $FUNCNAME started
 	F_LOG $FUNCNAME "ARGSRAW: $A2ARGSRAW"
 	
 	# find space keyword
@@ -596,9 +625,9 @@ F_LISTAPPS(){
 }
 
 ## @fn F_RMAPP()
-## @brief Removes an app<-->target linkage
+## @brief Removes an app <--> target linkage
 ## @exception abort by user/error on unlinking
-## @details 
+## @details Removes an app <--> target linkage
 ## 1. ask for complete removal or just unlink
 ## 2. ask for target group
 ## 3. offer multi checkbox list of all apps for that group
@@ -701,7 +730,7 @@ F_GOAPPS(){
 
 ## @fn F_HOSTFILE()
 ## @brief Choose / check ansible inventory file
-## @param 1 optional: mode (auto|<empty>)
+## @param 1 optional: mode (auto|\<empty\>)
 ## mode auto: will set hostfile by $SHOSTFILE variable
 ## @details
 ## ask for hosts filename (will list any hosts.* files as well)
@@ -756,7 +785,7 @@ F_HOSTFILE(){
 ## @param 2 optional: automatic/non interactive mode (auto selected group name|empty)
 ## @return list of hosts
 ## @exception on error or abort: abort
-## @details 
+## @details identify targets/hosts of a group 
 ## 1. filter out all vars
 ## 2. get all sections and 1 next line
 ## 3. replace [ with newline
@@ -766,9 +795,9 @@ F_HOSTFILE(){
 ## 7. replace / with newline
 ## --> steps 4-7 are required to ensure even when 2 sections are written without a space
 ##     between. Example:
-##	[sec1]
-##  	[sec2]
-##  	host
+##     [sec1]
+##     [sec2]
+##     host
 ##     As we catch always section + 1 next line on step 2 to identify empty sections the above 
 ##     steps ensure we will *NOT* have a result of: "sec1" has host "sec2"
 ## 8. get only these lines containing a comma and something behind (means section has a value)
@@ -1081,7 +1110,8 @@ F_WAITBOX(){
 ## @brief Set the local repository variable in ae
 ## @return The directory name where the local repository is defined. On error it will return nothing.
 ## @details Set the local repository variable in ae
-F_SETREPODIR(){  F_LOG $FUNCNAME started
+F_SETREPODIR(){  
+    F_LOG $FUNCNAME started
     # local repository definition configuration file for tgz's  
     REPODEF=$AINVENTORY/$TARGETENV/group_vars/all/splunk_repository
 
@@ -1661,7 +1691,8 @@ F_SHELPER(){
 ## @details calculate a temporary group based on user selected values
 ## the result is a list of hosts all added to one group which allows easy
 ## handling when running playbooks
-F_CALCTGROUP(){ F_LOG "$FUNCNAME" started
+F_CALCTGROUP(){
+    F_LOG "$FUNCNAME" started
     unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
     TMPGRP=aetmpgrp
 
@@ -1730,11 +1761,12 @@ F_CALCTGROUP(){ F_LOG "$FUNCNAME" started
 	F_LOG "$FUNCNAME" "Temporary group: $(cat $CALCGRPF)"
 }
 
-# splunk action
-F_SPLACT(){ F_LOG "$FUNCNAME" started
-	# will exec a (predefined) splunk action/task/command
-	# splunk_action=X (where X must be defined in common/handlers)
-
+## @fn F_SPLACT()
+## @brief splunk action/task/command
+## @details will exec a (predefined) splunk action/task/command
+## splunk_action=X (where X must be defined in common/handlers)
+F_SPLACT(){ 
+        F_LOG "$FUNCNAME" started
 	unset SPLEXE
 
 	while [ -z "$SPLEXE" ];do
@@ -1795,8 +1827,11 @@ F_SPLACT(){ F_LOG "$FUNCNAME" started
 	F_MENUMAIN
 }
 
-# shelper execute
-F_SHEXEC(){ F_LOG "$FUNCNAME" started
+## @fn F_SHEXEC()
+## @brief splunkhelper actions
+## @details execute splunk helper commands
+F_SHEXEC(){ 
+        F_LOG "$FUNCNAME" started
 	unset ANS
 
 	while [ -z "$ANS" ];do
@@ -1976,8 +2011,9 @@ F_GETAPICREDS(){
 ## @brief Lists splunk versions in the local repo
 ## @return a list of splunk packages (filenames) ordered by version top-level down
 ## @details Lists available splunk versions in the local repository
-F_LISTSPLREPO() { F_LOG $FUNCNAME started
-	REPODIR="$(F_SETREPODIR)"
+F_LISTSPLREPO() { 
+    F_LOG $FUNCNAME started
+    REPODIR="$(F_SETREPODIR)"
     find ${REPODIR}/packages -maxdepth 1 -type f -name splunk*rpm -or -name splunk*deb -or -name splunk*tgz | tac | sed 's#.*/##g'
     F_LOG $FUNCNAME ended
 }
@@ -1986,7 +2022,8 @@ F_LISTSPLREPO() { F_LOG $FUNCNAME started
 ## @brief Downloads a specific splunk release
 ## @return success/error
 ## @details Takes an URL parses the relevant parts out of it and downloads splunk to the local repo
-F_DLSPLUNK() { F_LOG $FUNCNAME started
+F_DLSPLUNK() { 
+    F_LOG $FUNCNAME started
     while [ -z "$VERINFO" ];do
         VERINFO=$(F_DIALOG --colors --inputbox 'This will download splunk based on just the version number & the hash value.\nGuide to get version and hash:\n\n1) open https://www.splunk.com/page/previous_releases#x86_64linux\n   (select the URL and use your terminal copy-hotkey)\n2) find the wanted version but do not click on it\n3) identify the version and hash from the package name\n\nExample:\nsplunk-\Zb7.0.1-2b5b15c4ee89\ZB-Linux-x86_64.tgz\n\nResult: \n7.0.1 = version, 2b5b15c4ee89 = hash\n\nType or paste in the version & hash ONLY.\nThe format must be exactly like this: 7.0.1-2b5b15c4ee89 (X.x.x-hash):\n' 30 100 2>&1 >>/dev/tty || echo 1)
         F_LOG $FUNCNAME "input was: $VERINFO"
@@ -2028,7 +2065,8 @@ F_DLSPLUNK() { F_LOG $FUNCNAME started
 ## @brief Get the current staged splunk version
 ## @return version string of the current staged splunk package
 ## @details Parses the local global var to identify the current staged splunk version
-F_GETSTAGEDSPL(){ F_LOG $FUNCNAME started
+F_GETSTAGEDSPL(){ 
+    F_LOG $FUNCNAME started
     # extract repo dir for apps
     STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+')"
  
@@ -2044,7 +2082,8 @@ F_GETSTAGEDSPL(){ F_LOG $FUNCNAME started
 ## @param 1 OPTIONAL: splunk version:hash -> will auto-stage the given version + hash
 ## @return success/error
 ## @details Parses the local repository for available splunk versions, let the user choose and stage that version for the ae upgrade function
-F_STAGESPL(){ F_LOG $FUNCNAME "started with $@"
+F_STAGESPL(){ 
+    F_LOG $FUNCNAME "started with $@"
     unset FVER VER VERHASH SELECTION AUTOVER
     AUTOVER="$1"
     STAGEDSPLVER=$(F_GETSTAGEDSPL)
@@ -2077,8 +2116,11 @@ F_STAGESPL(){ F_LOG $FUNCNAME "started with $@"
     F_LOG $FUNCNAME ended
 }
 
-# upgrading splunk cluster env
-F_UPGRADESPLC(){ F_LOG $FUNCNAME started
+## @fn F_UPGRADESPLC()
+## @brief WIP - upgrading splunk cluster env
+## @details WIP - upgrading splunk cluster env
+F_UPGRADESPLC(){ 
+    F_LOG $FUNCNAME started
 	# ask:
 	#   test? -> Major release? then: no splunk offline!
 	#
@@ -2246,7 +2288,8 @@ F_INSTALLSPL(){
 ## @brief A submenu for upgrade tasks
 ## @return a submenu action
 ## @details Shows several upgrade tasks in an own submenu
-F_UPGRADEMENU(){ F_LOG $FUNCNAME started
+F_UPGRADEMENU(){ 
+    F_LOG $FUNCNAME started
     unset SELECTION
     SELECTION=$(F_DIALOG --ok-label "Select an entry" --cancel-label "Back" --colors \
                     --menu "\nSelect an option:" \
@@ -2364,9 +2407,7 @@ F_UPGRADESPL(){
 ## @fn F_GUIDEDUPGRADE()
 ## @brief Guided upgrade of several splunk servers and clusters
 ## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
-## @details 
-## offer all avail groups / hosts(?)
-## let the user choose an order for the upgrades
+## @details Prepare your very own upgrade order 
 F_GUIDEDUPGRADE(){
     F_LOG $FUNCNAME started
 
@@ -2445,7 +2486,8 @@ F_GUIDEDUPGRADE(){
 ## @brief A submenu for app deployment tasks
 ## @return a submenu action
 ## @details Shows several deployment tasks in an own submenu
-F_DEPLOYMENU(){ F_LOG $FUNCNAME started
+F_DEPLOYMENU(){ 
+    F_LOG $FUNCNAME started
     unset SELECTION DEPLOYAPPSUBSET
     SELECTION=$(F_DIALOG --ok-label "Select an entry" --cancel-label "Back" --colors \
                     --menu "\nSelect an option:" \
@@ -2482,8 +2524,16 @@ F_DEPLOYMENU(){ F_LOG $FUNCNAME started
 }
 
 
-# Deploy Apps to specified targets
-F_DEPLOYAPP(){ F_LOG $FUNCNAME "started with: $@"
+## @fn F_DEPLOYAPP()
+## @brief Deploy Apps to (a) specified target(s)
+## @details Deploy Apps to (a) specified target(s)
+## 1. Ask for hostfile
+## 2. update all apps based on template
+## 3. re-create deploy playbook to reflect manual changes like deleting an app
+## 4. Ask for target group(s) to deploy
+## 5. Deploy
+F_DEPLOYAPP(){ 
+        F_LOG $FUNCNAME "started with: $@"
 	# Ask for hostfile
 	# update all apps based on template
 	# re-create deploy playbook to reflect manual changes like deleting an app
@@ -2567,7 +2617,8 @@ F_DEPLOYAPP(){ F_LOG $FUNCNAME "started with: $@"
 ## @brief Indexer cluster menu
 ## @exception When no valid answer given returning to MAIN menu
 ## @details Provides a menu for several cluster tasks 
-F_CLUSTER(){ F_LOG $FUNCNAME started
+F_CLUSTER(){ 
+        F_LOG $FUNCNAME started
 	unset SELECTION
 	SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
                    --menu "\nSelect an option:" \
@@ -2598,7 +2649,8 @@ F_CLUSTER(){ F_LOG $FUNCNAME started
 ## @brief Configure splunk server roles
 ## @exception ..
 ## @details Provides a menu to configure several splunk server roles
-F_CONFMENU(){ F_LOG $FUNCNAME started
+F_CONFMENU(){ 
+        F_LOG $FUNCNAME started
         unset SELECTION
         SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
                    --menu "\nSelect an option:" \
@@ -2643,7 +2695,8 @@ F_CONFMENU(){ F_LOG $FUNCNAME started
 ## @brief Configures splunk to be a MasterNode
 ## @exception ..
 ## @details ..
-F_ADDMN(){ F_LOG $FUNCNAME started
+F_ADDMN(){ 
+    F_LOG $FUNCNAME started
     unset SHOSTS SHOSTST
     export LISTTYPE=radiolist
 
@@ -2694,7 +2747,7 @@ F_ADDMN(){ F_LOG $FUNCNAME started
 ## @fn F_ADDPEER()
 ## @brief Configures a new peer to an existing indexer cluster
 ## @exception ..
-## @details 
+## @details Configures a new peer to an existing indexer cluster 
 F_ADDPEER(){
         F_LOG $FUNCNAME started
 
@@ -2745,7 +2798,8 @@ F_ADDPEER(){
 ## @brief Configures splunk to be a SearchHead
 ## @exception ..
 ## @details ..
-F_ADDSH(){ F_LOG $FUNCNAME started
+F_ADDSH(){ 
+    F_LOG $FUNCNAME started
     unset SHOSTS SHOSTST
 
     SHOSTS="$(F_SELHOST)"
@@ -2797,7 +2851,8 @@ F_ADDSH(){ F_LOG $FUNCNAME started
 ## @brief Configures splunk to be a Heavy Forwarder
 ## @exception ..
 ## @details ..
-F_ADDHF(){ F_LOG $FUNCNAME started
+F_ADDHF(){ 
+    F_LOG $FUNCNAME started
     unset SHOSTS SHOSTST
 
     SHOSTS="$(F_SELHOST)"
@@ -2851,7 +2906,8 @@ F_ADDHF(){ F_LOG $FUNCNAME started
 ## @exception ..
 ## @details Ansible Vault dialog to grab the pass and store it temporary
 ## After using this you HAVE TO ensure using F_RMVAULTPW after the pw file is not needed anymore.
-F_VAULTPW(){ F_LOG $FUNCNAME started
+F_VAULTPW(){ 
+    F_LOG $FUNCNAME started
 
     RETRY=1
 
@@ -2886,7 +2942,8 @@ F_VAULTPW(){ F_LOG $FUNCNAME started
 ## @brief Collects every AE relevant vCenter information
 ## @details Connects to a given vCenter and stores all collected stuff in 
 ## $AINVENTORY/$TARGETENV/vmware (defined in $PBVCINFO playbook)
-F_VCDEFS(){ F_LOG $FUNCNAME started
+F_VCDEFS(){ 
+    F_LOG $FUNCNAME started
     F_A2BIN $HOSTFILE $PBVCSHOW "Collecting vCenter definitions..."
     F_LOG $FUNCNAME ended
 }
@@ -2895,8 +2952,8 @@ F_VCDEFS(){ F_LOG $FUNCNAME started
 ## @brief Collects and sets every AE relevant vCenter information
 ## @details Connects to a given vCenter and stores all collected stuff in 
 ## $AINVENTORY/$TARGETENV/tmp (defined in $PBVCINFO playbook) and let the user choose from it
-F_VCGETINFO(){ F_LOG $FUNCNAME started
-
+F_VCGETINFO(){ 
+    F_LOG $FUNCNAME started
     VCWORKDIR="$AINVENTORY/$TARGETENV/tmp"
 
     F_LOG $FUNCNAME $VMCPU
@@ -3025,7 +3082,8 @@ F_VCGETINFO(){ F_LOG $FUNCNAME started
 ## @brief Deploys the VM
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
-F_DEPLOYVMDO(){ F_LOG $FUNCNAME started
+F_DEPLOYVMDO(){ 
+    F_LOG $FUNCNAME started
 
     F_LOG "$FUNCNAME" "VCENTER,VMHOST,VMCPU,VMRAM,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VCHOST,VCDC,VCDS,VCNET,VMGUESTOS,VMDISK,VMDISKTYPE,VMDISKSIZEGB,VMDISKOPTS,VMDISKDEV"
     F_LOG "$FUNCNAME" "$VCENTER,$VMHOST,$VMCPU,$VMRAM,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VCHOST,$VCDC,$VCDS,$VCNET,$VMGUESTOS,$VMDISK,$VMDISKTYPE,$VMDISKSIZEGB,$VMDISKOPTS,$VMDISKDEV"
@@ -3133,8 +3191,9 @@ F_DEPLOYVMDO(){ F_LOG $FUNCNAME started
 ## @details The VM template used to clone 
 ## should be setup and prepared in a a way that ansible is able
 ## to connect and work with afterwards.
-## Only vSphere / ESX is supported.
-F_DEPLOYVM(){ F_LOG $FUNCNAME started
+## Only vSphere ESX is supported.
+F_DEPLOYVM(){ 
+    F_LOG $FUNCNAME started
 
     unset SROLE
 
@@ -3330,7 +3389,8 @@ F_DEPLOYVM(){ F_LOG $FUNCNAME started
 ## @brief system upgrade tasks
 ## @exception ..
 ## @details N/A
-F_SYSUPGRADE(){ F_LOG $FUNCNAME started
+F_SYSUPGRADE(){ 
+    F_LOG $FUNCNAME started
     GHOST="$1"
     unset AUTOMODE PARENTPID
     export PARENTPID=$BASHPID
@@ -3364,8 +3424,9 @@ F_SYSUPGRADE(){ F_LOG $FUNCNAME started
 ## @brief system upgrade tasks
 ## @param 1 required: the host from the inventory to be checked
 ## @param 2 optional: the full path to another hostfile
-## @details N/A
-F_CHECKSSH(){ F_LOG $FUNCNAME started
+## @details tbd
+F_CHECKSSH(){ 
+    F_LOG $FUNCNAME started
 
     CHOST="$1"
     DHOSTF="$2"
