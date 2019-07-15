@@ -1,14 +1,19 @@
+# Requirements for AE
+
 ### Main components
 
 * Ansible: 2.8
-
+* dialog
+* bash
 
 ### Linux basics
 
 ##### packages & tools
 
-* dialog
-* GNU grep, tr, sed, cat, ...
+* python v2 (v3 untested but may work)
+* OpenSSH (ssh and scp client)
+* several standard GNU linux stuff like: grep, sed, tar, cat
+* git (client)
 
 
 ### VMware vSphere VM deployment 

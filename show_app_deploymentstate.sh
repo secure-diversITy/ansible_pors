@@ -3,12 +3,11 @@
 ## @file			show_app_deploymentstate.sh
 ## @brief		        Show the deployed apps for each type
 ## @author			T. Fischer <mail |at| sedi DOT one>
-## @copyright			2017-2018 T. Fischer <mail |at| sedi DOT one>, licensed under the LGPL v2
+## @copyright			2017-2019 T. Fischer <mail |at| sedi DOT one>, licensed under the LGPL v2
 ######################################################################################################################
 
 ## @fn F_COLORS()
 ## @brief Describes the meanings of the various colors on output
-## @showinitializer
 F_COLORS(){
 	cat <<EOFCOL
 
