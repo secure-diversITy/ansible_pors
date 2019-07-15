@@ -2,7 +2,7 @@
 ##################################################################################
 #
 # Desc:		    Show the deployed apps for each target and type
-# Copyright:	2017-2018, Thomas Fischer <mail -AT- sedi -DOT- one>
+# Copyright:	2017-2019, Thomas Fischer <mail -AT- sedi -DOT- one>
 #
 ##################################################################################
 
