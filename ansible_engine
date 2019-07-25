@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=stable
-VERSIONNUM="3.2-1"
+VERSIONNUM="3.3-1"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -2645,6 +2645,50 @@ F_CLUSTER(){
     F_LOG $FUNCNAME ended
 }
 
+
+## @fn F_VMMENU()
+## @brief Menu for doing VM tasks
+## @exception ..
+## @details Provides a menu to deploy VM's and/or configure them (vSphere/ESX only)
+F_VMMENU(){
+        F_LOG $FUNCNAME started
+        unset SELECTION
+        SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
+                   --menu "\nSelect an option:" \
+                        20 90 80 \
+                        '' '\Zb\ZuvSphere/ESX operations\ZB\ZU'\
+                        "" "" \
+                        VM-Deploy "Deploy a new blank VM (OS + ansible-ready) to your vSphere/ESX" \
+                        Add_newDisk "WIP: add a new disk to an existing VM" \
+                        Format_newDisk "WIP: format a (usually) blank disk of an existing VM" \
+                        "" "" \
+                        "" "" \
+                        3>&1 1>&2 2>&3)
+
+        if [ "$?" != "0" ]; then
+              MENUDONE=1
+              F_LOG $FUNCNAME "aborted by user"
+              F_ABORTMAINMENU
+        else
+                case "$SELECTION" in
+                        VM-Deploy)
+                        F_DEPLOYVM
+                        ;;
+                        Add_newDisk)
+                        F_ADDDISK
+                        ;;
+                        Format_newDisk)
+                        F_FSDISK
+                        ;;
+                        *)
+                        F_ABORTMAINMENU
+                        ;;
+                esac
+        fi
+    F_LOG $FUNCNAME ended
+}
+
+
 ## @fn F_CONFMENU()
 ## @brief Configure splunk server roles
 ## @exception ..
@@ -3078,6 +3122,35 @@ F_VCGETINFO(){
     F_LOG $FUNCNAME ended
 } 
 
+## @fn F_VMSELDS()
+## @brief Select a datastore of a given vCenter
+## @param 1 (exported) VCENTER
+## @param 2 (exported) VCDSLIST
+## @param 1 (exported) VMDISKDEV
+## @param 1 (exported/optional) VMDISKMNTP
+## @param 1 (exported) VMDISKSIZEGB
+## @return name of datastore 
+## @details Select a datastore of a given vCenter for a specific disk
+F_VMSELDS(){
+    F_LOG $FUNCNAME started
+
+    FINISHED=0
+    while [ $FINISHED -eq 0 ];do
+        OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
+        VCDS=$(F_DIALOG --colors --radiolist \
+                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
+                100 80 100 \
+                "${OPTIONS[@]}" \
+                2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "ERROR $? - aborted by user" && return 99
+        F_LOG $FUNCNAME "Choosen: $VCDS"
+        [ ! -z "$VCDS" ] && FINISHED=1
+    done
+    echo "$VCDS"
+
+    F_LOG $FUNCNAME ended
+}
+
 ## @fn F_DEPLOYVMDO()
 ## @brief Deploys the VM
 ## @exception ..
@@ -3183,6 +3256,151 @@ F_DEPLOYVMDO(){
     fi
 
     F_LOG $FUNCNAME ended
+}
+
+## @fn F_VMDISKADD()
+## @brief TODO/WIP Adds a new disk to a vSphere managed VM
+## @param 1 (exported) TMPHWPROFILE
+## @param 2 (exported/optional) VMDISK
+## @param 3 (exported) VMHOST
+## @details Adds a new disk to a vSphere managed VM 
+## Only vSphere ESX is supported.
+F_VMDISKADD(){ 
+    F_LOG $FUNCNAME started
+
+    if [ -z "$VMDISK" ];then
+        DIAOUT=$(F_DIALOG --form "\nSetup new disk(s) for $VMHOST" 20 100 10  \
+                            "How many disks do you want to add?" 1 1 "1" 1 42 40 40  \
+                            3>&1 1>&2 2>&3)
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Disk count dialog ended with $?" && return 9
+        [ "$DIAOUT" -ge 0 ] && VMDISK="$DIAOUT"
+        F_LOG $FUNCNAME "User wants to add: $VMDISK disk(s)"
+    fi
+
+    VMDISKCNT=0
+    while [ $VMDISKCNT -ne $VMDISK ];do
+        VMDISKCNT=$((VMDISKCNT +1))
+
+        # dynamic variable names..
+        VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+        VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+        VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+
+        VCDS=$(F_VMSELDS)
+
+        DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST- Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
+                            "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
+                            "Disk size in GB" 2 1 "${!VMDISKSIZEGB}" 2 42 40 20 \
+                            "Disk type (thin|eagerzeroedthick|thick)" 3 1 "${!VMDISKTYPE}" 3 42 40 16 \
+                            3>&1 1>&2 2>&3)
+
+        # normalize the output so it can be parsed correctly
+        NDIAOUT=$(echo -e "$DIAOUT" | tr "\n" "|")
+
+        UVMDISKDEV=$(echo "$NDIAOUT" | cut -d "|" -f 1 | tr -d " ")
+        UVMDISKSIZEGB=$(echo "$NDIAOUT" | cut -d "|" -f 3 | tr -d " ")
+        UVMDISKTYPE=$(echo "$NDIAOUT" | cut -d "|" -f 4 | tr -d " ")
+
+        echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}VCDS=${VCDS}" >> $TMPHWPROFILE
+
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}VCDS=${VCDS}"
+
+        F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
+    done
+    VMERR=$?
+
+    F_LOG $FUNCNAME "ended with $VMERR"
+    return $VMERR
+}
+
+## @fn F_VMDISKSETUP()
+## @brief TODO/WIP Formats a partition in a VM incl. setting it up
+## @param 1 (exported) TMPHWPROFILE
+## @param 2 (exported/optional) VMDISK
+## @param 3 (exported) VMHOST
+## @param 4 (exported/optional) VMDISKDEV
+## @param 5 (exported/optional) VCENTER
+## @details Will prepare LVM, format and add to fstab a given partition
+## Only vSphere ESX is supported.
+F_VMDISKSETUP(){
+    F_LOG $FUNCNAME started
+
+    if [ -z "$VMDISK" ];then
+        DIAOUT=$(F_DIALOG --form "\nSetup new disk(s) for $VMHOST" 20 100 10  \
+                            "How many disks do you want to setup?" 1 1 "1" 1 42 40 40  \
+                            3>&1 1>&2 2>&3)
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Disk count dialog ended with $?" && return 9
+        [ "$DIAOUT" -ge 0 ] && VMDISK="$DIAOUT"
+        F_LOG $FUNCNAME "User wants to add: $VMDISK disk(s)"
+    fi
+
+    VMDISKCNT=0
+    while [ $VMDISKCNT -ne $VMDISK ];do
+        VMDISKCNT=$((VMDISKCNT +1))
+
+        # dynamic variable names..
+        VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+        VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+        VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+        VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+        VMDISKFS="VMDISK${VMDISKCNT}FS"
+        VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+        VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+        VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+
+        DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST- Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
+                            "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
+                            "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
+                            "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
+                            "Disk type (thin|eagerzeroedthick|thick)" 4 1 "${!VMDISKTYPE}" 4 42 40 16 \
+                            "Mountpoint" 5 1 "${!VMDISKMNTP}" 5 42 40 40 \
+                            "LVM VG name" 6 1 "${!VMDISKLVMVG}" 6 42 40 40 \
+                            "LVM LV name" 7 1 "${!VMDISKLVMLV}" 7 42 40 40 \
+                            "Mount options" 8 1 "${!VMDISKOPTS}" 8 42 40 100 \
+                            3>&1 1>&2 2>&3)
+
+        # normalize the output so it can be parsed correctly
+        NDIAOUT=$(echo -e "$DIAOUT" | tr "\n" "|")
+
+        UVMDISKDEV=$(echo "$NDIAOUT" | cut -d "|" -f 1 | tr -d " ")
+        UVMDISKFS=$(echo "$NDIAOUT" | cut -d "|" -f 2 | tr -d " ")
+        UVMDISKSIZEGB=$(echo "$NDIAOUT" | cut -d "|" -f 3 | tr -d " ")
+        UVMDISKTYPE=$(echo "$NDIAOUT" | cut -d "|" -f 4 | tr -d " ")
+        UVMDISKMNTP=$(echo "$NDIAOUT" | cut -d "|" -f 5 | tr -d " ")
+        UVMDISKLVMVG=$(echo "$NDIAOUT" | cut -d "|" -f 6 | tr -d " ")
+        UVMDISKLVMLV=$(echo "$NDIAOUT" | cut -d "|" -f 7 | tr -d " ")
+        UVMDISKOPTS=$(echo "$NDIAOUT" | cut -d "|" -f 8 | tr -d " ")
+
+        echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}FS=${UVMDISKFS}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}OPTS=${UVMDISKOPTS}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}" >> $TMPHWPROFILE
+        echo "VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}" >> $TMPHWPROFILE
+
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}OPTS=${UVMDISKOPTS}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}FS=${UVMDISKFS}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}"
+        F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}"
+
+        F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
+    done
+    VMERR=$?
+
+    F_LOG $FUNCNAME "ended with $VMERR"
+    return $VMERR
 }
 
 ## @fn F_DEPLOYVM()
@@ -3467,7 +3685,7 @@ F_MENUMAIN(){
 			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
 			"" "" \
 			Upgrade	"Opens a submenu with upgrade tasks" \
-			VM-Deploy "Deploy a new blank VM (OS + ansible-ready)" \
+                        VM-Management "Deploy and manage vSphere VMs" \
 			Install	"splunk> on ansible-ready server(s)" \
                         Configure "Configure splunk> on fresh installed splunk instances" \
 			Cluster "Indexer tasks" \
@@ -3532,6 +3750,9 @@ F_MENUMAIN(){
                         ;;
                         Configure)
                         F_CONFMENU
+                        ;;
+                        VM-Management)
+                        F_VMMENU
                         ;;
 		esac
 	     done
