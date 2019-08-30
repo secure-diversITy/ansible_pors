@@ -1,8 +1,7 @@
 ---
-
-- name: splunk helper actions
+- name: "splunk helper actions"
   hosts: "*"
-  remote_user: ansible
+  remote_user: "ansible"
   become: yes
   become_user: "{{ splunk_install_user }}"
   gather_facts: False
@@ -12,9 +11,13 @@
 
   tasks:
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
-      shell: echo
-      notify: "shelper {{ shelper_action }}"
+      debug:
+        msg: "Please be patient! {{ shelper_action }} in progress"
+
+    - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
+      shell: echo 
       register: actionresult
+      notify: "shelper {{ shelper_action }}"
 
     - meta: flush_handlers
 

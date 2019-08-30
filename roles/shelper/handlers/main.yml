@@ -1,4 +1,7 @@
 ---
+# IMPORTANT: 
+# no_log: true for every command with credentials!
+
 - name: shelper start
   shell: "{{ shelper_installation.shelper_path }}/shelperstart"
   register: shelper_result
@@ -11,25 +14,30 @@
   shell: "{{ shelper_installation.shelper_path }}/shelperrestart"
   register: shelper_result
         
-- name: shelper reload deploy-server
-  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+- name: shelper reload_deploy_server
+  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  no_log: true
   when: inventory_hostname in groups['deploymentserver']
   register: shelper_result
 
-- name: shelper reload custom
-  shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+- name: shelper reload_custom
+  shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  no_log: true
   register: shelper_result
 
-- name: shelper reload all
-  shell: "{{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+- name: shelper reload_all
+  shell: "timeout -s HUP -k 80s 60s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  no_log: true
   register: shelper_result
 
-- name: shelper apply cluster-bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+- name: shelper apply_cluster_bundle
+  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  no_log: true
   when: inventory_hostname in groups['masternode']
   register: shelper_result
 
-- name: shelper apply shcluster-bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelper apply shcluster-bundle -target https://{{ groups['shcmember'][0] }}:8089 --answer-yes -auth {{ splunk_user }}:{{ splunk_password }}"
+- name: shelper apply_shcluster_bundle
+  shell: "{{ shelper_installation.shelper_path }}/shelper apply shcluster-bundle --batch -target https://{{ groups['shcmember'][0] }}:8089 -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  no_log: true
   when: inventory_hostname in groups['deployer']
   register: shelper_result
