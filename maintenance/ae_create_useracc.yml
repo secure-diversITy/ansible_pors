@@ -1,0 +1,26 @@
+---
+- name: Create a new splunk admin linux user
+  hosts: "{{ target }}"
+  user: ansible
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Create {{ user_name }} unix group
+      group: name={{ user_name }}
+             state=present
+    
+    - name: Create {{ spladm }} group
+      group: name={{ spladm }}
+             state=present
+
+    - name: Create {{ user_name }} unix user
+      user: name={{ user_name }}
+        group={{ user_name }}
+        append=yes
+        groups={{ spladm }}
+        state=present
+        comment="created by Ansible"
+        shell="/bin/bash"
+        home="/home/{{ user_name }}"
+        password="{{ user_pass }}"
