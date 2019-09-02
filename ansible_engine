@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=stable
-VERSIONNUM="3.3-1"
+VERSIONNUM="3.4-0"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -532,7 +532,8 @@ F_A2BIN(){
         else
             if [ "$RUNMODE" == "interactive" ];then
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
-	        $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                F_LOG $FUNCNAME "Will execute:\n$A2BIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
+	        $A2BIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
 	        A2ERR="${PIPESTATUS[0]}"
             else
                 $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
@@ -1767,7 +1768,7 @@ F_CALCTGROUP(){
 ## splunk_action=X (where X must be defined in common/handlers)
 F_SPLACT(){ 
         F_LOG "$FUNCNAME" started
-	unset SPLEXE
+	unset SPLEXE HOSTSELECT
 
 	while [ -z "$SPLEXE" ];do
 		SPLEXE=$(F_DIALOG --radiolist "\nChoose your splunk action:\n \
@@ -1813,12 +1814,8 @@ F_SPLACT(){
             # calc temp hosts file
             F_CALCTGROUP splacthosts $ACTGRP "$HOSTSELECTION"
             F_LOG $FUNCNAME "calctgrp ended with $?"
-
-	    $A2BIN -i "${AINVENTORY}/${TARGETENV}/splacthosts" "$PBSPLACT" --limit $ACTGRP -e "{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','splunk_action':'$SPLEXE'}" 2>&1 \
-		| tee -a $LOG \
-		| sed -u -r 's/(.*DEPRECATION.*)//Ig' \
-		| F_DIALOG --scrollbar --colors --progressbox "\\Za\\Z1running splunk $SPLEXE on $CALCEDHOSTS ...\\Z\\n" 1000 1000
-            F_ERRLOG "${PIPESTATUS[0]}" "splunk $SPLEXE for:\n\n$CALCEDHOSTST" "$LOG"
+            PBARGS="--limit $ACTGRP -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','splunk_action':'$SPLEXE'}"
+            F_A2BIN "${AINVENTORY}/${TARGETENV}/splacthosts" "$PBSPLACT" "running splunk $SPLEXE on $CALCEDHOSTS ..." "$PBARGS"
         done
 
         export PYTHONPATH="$OLDPP"  
@@ -1863,13 +1860,13 @@ F_SHEXEC(){
                 	  SHCUST=$(F_DIALOG --inputbox '\n\nType your custom reload arguments (space separated).\ne.g. "apps panels transforms searches"' 20 100 "" 2>&1 >/dev/tty)
                 	  [ $? -ne 0 ] && F_ABORTMAINMENU
         		done
-			SHEXE="reload custom"
+			SHEXE="reload_custom"
 			#SHCUST=$(echo $SHCUSTRAW | sed 's/ /SPACE/g')
 		;;
-		reload-all) SHEXE="reload all" ;;
-        DS-reload) SHEXE="reload deploy-server" ;TMPGRP=deploymentserver ;;
-        MN-apply-cb) SHEXE="apply cluster-bundle" ; TMPGRP=masternode ;;
-        SHC-apply-cb) SHEXE="apply shcluster-bundle"; TMPGRP=deployer ; SCNDGRP=shcmember ;;
+		reload-all) SHEXE="reload_all" ;;
+                DS-reload) SHEXE="reload_deploy_server" ;TMPGRP=deploymentserver ;;
+                MN-apply-cb) SHEXE="apply_cluster_bundle" ; TMPGRP=masternode ;;
+                SHC-apply-cb) SHEXE="apply_shcluster_bundle"; TMPGRP=deployer ; SCNDGRP=shcmember ;;
 		*)	# TODO: do not exit but go to MAIN
 			F_LOG $FUNCNAME "no answer given! aborted!"
 			F_EXIT
@@ -1904,19 +1901,27 @@ F_SHEXEC(){
     #[ ! -z "$SPLPW" ] && SHEXE="$SHEXE with auth"
     F_LOG $FUNCNAME "will use >$SHEXE<"
 
+    # TODO: this is obsolete.. we should move on and stop support no-vault installs?!
+    if [ "$ENABLEVAULT" != "yes" ];then
 	CREDS=$(F_GETAPICREDS)
 	SPLUSR="${CREDS/:*}"
 	SPLPW="${CREDS/*:}"
-
-	$A2BIN -i "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" --limit $TMPGRP -e "{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}" 2>&1 \
+        ARGS="{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}"
+        $A2BIN -i "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" --limit $TMPGRP -e "$ARGS" 2>&1 \
 		| tee -a $LOG \
 		| sed -u -r 's/(.*DEPRECATION.*)//Ig' \
 		| F_DIALOG --scrollbar --colors --progressbox "\\Za\\Z1shelper running with $SHEXE $SHCUST on $UPGRADEHOSTS ...\\Z\\n" 1000 1000
         F_ERRLOG "${PIPESTATUS[0]}" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
+        export PYTHONPATH="$OLDPP"  
+        F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
+    else
+        ARGS="{'shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}"
+        F_LOG $FUNCNAME "Will exec:\n$A2BIN -i ${AINVENTORY}/${TARGETENV}/shelperhosts $PBSHRELOAD --limit $TMPGRP -e $ARGS" 
+        F_A2BIN "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $TMPGRP -e $ARGS"
+        F_ERRLOG "$?" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
+    fi
 
-    export PYTHONPATH="$OLDPP"  
-    F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
-	F_MENUMAIN
+    F_MENUMAIN
 }
 
 # install/upgrade/use shelper
@@ -2955,8 +2960,11 @@ F_VAULTPW(){
 
     RETRY=1
 
+    # skip if we do not have vault enabled
+    [ "$ENABLEVAULT" != "yes" ] && F_LOG $FUNCNAME "skipping vault request as ENABLEVAULT is not yes" && return 0
+
     # skip if vault tmp file exists
-    [ -s "$VAULTTEMPFILE" ] && return 0
+    [ -s "$VAULTTEMPFILE" ] && F_LOG $FUNCNAME "skipping vault request as vault temp file exists already" && return 0
 
     while [ $RETRY -ne 0 ];do
         FPW=$(F_DIALOG --insecure --mixedform \
@@ -3660,6 +3668,7 @@ F_CHECKSSH(){
 # the main menu window in regular mode
 F_MENUMAIN(){
     F_HOSTFILE
+    F_VAULTPW
 	MENUDONE=0
  	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
@@ -3762,7 +3771,7 @@ F_MENUMAIN(){
 F_MENUTESTING(){
     F_HOSTFILE
     MENUDONE=0
-    [ "$ENABLEVAULT" == "yes" ] && [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
+    F_VAULTPW
 	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --colors --ok-label "Select Entry" --cancel-label "Exit" \
 			--menu "\nStart the ansible engine\n\n\Zb\Z1TESTING AREA - TESTING AREA - TESTING AREA\Zn\n\nSelect an option:" \
