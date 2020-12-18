@@ -1,0 +1,8 @@
+---
+- name: Patch remote host
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  copy: src="{{ item }}"
+        dest="/{{ splunk_installation.splunk_home_path }}/etc/"
+  with_fileglob: datetime.xml
+

@@ -8,14 +8,16 @@
 
 - name: shelper stop
   shell: "{{ shelper_installation.shelper_path }}/shelperstop"
+  no_log: false
   register: shelper_result
 
 - name: shelper restart
   shell: "{{ shelper_installation.shelper_path }}/shelperrestart"
+  no_log: false
   register: shelper_result
         
 - name: shelper reload_deploy_server
-  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_ds_ae_user }}:{{ vault_ds_ae_pass }}"
   no_log: true
   when: inventory_hostname in groups['deploymentserver']
   register: shelper_result
@@ -31,13 +33,13 @@
   register: shelper_result
 
 - name: shelper apply_cluster_bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_mn_ae_user }}:{{ vault_mn_ae_pass }}"
   no_log: true
   when: inventory_hostname in groups['masternode']
   register: shelper_result
 
 - name: shelper apply_shcluster_bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelper apply shcluster-bundle --batch -target https://{{ groups['shcmember'][0] }}:8089 -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ groups['shcmember'][0] }} -auth {{ vault_dep_ae_user }}:{{ vault_dep_ae_pass }} --batch"
   no_log: true
   when: inventory_hostname in groups['deployer']
   register: shelper_result

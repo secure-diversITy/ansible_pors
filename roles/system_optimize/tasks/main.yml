@@ -1,0 +1,16 @@
+---
+- include: sys_check.yml
+
+- include: firewalld.yml
+  when: (splunk_upgrade is defined and splunk_upgrade == False) or (logstream_upgrade is defined and logstream_upgrade != True)
+
+- include: optimize_tuned.yml
+  when: 
+    - splunk_optimize.tuned is defined
+    - splunk_optimize.tuned == True
+
+- include: optimize_selinux.yml
+  when: 
+    - splunk_optimize.selinux is defined
+
+# - include: set_perms.yml

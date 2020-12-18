@@ -1,10 +1,18 @@
 ---
+- name: Clean previous backup
+  become: yes
+  become_user: root
+  shell: "rm -rf {{ splunk_installation.remote_backup_path }}/splunk/*"
+
 # do not use copy due to its limitations
 # copy facility does not scale to lots of files
 - name: Backup the current splunk dir
   become: yes
   become_user: root
-  shell: "cp -av {{ splunk_installation.splunk_home_path }} {{ splunk_installation.remote_backup_path }}/splunk/"
+  shell: "rsync -a --outbuf=None --exclude '*/kvstore/' --exclude '*/xxxxxxxxxxxxxxxxxx_training_summary/' --exclude '*/xxxxxxxxxxxxxxxxxx_summary_dev/' {{ splunk_installation.splunk_home_path }}/  {{ splunk_installation.remote_backup_path }}/splunk/"
+
+#  shell: "cp -a {{ splunk_installation.splunk_home_path }}/* {{ splunk_installation.remote_backup_path }}/splunk/"
+
         
 #  synchronize:  archive=yes
 #                compress=no

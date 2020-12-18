@@ -1,0 +1,16 @@
+- name: Patching manifest
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  lineinfile:
+    backrefs: yes
+    path: "{{ splunk_latest_manifest.stdout }}"
+    state: present
+    backup: true
+    regexp: '(^f.*)(splunk/etc/datetime.xml .*)'
+    line: '\1splunk/etc/datetime.xml e6016245a677bff48ea7ddbe8d4b36f9acbd02918e1f90ead812892692d655ea'
+    validate: '{{ splunk_installation.splunk_home_path }}/bin/splunk validate files -manifest %s'
+
+- name: File permissions
+  file: 
+    path: "{{ splunk_latest_manifest.stdout }}"
+    owner: "{{ splunk_install_user }}"

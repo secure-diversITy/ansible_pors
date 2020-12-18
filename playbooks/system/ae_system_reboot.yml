@@ -1,0 +1,10 @@
+---
+- hosts: "{{ target }}"
+  remote_user: ansible
+  become: yes
+  become_user: root
+
+  tasks:
+   - name: reboot a remote system
+     reboot:
+        msg: "reboot initiated by Ansible Engine"

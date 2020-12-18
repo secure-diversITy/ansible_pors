@@ -1,0 +1,17 @@
+---
+- name: Gather currently installed logstream version
+  shell: "{{ logstream_installation.home_path }}/bin/cribl version | grep -i version | cut -d ':' -f 2 | tr -d ' ' | cut -d '-' -f1"
+  register: logstream_version_installed
+
+- name: Parse version
+  set_fact:
+    logstreamversion_major: "{{ logstream_version_installed.stdout |regex_replace('([0-9]+)\\.([0-9]+)\\.([0-9]+)','\\1') | int }}"
+    logstreamversion_minor: "{{ logstream_version_installed.stdout |regex_replace('([0-9]+)\\.([0-9]+)\\.([0-9]+)','\\2') | int }}"
+    logstreamversion_patch: "{{ logstream_version_installed.stdout |regex_replace('([0-9]+)\\.([0-9]+)\\.([0-9]+)','\\3') | int }}"
+
+- set_fact:
+    logstreamversion_majorminor: "{{logstreamversion_major}}{{logstreamversion_minor}}"
+
+- name: Detected values for logstream version
+  debug:
+    msg: "Major: {{ logstreamversion_major }}, Minor: {{ logstreamversion_minor }}, Patch: {{ logstreamversion_patch }}, MajorMinor: {{ logstreamversion_majorminor }}"

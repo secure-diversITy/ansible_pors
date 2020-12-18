@@ -23,5 +23,6 @@
   when: shelper_installation.shelper_git_url is defined
 
 - name: Install splunk helper
-  shell: "make -C {{ shelper_installation.shelper_tmp_path }}/splunkhelper"
+  shell: "make -C {{ shelper_installation.shelper_tmp_path }}/splunkhelper update"
+  no_log: false
   when: shelper_installation.shelper_git_url is defined

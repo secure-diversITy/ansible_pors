@@ -1,0 +1,5 @@
+---
+- name: Clean history 
+  debug: msg="clearing.."
+  notify: clear history root
+

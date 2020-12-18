@@ -1,0 +1,16 @@
+---
+- name: Open splunkd port on firewalld
+  firewalld: port="{{ item }}"
+             permanent=true
+             state=enabled 
+  when:
+    - splunk_installation.firewalld_open_port is defined
+    - splunk_installation.firewalld_disabled is not defined
+  with_items: splunk_installation.firewalld_open_port | default()
+
+- name: Disable firewalld completely
+  service: 
+    name: firewalld
+    enabled: no
+    state: stopped
+  when: splunk_installation.firewalld_disable is defined

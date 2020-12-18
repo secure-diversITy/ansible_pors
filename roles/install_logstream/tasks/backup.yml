@@ -1,0 +1,13 @@
+---
+- name: Clean previous backup
+  become: yes
+  become_user: root
+  shell: "rm -rf {{ splunk_installation.remote_backup_path }}/cribl/*"
+
+# do not use copy due to its limitations
+# copy facility does not scale to lots of files
+- name: Backup the current install dir
+  become: yes
+  become_user: root
+  shell: "rsync -a --outbuf=None --exclude '*/kvstore/' --exclude '*/xxxxxxxxxxxxxxxxxx_training_summary/' --exclude '*/xxxxxxxxxxxxxxxxxx_summary_dev/' {{ logstream_installation.home_path }}/  {{ logstream_installation.remote_backup_path }}/cribl/"
+

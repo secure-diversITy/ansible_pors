@@ -1,21 +1,21 @@
 ---
-- name: First Time Boot Splunk (pre v7.2)
+- name: First Time Boot Splunk (non-systemd only)
   service: name=splunk
            state=started
-  when: splunkversionnum < 720
+#  when: splunkversionnum < 72
 
-- name: Stop Splunk (pre 7.2)
+- name: Stop Splunk (non-systemd only)
   service: name=splunk
            state=stopped
-  when: splunkversionnum < 720
+#  when: splunkversionnum < 72
 
-- name: First Time Boot Splunk (>= v7.2)
-  service: name=Splunkd
-           state=started
-  when: splunkversionnum >= 720
+#- name: First Time Boot Splunk (= v7.2)
+#  service: name=Splunkd
+#           state=started
+#  when: splunkversionnum == 72
 
-- name: Stop Splunk (>= 7.2)
-  service: name=Splunkd
-           state=stopped
-  when: splunkversionnum >= 720
+#- name: Stop Splunk (= 7.2)
+#  service: name=Splunkd
+#           state=stopped
+#  when: splunkversionnum == 72
 

@@ -1,0 +1,21 @@
+---
+
+- name: Create unix group
+  group: name="{{ cribl_install_group }}"
+         state=present
+  when: 
+    - logstream_installation.create_user == True
+    - logstream_upgrade != True
+
+- name: Create unix user
+  user: name="{{ cribl_install_user }}"
+        group="{{ cribl_install_group }}"
+        state=present
+        comment="Created by Ansible"
+        shell="/bin/bash"
+        home="{{ logstream_installation.home_path }}"
+        password="!!"
+  when: 
+    - logstream_installation.create_user == true
+    - logstream_upgrade != True
+

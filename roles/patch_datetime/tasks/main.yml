@@ -1,0 +1,8 @@
+---
+- include: check.yml
+
+- include: push_patch.yml
+  when: patch_required is not skipped
+
+- include: post_patch.yml
+  when: patch_required is not skipped or (manifest_validation is defined and manifest_validation.rc != 0)

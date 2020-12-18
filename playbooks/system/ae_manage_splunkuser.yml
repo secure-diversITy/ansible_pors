@@ -1,0 +1,18 @@
+---
+- name: Manage a splunk user account (native auth)
+  hosts: all
+  user: ansible
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  gather_facts: false
+
+  tasks:
+    - name: "Create {{ user_name }} with role {{ user_role }}"
+      shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk add user {{ user_name }} -password '{{ user_password }}' -role {{ user_role }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+      no_log: true
+      when: create_user is defined
+
+    - name: "Change {{ user_name }} , role {{ user_role }}"
+      shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit user {{ user_name }} -password '{{ user_password }}' -role {{ user_role }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+      no_log: true
+      when: edit_user is defined

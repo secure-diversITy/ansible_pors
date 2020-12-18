@@ -1,0 +1,28 @@
+---
+#####################################################################################################################
+# Installation Variables
+#####################################################################################################################
+
+shelper_installation:
+  enabled: true
+  shelper_path: /usr/local/bin
+  shelper_tmp_path: /tmp/shelper
+  delete_package_after_install: true
+
+  ##############################################################
+  # choose one of the three methods ONLY - not multiple!! ;)
+  #
+  # Installation type:
+  #
+  install_shelper_git: yes
+  shelper_git_url: https://github.com/secure-diversITy/splunk.git
+  shelper_git_version: dev_splunkhelper	# default is master
+
+  install_shelper_pkg: no
+  shelper_tgz_url: https://github.com/secure-diversITy/splunk/archive/master.zip
+  #shelper_tgz_url: https://github.com/secure-diversITy/splunk/archive/dev_splunkhelper.zip
+
+  install_shelper_ansible: no
+  shelper_ansible_repo: "{{ splunk_repository.repository_root }}/shelper.zip"
+  #
+  ##############################################################

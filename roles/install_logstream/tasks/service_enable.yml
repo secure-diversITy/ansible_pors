@@ -1,0 +1,39 @@
+---
+
+# check for existence of splunk init file
+- stat: path=/etc/init.d/cribl
+  register: criblinitfile
+
+- name: show cribl version
+  debug: 
+    msg: "cribl version is: >{{ logstream_versionnum }}<"
+    
+# check for existence of init file
+- stat: path=/etc/init.d/cribl
+  register: initfile
+
+# file attr doesnt work and is available in ansible version >= v2.3 only
+- name: Remove protection from init.d script
+  shell: chattr -i /etc/init.d/cribl
+  when: initfile is defined and initfile.stat.exists
+
+- name: Install service (init)
+  shell: "cp {{ logstream_installation.home_path }}/bin/cribl.init.d.template /etc/init.d/cribl; chmod +x /etc/init.d/cribl"
+  when: 
+    - (initfile is not defined or initfile.stat.exists != true)
+    #- logstream_upgrade != true
+
+- name: Reload init.d conf
+  shell: systemctl daemon-reload
+
+- name: Ensure logstream runs as correct user
+  lineinfile:
+    path: /etc/init.d/cribl
+    backrefs: yes
+    regexp: '(^USER=")(.*)(")'
+    line: '\1{{ cribl_install_user }}\3'
+
+- name: Enable init/systemd for cribl
+  service:
+    name: cribl
+    enabled: yes

@@ -1,0 +1,25 @@
+---
+- include: prepare.yml
+- include: transfer_pkg.yml
+
+- include: service_stop.yml
+  when: logstream_upgrade == True
+
+- include: firewalld.yml
+- include: optimize_selinux.yml
+
+- include: backup.yml
+  when: 
+    - logstream_installation.backup is defined and logstream_installation.backup == true
+    - logstream_upgrade == True
+
+- include: install.yml
+- include: service_enable.yml
+
+- include: configure_worker.yml
+  when: logstream_upgrade != True and logstream_worker == True
+
+- include: optimize_initd.yml
+- include: service_start.yml
+
+- include: sudoperms.yml

@@ -1,0 +1,8 @@
+- name: Deploy Apps
+  hosts: "{{ '{{' }} target {{ '}}' }}"
+  become: yes
+  become_user: splunk
+  strategy: free
+  
+  roles:
+{{ app_roles.stdout_lines | link_app_list_laboratory | to_nice_yaml | indent(4, true) }}

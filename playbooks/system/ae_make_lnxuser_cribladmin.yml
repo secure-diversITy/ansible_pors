@@ -1,0 +1,32 @@
+---
+- name: cribl admin privileges (shell) for a given linux account
+  hosts: "{{ target }}"
+  user: ansible
+  become: yes
+  become_user: root
+
+  tasks:
+    # check for existence of init file
+    - stat: path=/etc/sudoers.d/cribl-admin
+      register: sudofile
+
+    # file attr doesnt work and is available in ansible version >= v2.3 only
+    - name: Initial sudoers cribl setup
+      shell: mv /etc/sudoers.d/splunk-admin /etc/sudoers.d/cribl-admin
+      when: sudofile is not defined or sudofile.stat.exists != true
+
+    - name: Check if its needed
+      shell: "grep {{ appadm }} /etc/sudoers.d/cribl-admin"
+      ignore_errors: true
+      register: needed
+
+    - name: Allow {{ appadm }} to be {{ cribl_install_user }}
+      lineinfile:
+        path: /etc/sudoers.d/cribl-admin
+        state: present
+        backrefs: yes
+        regexp: '^User_Alias(.*)USER1=(.*)'
+        line: 'User_Alias\1USER1={{ appadm }},\2'
+        validate: '/usr/sbin/visudo -cf %s'
+      when: needed.rc != 0
+

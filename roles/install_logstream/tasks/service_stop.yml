@@ -1,0 +1,8 @@
+---
+- name: Import checks
+  import_tasks: service_checks.yml
+
+- name: Stop daemon
+  service: name=cribl
+           state=stopped
+

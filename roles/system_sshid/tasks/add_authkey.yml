@@ -1,0 +1,6 @@
+---
+- name: Set authorized keys for {{ splunk_install_user }}
+  authorized_key:
+    user: "{{ splunk_install_user }}"
+    state: present
+    key: "{{ vault_ssh_pubkey }}"

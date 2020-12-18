@@ -1,8 +1,0 @@
-# start AE as a seperate user in multi-user environments
-# all users defined in the User_Alias are allowed to run AE
-
-User_Alias      USERAE=foo,bar,moo
-Cmnd_Alias      AECMD = /usr/bin/env CALLUSR=* /opt/ae/ansible_engine *,/usr/bin/env CALLUSR=* ./ansible_engine *
-
-# change the user in ALL=(splunk) depending on the variable AEUSER in AE
-USERAE     	ALL=(splunk)      NOPASSWD: AECMD

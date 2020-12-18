@@ -1,0 +1,3 @@
+---
+- include: installed_version.yml
+- include: latest_manifest.yml

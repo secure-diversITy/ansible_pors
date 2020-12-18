@@ -1,0 +1,23 @@
+---
+- name: Import service checks
+  import_tasks: service_checks.yml
+
+# check for existence of daemon bin file
+- stat: path="{{ logstream_installation.home_path }}/bin/cribl"
+  register: criblbin
+  failed_when: criblbin.stat.exists != True
+
+- name: systemctl reload
+  shell: systemctl daemon-reload
+  ignore_errors: yes
+ 
+- name: Start daemon
+  service: name=cribl
+           state=started
+ 
+# ensure daemon is REALLY running ! Do not rely on init, systemd etc!!
+- name: Re-Check daemon status
+  shell: "sleep 10s && ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep cribl"
+  register: daemon_laststate
+  failed_when: daemon_laststate.rc != 0
+

@@ -4,3 +4,5 @@ ae_deploy_apps.yml
 hosts
 *.retry
 *.swp
+*.bak
+*.backup

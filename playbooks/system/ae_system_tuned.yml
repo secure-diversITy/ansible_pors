@@ -1,0 +1,10 @@
+---
+- hosts: all
+  user: ansible
+  become: yes
+  become_user: root
+
+  tasks:
+    - include_role:
+        name: system_optimize
+        tasks_from: optimize_tuned

@@ -4,8 +4,8 @@
 #####################################################################################################################
 
 # change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
-globversion: "6.6.11"
-globhash: "a4e9ea700cba"
+globversion: "7.3.8"
+globhash: "bdc98854fc40"
 
 # several things are changing in newer versions (e.g. 7.2 do not have the needed init.d script anymore)
 # so the following can be used to identify the version in playbooks: when splunkversionnum <= 123 ..
@@ -28,6 +28,8 @@ splunk_installation:
 
   remote_app_temp_path: /tmp
 
+  firewalld_disable: true
+
   # backup before upgrade (can be yes|no)
   backup: false
   remote_backup_path: /opt/backup/
@@ -35,18 +37,40 @@ splunk_installation:
   # default no-prompt/silence args for starting splunk non-interactive
   splunk_args_noninteractive: "--answer-yes --accept-license --no-prompt"
 
+# name of the tuned profile (used as directory name, branch identifier, local repo filename, ...)
+tuned_name: "splunk"
+
 splunk_optimize:
-  initd: True
-  selinux: disabled
-  tuned: True
+    initd: True
+    selinux: disabled
+    tuned: True
 
-  # tuned profile. highly recommended to enable one of the following to achieve all splunk optimizations.
-  # choose one of the three methods ONLY - not multiple!! ;)
-  install_tuned_git: no
-  tuned_git_url: git@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunkinfra/tuned_profile.git
-  
-  install_tuned_tgz: no
-  tuned_tgz_url: https://splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com/splunkinfra/tuned_profile/repository/archive.tar.gz?ref=master
+    #################################################################################################
+    # tuned profile settings
+    #
+    # highly recommended to enable one of the following to achieve the best performance and required
+    # settings like ulimit etc.
 
-  install_tuned_ansible: yes
-  tuned_ansible_repo: "{{ splunk_repository.repository_root }}/splunk_tuned.tgz"
+    # target install path for the tuned profile
+    tuned_path: "/etc/tuned/{{ tuned_name }}"
+
+    # OPTION A (recommended): GIT repo
+    # choose one of the three methods ONLY - not multiple!! ;)
+    # if the repo does not require authentication remove tuned_gituser and tuned_gitpassword
+    install_tuned_git: yes
+    tuned_git_url: "https://{{ tokenauth.gituser | urlencode }}:{{ tokenauth.gitpassword | urlencode }}@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com/splunkinfra/tuned_profile.git"
+    tuned_git_branch: "rhel_{{ tuned_name }}"
+
+    # OPTION B: download a TGZ (e.g a release package from git or from anywhere else)
+    # choose one of the three methods ONLY - not multiple!! ;)
+    # if the repo does not require authentication remove tuned_gituser and tuned_gitpassword
+    install_tuned_tgz: no
+    tuned_tgz_url: "https://{{ tokenauth.gituser | urlencode }}:{{ tokenauth.gitpassword | urlencode }}@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com/splunkinfra/tuned_profile/-/archive/vars['tuned_git_branch']/tuned_profile-.tar.gz"
+
+    # OPTION C: use a LOCAL TGZ which has been downloaded to the ansible repo
+    # choose one of the three methods ONLY - not multiple!! ;)
+    install_tuned_ansible: no
+    tuned_ansible_repo: "{{ splunk_repository.repository_root }}/{{ tuned_name }}_tuned.tgz"
+
+    # << END: tuned profile settings
+    #################################################################################################

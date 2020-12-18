@@ -38,7 +38,7 @@
 
 # ensure splunk is REALLY running ! Do not rely on init, systemd etc!!
 - name: Re-Check Splunk Status
-  shell: "sleep 10s && ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep splunkd"
+  shell: "sleep 10s && ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol|ansible)' |grep splunkd"
   register: splunk_laststate
   failed_when: splunk_laststate.rc != 0
 

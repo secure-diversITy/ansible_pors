@@ -1,0 +1,77 @@
+---
+# check for existence of init file
+- stat: path=/etc/init.d/cribl
+  register: initfile
+
+# file attr doesnt work and is available in ansible version >= v2.3 only
+- name: Remove protection from init.d script
+  shell: chattr -i /etc/init.d/cribl
+  when: initfile is defined and initfile.stat.exists
+
+- name: Tune splunk init.d script (header)
+  blockinfile:
+        dest: "/etc/init.d/cribl"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - INFO (last run initiated at {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        insertbefore: "USAGE="
+        block: |
+           # ----------------------------------------------------------------------------------------
+           # THIS SCRIPT IS PROTECTED BY THE IMMUTABLE BIT TO AVOID ACCIDENTALLY OVERWRITING!
+           # 
+           # see: http://www.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.com/confluence/x/6IQqAg for details
+           # TO MODIFY: chattr -i
+           # TO PROTECT AGAIN: chattr +i
+           #
+           # or just use the following one liner:
+           # chattr -i /etc/init.d/cribl && vim /etc/init.d/cribl && chattr +i /etc/init.d/cribl
+           #
+           # HINT: The above does not apply in docker due to the fact that attr will not work here
+           # ----------------------------------------------------------------------------------------
+        backup: yes
+  when: "cribl_optimize.initd == true | default(false)"
+
+- name: Tune init.d script (ulimit 1/2)
+  blockinfile:
+        dest: "/etc/init.d/cribl"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS (last run {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        insertafter: 'FORCE_ARG=\"\"'
+        block: |
+            CRIBL_HOME={{ logstream_installation.home_path }}
+            USER="{{ cribl_install_user }}"
+            echo "$(date) - init start: nofiles soft $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: nofiles hard $(ulimit -Hn)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: no processes $(ulimit -u)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: max file size $(ulimit -f)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: data segment size $(ulimit -d)" >> $CRIBL_HOME/log/init-ulimit.log
+            ulimit -Hn 65536
+            ulimit -Sn 32768
+            ulimit -u 16000
+            ulimit -f unlimited
+            ulimit -d unlimited
+        backup: yes
+  when: "cribl_optimize.initd == true | default(false)"
+
+- name: Tune init.d script (ulimit 2/2)
+  blockinfile:
+        dest: "/etc/init.d/cribl"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG (last run {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        insertbefore: "exit ??"
+        block: |
+            echo "$(date) - init end : nofiles soft $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end : nofiles hard $(ulimit -Hn)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end : no processes $(ulimit -u)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end : max file size $(ulimit -f)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end : data segment size $(ulimit -d)" >> $CRIBL_HOME/log/init-ulimit.log
+        backup: yes
+  when: "cribl_optimize.initd == true | default(false)"
+
+# file attr doesnt work and is available in ansible version >= v2.3 only
+- name: Protect init.d script again
+  shell: chattr +i /etc/init.d/cribl
+  when: 
+    - "cribl_optimize.initd == true | default(false)"
+
+- name: Reload init.d conf
+  shell: systemctl daemon-reload
+  when: 
+    - "cribl_optimize.initd == true | default(false)"
+

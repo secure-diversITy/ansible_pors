@@ -1,0 +1,7 @@
+---
+- name: "Create {{ vault_splunk_ae_user }} with role {{ vault_splunk_ae_role }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk add user {{ vault_splunk_ae_user }} -password '{{ vault_splunk_ae_password }}' -role {{ vault_splunk_ae_role }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  no_log: false
+  when: vault_splunk_ae_user is defined

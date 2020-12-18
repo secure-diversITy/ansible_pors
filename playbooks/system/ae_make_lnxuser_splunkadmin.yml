@@ -1,0 +1,23 @@
+---
+- name: splunk admin privileges (shell) for a given linux account
+  hosts: "{{ target }}"
+  user: ansible
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Check if its needed
+      shell: "grep {{ spladm }} /etc/sudoers.d/splunk-admin"
+      ignore_errors: true
+      register: needed
+
+    - name: Allow {{ spladm }} to be splunk
+      lineinfile:
+        path: /etc/sudoers.d/splunk-admin
+        state: present
+        backrefs: yes
+        regexp: '^User_Alias(.*)USER1=(.*)'
+        line: 'User_Alias\1USER1={{ spladm }},\2'
+        validate: '/usr/sbin/visudo -cf %s'
+      when: needed.rc != 0
+

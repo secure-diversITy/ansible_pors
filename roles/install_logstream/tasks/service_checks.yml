@@ -1,0 +1,21 @@
+---
+# check for existence of init file
+- name: Check init existence
+  stat: path=/etc/init.d/cribl
+  register: criblinitfile
+
+# check for existence of bin file
+- stat: path="{{ logstream_installation.home_path }}/bin/cribl"
+  register: criblbin
+  ignore_errors: yes
+
+# check for running daemon (independent from systemd, init etc!!)
+- name: Service status
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep cribl"
+  register: cribl_state
+  failed_when: cribl_state.rc == 0
+  ignore_errors: yes
+
+# check for existence of systemd file
+- stat: path=/etc/systemd/system/cribl.service
+  register: criblsystemdfile

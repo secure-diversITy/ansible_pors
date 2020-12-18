@@ -1,24 +1,49 @@
+####### 
+# moved to: roles/shelper/handlers/main.yml
+##
 ---
 - name: shelper start
   shell: "{{ shelper_installation.shelper_path }}/shelperstart --accept-license --answer-yes"
+  register: action_result
 
 - name: shelper stop
   shell: "{{ shelper_installation.shelper_path }}/shelperstop"
+  register: action_result
 
 - name: shelper restart
   shell: "{{ shelper_installation.shelper_path }}/shelperrestart --accept-license --answer-yes"
+  register: action_result
         
-- name: shelper reload deploy-server
-  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ splunk_user }}:{{ splunk_password }}"
-  when: inventory_hostname in groups['deploymentserver']
-
 - name: shelper reload all
-  shell: "{{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ splunk_user }}:{{ splunk_password }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  register: action_result
+
+- name: shelper reload deploy-server
+  become: true
+  become_user: "{{ splunk_install_user }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  when: splunk_reload_deploy_server is defined and
+        splunk_reload_deploy_server and
+        inventory_hostname in groups['deploymentserver']
+  no_log: true
+  register: action_result
 
 - name: shelper apply cluster-bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ splunk_user }}:{{ splunk_password }}"
-  when: inventory_hostname in groups['masternode']
+  become: true
+  become_user: "{{ splunk_install_user }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  when:
+        - (splunk_apply_cluster_bundle is defined and splunk_apply_cluster_bundle)
+        - inventory_hostname in groups['masternode']
+  no_log: true
+  register: action_result
 
 - name: shelper apply shcluster-bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelper apply shcluster-bundle -target https://{{ groups['shcmember'][0] }}:8089 --answer-yes -auth {{ splunk_user }}:{{ splunk_password }}"
-  when: inventory_hostname in groups['deployer']
+  become: true
+  become_user: "{{ splunk_install_user }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ groups['shcmember'][0] }} --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  when:
+        - (splunk_apply_shcluster_bundle is defined and splunk_apply_shcluster_bundle)
+        - inventory_hostname in groups['deployer']
+  register: action_result
+

@@ -7,18 +7,34 @@
 # file attr doesnt work and is available in ansible version >= v2.3 only
 - name: Remove protection from splunk init.d script
   shell: chattr -i /etc/init.d/splunk
-  when: splunkinitfile is defined and splunkinitfile.stat.exists and run_in_docker.rc == 1
+  when: 
+    - splunkinitfile is defined and splunkinitfile.stat.exists
+    - run_in_docker.rc == 1
+#    - splunk_upgrade == True
 
 - name: Remove existing init.d script
   file: path=/etc/init.d/splunk
         state=absent
-  when: splunkversionnum < 720
+  when: splunkinitfile is defined and splunkinitfile.stat.exists
+#  when: splunk_upgrade == True
+#  when: splunkversionnum < 72
 
+- name: show splunk ver
+  debug: 
+    msg: "splunk version is: >{{ splunkversionnum }}<"
+    
 - name: Remove an existing systemd script 
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start -user splunk --answer-yes --accept-license --no-prompt"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start -user splunk --answer-yes --accept-license --no-prompt -systemd-managed 1"
+  when: splunk_upgrade == True and splunkversion_majorminor|int > 70
 
-- name: Enable Splunk boot-start
+# IMPORTANT for 7.1 + 7.2 installs as those defaults to systemd!! (which is CRAPLY implemented by splunk)
+- name: Enable Splunk boot-start (when >= 7.x enforce non-systemd)
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt -systemd-managed 0"
+  when: splunkversion_majorminor|int >= 70
+
+- name: Enable Splunk boot-start (when < 7.x)
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt"
+  when: splunkversion_majorminor|int < 70
 
 - name: Reload init.d conf
   shell: systemctl daemon-reload

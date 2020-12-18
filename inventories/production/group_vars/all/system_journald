@@ -1,0 +1,12 @@
+---
+#########################################################################
+# journald.conf handling
+#
+# source: https://galaxy.ansible.com/cscfi/systemd-journal 
+#########################################################################
+
+systemd_journal_storage: persistent
+systemd_journal_compress: "yes"
+systemd_journal_system_max_use: 1G
+systemd_journal_system_max_file_size: 200M
+systemd_journal_restart_state: restarted

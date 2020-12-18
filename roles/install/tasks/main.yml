@@ -4,17 +4,22 @@
 - include: prepare_splunk.yml
   when: splunk_upgrade == False
 
-#- include: operation_mode.yml
+- include: operation_mode.yml
 
 - include: transfer_pkg.yml
 
 - include: splunk_stop.yml
+  # this condition will fail on half-installed splunk re-installs
   when: splunk_upgrade == True
 
 - include: backup_splunk.yml
-  when: splunk_installation.backup is defined and splunk_installation.backup == true
+  when: 
+    - splunk_installation.backup is defined and splunk_installation.backup == true
+    - splunk_upgrade == True
 
 - include: install_splunk.yml
+
+- include: ../../splunk_info/tasks/installed_version.yml
 
 - include: set_splunk_secret.yml
   when: splunk_upgrade == False
@@ -36,7 +41,7 @@
 - include: fetch_distserverkeys.yml
   when: splunk_upgrade == False
 
-- include: optimize_tuned.yml
+- include: ../../system_optimize/tasks/optimize_tuned.yml
   when: 
     - splunk_optimize.tuned is defined
     - splunk_optimize.tuned == True
@@ -45,7 +50,7 @@
   when: 
     - splunk_optimize.initd is defined
     - splunk_optimize.initd == True
-    - splunkversionnum < 720
+#    - splunkversionnum < 72
     
 - include: optimize_selinux.yml
   when: 
@@ -55,9 +60,11 @@
 
 - include: splunk_start.yml
 #  when:
+#    - splunk_upgrade == False
 #    - splpeernode.stdout != "slave" 
-    #- splunk_upgrade == True
+
+- include: add_spl_ae_user.yml 
+  when: vault_splunk_ae_user is defined and splunk_upgrade == False
 
 - include: post_actions.yml
   when: splunk_upgrade == False
-

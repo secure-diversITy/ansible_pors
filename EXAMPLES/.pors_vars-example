@@ -1,0 +1,5 @@
+# the installation directory of PORS
+export ADIR=/opt/ansible_pors
+
+# service account username (linux full root access user)
+# export OS_SERVICE_USER=sysadmin

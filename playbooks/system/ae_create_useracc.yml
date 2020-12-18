@@ -1,0 +1,34 @@
+---
+- name: Create a new application admin linux user (shell)
+  hosts: "{{ target }}"
+  user: ansible
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Create {{ user_name }} unix group
+      group: name={{ user_name }}
+             state=present
+    
+    - name: Create {{ appadm }} group
+      group: name={{ appadm }}
+             state=present
+
+    - name: Create {{ user_name }} unix user
+      user: name={{ user_name }}
+        group={{ user_name }}
+        create_home=yes
+        skeleton=/etc/skel
+        append=yes
+        groups={{ appadm }}
+        state=present
+        comment="created by Ansible"
+        shell="/bin/bash"
+        home="/home/{{ user_name }}"
+        password="{{ user_pass }}"
+
+    - name: Set authorized keys for {{ user_name }}
+      authorized_key:
+        user: "{{ user_name }}"
+        state: present
+        key: "{{ lookup('file', '/opt/ae_repo/authorized_keys_{{ user_name }}') }}"

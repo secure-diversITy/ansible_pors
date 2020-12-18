@@ -1,0 +1,4 @@
+---
+- name: Determine latest manifest
+  shell: "find {{ splunk_installation.splunk_home_path }} -maxdepth 1 -name 'splunk-{{ splunk_version_installed.stdout }}*-manifest' | tail -n 1"
+  register: splunk_latest_manifest

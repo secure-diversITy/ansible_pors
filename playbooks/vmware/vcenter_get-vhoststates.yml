@@ -1,0 +1,35 @@
+---
+- name: Gather vhosts states from vCenter (cookie auth)
+  gather_facts: no
+  hosts: localhost
+  tasks:
+    - name: Check if we need a cookie first
+      import_tasks: vcenter_login.yml
+      when: (login is not defined) or (not login.set_cookie)
+
+    - name: Get all available hosts
+      uri:
+        url: https://{{ vsphere.host[vsphere_var].dest }}/rest/vcenter/host
+        force_basic_auth: yes
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        headers:
+            Cookie: "{{ login.set_cookie }}"
+      register: vchosts
+
+    # ESX hosts
+    - name: Clear/Prepare vchosts temp file
+      copy:
+        content: "esx_name;power_state"
+        dest: "{{ inventory_dir }}/tmp/{{ vsphere_var }}_vchosts.list"
+
+    - name: Debug esx collect
+      debug:
+        msg: "processing {{ item }}"
+      with_items: "{{ vchosts.json.value | sort(attribute='name') }}"
+
+    - name: Collecting vchosts of the given vCenter
+      lineinfile:
+        line: "{{ item.name }};{{ item.power_state | default(item.connection_state) }}"
+        path: "{{ inventory_dir }}/tmp/{{ vsphere_var }}_vchosts.list"
+      with_items: "{{ vchosts.json.value | sort(attribute='name') }}"
+

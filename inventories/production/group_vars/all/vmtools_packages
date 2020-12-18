@@ -6,24 +6,23 @@
 vmtools_packages:
    linux_64_rpm:
       tools:
-        version: "10.0.5"
-        release: "4.el7_3"
+        version: "10.3.0"
+        release: "2.el7"
         name: "open-vm-tools"
         arch: "x86_64"
         #pkg: "open-vm-tools-10.0.5-4.el7_3.x86_64.rpm"
-        repo: "https://mirror.netcologne.de/centos/7/updates/x86_64/Packages"
-        #url: "https://mirror.netcologne.de/centos/7/updates/x86_64/Packages/open-vm-tools-10.0.5-4.el7_3.x86_64.rpm"
+        repo: "https://mirror.netcologne.de/centos/7/os/x86_64/Packages"
       fuse:
         name: "fuse"
         version: "2.9.2"
-        release: "7.el7"
+        release: "11.el7"
         arch: "x86_64"
         #pkg: "fuse-2.9.2-7.el7.x86_64.rpm"
         repo: "https://mirror.netcologne.de/centos/7/os/x86_64/Packages"
       libfuse:
         name: "fuse-libs"
         version: "2.9.2"
-        release: "7.el7"
+        release: "11.el7"
         arch: "x86_64"
         #pkg: "fuse-libs-2.9.2-7.el7.x86_64.rpm"
         repo: "https://mirror.netcologne.de/centos/7/os/x86_64/Packages"

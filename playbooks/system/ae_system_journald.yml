@@ -1,0 +1,11 @@
+---
+
+- name: configure systemd journal daemon
+  hosts: "*"
+  user: ansible
+  become: yes
+  become_user: root
+  strategy: free
+
+  roles:
+    - system_journal

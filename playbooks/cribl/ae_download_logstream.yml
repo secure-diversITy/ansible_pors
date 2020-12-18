@@ -1,0 +1,13 @@
+---
+- hosts: repository
+  tasks:
+  - name: Download logstream package
+    get_url: url="{{ item.value.url }}"
+             dest={{ splunk_repository.repository_root }}/cribl
+             owner={{ splunk_repository.repository_owner }}
+             group={{ splunk_repository.repository_group }}
+             mode=644
+    with_dict: "{{ logstream_packages.linux_64_tgz }}"
+    when: logstream_packages.linux_64_tgz is defined
+
+

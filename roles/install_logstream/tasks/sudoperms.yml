@@ -1,0 +1,11 @@
+---
+- name: Remove template sudo config (if existent)
+  file:
+    path: /etc/sudoers.d/splunk-admin
+    state: absent
+
+- name: Add app config for sudo
+  copy:
+    src: "{{ splunk_repository.repository_root }}/cribl/sudoers_conf"
+    dest: /etc/sudoers.d/cribl-admin
+    mode: 0600

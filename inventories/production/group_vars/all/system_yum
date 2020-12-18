@@ -4,6 +4,7 @@
 #####################################################################################################################
 
 system_yum:
+  upgrade_system: true
   elrepo:
     enabled: true
     # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail !!!!

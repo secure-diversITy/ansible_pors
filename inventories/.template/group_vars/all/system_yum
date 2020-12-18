@@ -1,0 +1,24 @@
+---
+#####################################################################################################################
+# yum settings
+#####################################################################################################################
+
+system_yum:
+  elrepo:
+    enabled: true
+    # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail !!!!
+    
+    kernel:
+        # enable (yes) or disable (no) the kernel repo
+        setup: "yes"
+        # the kernel package name to install
+        name: "kernel-lt"
+        # RHEL/CentOS: use grub to set kernel on next boot (0 or any other id number)
+        setboot: "0"
+    # enable (yes) or disable (no) the extras repo
+    extras: "no"
+    # enable (yes) or disable (no) the main repo
+    main: "no"
+
+  # When set to true it will do a full system upgrade
+  upgrade_system: true 

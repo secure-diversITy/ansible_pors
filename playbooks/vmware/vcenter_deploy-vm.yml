@@ -1,0 +1,75 @@
+---
+- hosts: '{{ server_hostname }}*'
+  gather_facts: false
+  connection: local
+
+  vars: 
+    server_notes: "Based on {{ vsphere.host[vsphere_var].ansible_template_name }} and deployed by ansible"
+
+  tasks:
+  - set_fact: creationdate="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
+
+  - name: Deploying the VM now.. 
+    debug: msg="Please be patient or watch the progress at the vCenter"
+
+  # Create a VM from a template
+  - name: create the VM
+    vmware_guest:
+      hostname: '{{ vsphere.host[vsphere_var].dest }}'
+      username: '{{ vsphere.host[vsphere_var].user }}'
+      password: '{{ vsphere.host[vsphere_var].password }}'
+      validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}" 
+      esxi_hostname: "{{ vsphere_esx_host }}"
+      datacenter: "{{ vsphere_datacenter }}"
+      name: '{{ server_hostname }}'
+      guest_id: '{{ vsphere_guestos }}'
+      annotation: "{{ server_notes }} - {{ creationdate }}"
+      folder: "/{{ vsphere_datacenter }}/vm"
+      template: "{{ vsphere.host[vsphere_var].ansible_template_name }}"
+      datastore: "{{ vsphere_datastore }}"
+      networks:
+      - name: "{{ server_net_name }}"
+        ip: '{{ server_ip }}'
+        netmask: "{{ server_netmask }}"
+        gateway: "{{ server_gateway }}"
+        dns_servers:
+        - "{{ server_dns1 }}"
+        - "{{ server_dns2 }}"
+      hardware:
+        memory_mb: "{{ server_ram_mb }}"
+        num_cpus: "{{ server_cpu_count }}"
+      customization:
+        domain : "{{ server_domain }}"
+        dns_servers:
+        - "{{ server_dns1 }}"
+        - "{{ server_dns2 }}"
+
+  - name: Disable VMEM swap (if defined)
+    vmware_guest:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        esxi_hostname: "{{ vsphere_esx_host }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        name: '{{ server_hostname }}'
+        customvalues:
+            # fit memory into RAM. Whenever possible, avoid settings lower 100%.
+            - key: prefvmx.minVmMemPct
+              value: 100
+            # Memory-trimming tries to detect unused virtualRAM and gives it back to the host
+            # improve responsiveness of a VM when set to 0
+            - key: MemTrimRate
+              value: 0
+            # Reserve all memory in RAM! NO OVERPROVISIONING POSSIBLE ANYMORE!
+            - key: sched.mem.pin
+              value: "TRUE"
+            # this tells VMWare whether to use a fixed sized memory chunk or balloon and shrink memory as needed.
+            - key: prefvmx.useRecommendedLockedMemSize
+              value: "TRUE"
+    when: vsphere.disablevmem is defined and vsphere.disablevmem == true
+
+  - name: start VM (this task will wait for IP)
+    include_tasks: vcenter_poweron-vm.yml
+    when: server_scnd_disk is not defined
+

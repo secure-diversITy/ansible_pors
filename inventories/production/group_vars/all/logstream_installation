@@ -1,0 +1,50 @@
+---
+#####################################################################################################################
+# Installation Variables
+#####################################################################################################################
+
+# change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
+logstream_globversion: "2.2.1"
+logstream_globhash: "7a862fbd"
+
+# the following can be used to identify the version in playbooks: when logstream_versionnum <= 123 ..
+logstream_versionnum: "{{ logstream_globversion | replace('.','') | int }}"
+
+# construct the full file name
+# https://cdn.cribl.io/dl/2.0.2/cribl-2.0.2-0b96f829-linux-x64.tgz
+logstream_tgzname: "cribl-{{ logstream_globversion }}-{{ logstream_globhash }}-linux-x64.tgz"
+
+logstream_root_path: /opt
+
+logstream_installation:
+  home_path: "{{ logstream_root_path }}/cribl"
+  version: "{{ logstream_globversion }}"
+  package_format: tgz
+
+  package_file: "{{ logstream_tgzname }}"
+  remote_package_temp_path: /tmp
+  delete_package_after_install: true
+  remote_app_temp_path: /tmp
+
+  # should be true usually but when installing as application user this should be set to false instead
+  set_permissions: true
+
+  # usually true, checks if the logstream unix account exists and if not creates it
+  create_user: True
+
+  # backup before upgrade (can be yes|no)
+  backup: false
+  remote_backup_path: /opt/backup/
+
+  # default no-prompt/silence args for starting non-interactive
+  args_noninteractive: "--answer-yes --accept-license --no-prompt"
+
+  # worker default config
+  worker:
+    port: 4200
+    disabledtls: true
+    compression: none
+    group: default
+    envRegex: "/^CRIBL_/"
+    connectionTimeout: 5000
+    writeTimeout: 10000

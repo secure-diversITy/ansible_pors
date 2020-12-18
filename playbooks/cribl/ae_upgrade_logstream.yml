@@ -1,0 +1,16 @@
+- name: Upgrade cribl logstream
+  hosts: "*:!repository"
+  remote_user: ansible
+  become: yes
+  become_user: root
+  strategy: free
+  gather_facts: True
+  #do NOT use "no_log: True" here as it will be effective for all sub tasks then
+
+  vars:
+    logstream_upgrade: True
+
+  roles:
+    - logstream_info
+    - install_logstream
+

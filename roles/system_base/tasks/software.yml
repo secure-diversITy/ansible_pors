@@ -1,0 +1,22 @@
+---
+- name: Install needed stuff
+  yum: 
+    update_cache: no
+    name: "{{ packages }}"
+  vars: 
+    packages:
+        - git
+        - ntp
+        - ntpdate
+        - vim
+        - tuned
+        - wget
+        - unzip
+
+- name: enable NTPd
+  systemd:
+    daemon_reload: yes
+    name: ntpd
+    enabled: yes
+    state: started
+

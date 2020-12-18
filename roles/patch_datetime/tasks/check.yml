@@ -1,0 +1,66 @@
+---
+# https://docs.splunk.com/Documentation/Splunk/latest/ReleaseNotes/FixDatetimexml2020
+# if 7 -> check minor
+#    if minor 
+#        1 -> if >= 10
+#        2 -> if >= 10
+#        3 -> if >= 3
+# if 8 -> check minor
+#    if minor
+#        0 check patch 
+#            if >= 1 not req
+- name: Check patch requirement -> by Major.Minor version
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  local_action: 'command echo {{ {"66": "13", "71": "10", "72": "10","73": "3","80": "1"}[splunkversion_majorminor] | default("-1") }}'
+  register: reqminor
+
+# When a Major.Minor version has been found which requires the patch
+# check the patch level version next
+- name: Check patch requirement -> by Patchlevel version
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  local_action: 'command echo 1'
+  register: patch_required_byversion
+  when: splunkversion_patch|int < reqminor.stdout|int
+
+# detect manual / already patched datetime xml
+- name: Check current installed datetime.xml
+  shell: "echo e6016245a677bff48ea7ddbe8d4b36f9acbd02918e1f90ead812892692d655ea {{ splunk_installation.splunk_home_path }}/etc/datetime.xml | sha256sum -c -"
+  ignore_errors: true
+  register: patch_required_byfile
+  when: patch_required_byversion.stdout is defined and patch_required_byversion.stdout == "1"
+
+
+# ensure we patch only when either the version is known to be affected AND datetime not patched
+- name: Change patch requirement when needed
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  local_action: command echo 1
+  register: patch_required
+  when: 
+    - patch_required_byversion.stdout is defined and patch_required_byversion.stdout == "1"
+    - patch_required_byfile.rc != 0
+
+# do not patch when the requirements are not met
+#- name: fallback
+#  local_action: "command echo 0"
+#  become: yes
+#  become_user: "{{ splunk_install_user }}"
+#  register: patch_required_fb
+#  when: patch_required is skipped
+
+#- name: Determine latest manifest
+#  shell: "find {{ splunk_installation.splunk_home_path }} -maxdepth 1 -name 'splunk*-manifest' | tail -n 1"
+#  register: splunk_latest_manifest
+#  when: patch_required is not skipped
+
+- name: Validate current manifest
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk validate files -manifest {{ splunk_latest_manifest.stdout }}"
+  ignore_errors: true
+  register: manifest_validation
+  when: patch_required is skipped
+
+

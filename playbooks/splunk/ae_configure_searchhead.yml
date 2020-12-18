@@ -1,0 +1,14 @@
+- name: Configure splunk searchheads
+  hosts: 
+        - searchhead
+        - activeinput
+  user: ansible
+  become: yes
+  become_user: root
+
+  roles:
+    - system_sshid
+    - group/searchhead
+    - conf/web
+    - conf/outputs
+    - conf/server

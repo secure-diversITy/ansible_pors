@@ -4,7 +4,7 @@
 
 # check if this is an indexer peer and take offline if (will fail after 30 min >retries< wait time)
 - name: Take Splunk offline (indexer cluster peer)
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth {{ splunk_user }}:{{ splunk_password }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
   #shell: "sleep 6s && {{ splunk_installation.splunk_home_path }}/bin/splunk stop"
   become: yes
   become_user: "{{ splunk_install_user }}"
@@ -12,6 +12,7 @@
   poll: 0
   register: splunk_ix_is_stopped
   ignore_errors: yes
+  no_log: true
   when: 
      - splunk_state.rc == 0
      - splpeernode.stdout == "slave"
@@ -34,16 +35,26 @@
         #("'peernode' in group_names" or splpeernode.stdout == "slave" )
         #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
 
+# FIXIT? when splunk 7.2.x has NOT been set with "enable boot-start --systemd-managed 0"
+# possible way: check for Systemd file existence instead of splunk version
 - name: Stop splunk by systemd
   service:
     name: Splunkd
     state: stopped
-  when: splunkversionnum >= 720
+  when: splunksystemdfile is defined and splunksystemdfile.stat.exists
+#  when: splunkversionnum >= 72
+#  ignore_errors: yes
+#  register: systemdnew
 
-- name: Stop Splunk (pre 7.2)
+#- name: debug
+#  debug: msg="{{ systemdnew.status }}, {{systemdnew.failed}}"
+
+- name: Stop Splunk (non-systemd only)
   service: name=splunk
            state=stopped
-  when: splunkversionnum < 720
+  ignore_errors: yes
+  when: splunksystemdfile is not defined or splunksystemdfile.stat.exists == false
+#  when: splunkversionnum < 720 or systemdnew.failed = true
 
 - name: Stop Splunk by binary
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk stop"
@@ -69,7 +80,7 @@
 
 # ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
 - name: Re-Check Splunk Status
-  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep splunkd"
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol|ansible)' |grep splunkd"
   register: splunk_laststate
   failed_when: splunk_laststate.rc == 0
 

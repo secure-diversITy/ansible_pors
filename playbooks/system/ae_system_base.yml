@@ -1,0 +1,14 @@
+- name: Settle up the base
+  hosts: "*:!repository"
+  user: ansible
+  become: yes
+  become_user: root
+  strategy: free
+
+  roles:
+    - system_upgrade
+    - system_kernel
+    - system_base
+    - system_optimize
+    - system_ntp
+    - system_journal

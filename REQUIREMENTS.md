@@ -1,8 +1,8 @@
-# Requirements for AE
+# Requirements for PORS
 
 ### Main components
 
-* Ansible: 2.8
+* Ansible: v2.8
 * dialog
 * bash
 

@@ -1,0 +1,9 @@
+---
+- hosts: all
+  user: ansible
+  become: yes
+  become_user: root
+
+  roles:
+    - ../roles/splunk_info
+    - ../roles/patch_datetime

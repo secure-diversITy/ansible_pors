@@ -11,7 +11,7 @@
 
 # check for running splunk daemon (independent from systemd, init etc!!)
 - name: Status Splunk
-  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi)' |grep splunkd"
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol|ansible)' |grep splunkd"
   register: splunk_state
   failed_when: splunk_state.rc == 0
   ignore_errors: yes
