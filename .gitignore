@@ -6,3 +6,4 @@ hosts
 *.swp
 *.bak
 *.backup
+/lab_splunk_binary_replacement

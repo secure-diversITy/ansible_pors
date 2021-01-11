@@ -1,8 +1,12 @@
 ---
+#####################################################################################################################
+# Configurations for Splunk server.conf
+#####################################################################################################################
 
-#####################################################################################################################
-# General Conf Variables
-#####################################################################################################################
-splunk_conf_path: /opt/splunk/etc/system/local
-splunk_install_user: splunk
-splunk_install_group: splunk
+splunk_server_conf:
+  general:
+    pass4SymmKey: "{{ vault_general_pass4SymmKey }}"
+  license:
+    master_uri: dynamic
+  sslConfig:
+    sslPassword: "{{ vault_sslConfig_sslPassword }}"

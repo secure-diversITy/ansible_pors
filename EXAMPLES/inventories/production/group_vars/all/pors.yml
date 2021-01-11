@@ -1,0 +1,7 @@
+######################################################################
+# Configure PORS
+######################################################################
+
+# the user and group PORS is running as
+pors_user: splunk
+pors_group: splunk

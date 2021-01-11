@@ -1,2 +1,3 @@
-alias pors-prod='cd /opt/ansible_pors && ./pors --env production -i /opt/pors_data/inventories/production/hosts'
-alias pors-dev='cd /opt/ansible_pors && ./pors --env development -i /opt/pors_data/inventories/development/hosts'
+alias pors-prod='cd /opt/pors && ./pors --env production -i /opt/pors_data/inventories/production/hosts'
+alias pors-staging='cd /opt/pors && ./pors --env staging -i /opt/pors_data/inventories/staging/hosts'
+alias pors-dev='cd /opt/pors && ./pors --env development -i /opt/pors_data/inventories/development/hosts'

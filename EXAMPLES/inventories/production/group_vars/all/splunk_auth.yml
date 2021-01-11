@@ -1,9 +1,9 @@
 ---
 #####################################################################################################################
-# Repository Variables
+# Installation Variables
+# should be set in your VAULT only. Check documentation.
 #####################################################################################################################
-splunk_repository:
-  repository_root: /opt/ae_repo/REPLACEME
-  repository_owner: splunk
-  repository_group: splunk
-  git_url: git@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunk
+
+splunk_auth:
+  admin_password: "{{ vault_splunk_admin_password }}"
+  splunk_secret: xxxxxxxxxxxxxxxxxx

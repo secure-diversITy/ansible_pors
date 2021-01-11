@@ -1,8 +1,11 @@
 # PORS starts as a separate user in multi-user environments
 # all users defined in the User_Alias are allowed to run PORS
+#
+# Change USERAE and add all user accounts and/or groups which should be able
+# to start PORS. Groups need the % sign as prefix, users not.
 
-User_Alias      USERAE=foo,bar,moo
-Cmnd_Alias      AECMD = /usr/bin/env CALLUSR=* /opt/ansible_pors/pors *,/usr/bin/env CALLUSR=* ./pors *
+User_Alias      USERAE = %wheel, foo, bar
+Cmnd_Alias      AECMD = /usr/bin/env CALLUSR=* /opt/pors/pors *,/usr/bin/env CALLUSR=* ./pors *
 
 # change the user in ALL=(splunk) depending on the variable AEUSER in PORS
 USERAE     	ALL=(splunk)      NOPASSWD: AECMD

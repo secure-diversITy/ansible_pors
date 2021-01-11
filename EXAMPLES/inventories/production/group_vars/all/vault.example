@@ -1,0 +1,125 @@
+###################################
+# general splunk
+###################################
+vault_splunk_admin_user: "admin"
+vault_splunk_admin_password: "changeme"
+
+# it is recommended to not use the default splunk admin account
+# for splunk tasks. here you can define a custom user account instead.
+# this will be used to create a user during splunk installation
+vault_splunk_ae_user: ansible_pors
+vault_splunk_ae_password: "changeme"
+# set a role for the above account (usually admin but any role which exists
+# can be used, when it has proper privileges)
+vault_splunk_ae_role: admin
+
+# the splunk secret.
+# it will be set on all new instances during splunk installation/configuration.
+vault_splunk_secret: ""
+
+###################################
+# SSH
+###################################
+
+# the PRIVATE and PUBLIC keys which should be used to connect to any ansible managed host.
+# the public key must be set in the bare template, of course. ED25519 is the
+# recommended format these days.
+# note: add the kes without any carriage returns!
+# e.g.:
+# 1. ssh-keygen -a 100 -t ed25519 -N '' -f privkey.pem
+# 2. cat privkey.pem | tr -d '\n' (set "vault_ssh_privkey" with this output)
+# 3. ssh-keygen -y -f privkey.pem (set "vault_ssh_pubkey" with this output)
+# 3. rm privkey.pem
+vault_ssh_privkey: "-----BEGIN OPENSSH PRIVATE KEY-----b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZWQyNTUxOQAAACBYuKNv8RTKiDVU5ohHEP0BOo488jD6PyczeXQbVCsLmwAAAJB1+sfmdfrH5gAAAAtzc2gtZWQyNTUxOQAAACBYuKNv8RTKiDVU5ohHEP0BOo488jD6PyczeXQbVCsLmwAAAEBhPLNuNkWVeHiwf5oHlVv0tLAAOLvmCRcG0sUFEDZvaVi4o2/xFMqINVTmiEcQ/QE6jjzyMPo/JzN5dBtUKwubAAAADHRmaUBzZWRpYm9vawE=-----END OPENSSH PRIVATE KEY-----"
+vault_ssh_pubkey:  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFi4o2/xFMqINVTmiEcQ/QE6jjzyMPo/JzN5dBtUKwub tf@sedi"
+#(the vault_ssh_privkey and pubkey above are just an example!
+# they are made just for you to better understand how it should look like)
+
+###################################
+# specific splunk
+###################################
+# sometimes it is necessary to have different user credentials based
+# on the server type. 1 real-life example is where the Deployment Server
+# had another user/pass then on any other machine (as that one was not
+# self hosted)
+#
+# id | hosts target group name
+# ------------------------------
+# ai:  activeinput
+# ds:  deploymentserver
+# hf:  heavyforwarder
+# mn:  masternode
+# idx: peernode
+# sh:  searchhead
+# dep: deployer
+vault_ai_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_ai_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_ds_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_ds_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_hf_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_hf_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_mn_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_mn_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_idx_ae_user: "{{ vault_splunk_ae_user }}"
+vault_idx_ae_pass: "{{ vault_splunk_ae_password }}"
+vault_sh_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_sh_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_dep_ae_user: "{{ vault_splunk_ae_user }}"
+vault_dep_ae_pass: "{{ vault_splunk_ae_password }}"
+
+###################################
+# .conf files
+###################################
+
+# the ssl password in:
+# server.conf [sslConfig]
+vault_sslConfig_sslPassword: "password"
+
+# pass4SymmKey (e.g. connection with LicenseMaster) in:
+# server.conf [general]
+vault_general_pass4SymmKey: "changeme"
+
+# Indexer & SH Cluster pass4SymmKey in:
+# server.conf [clustering]
+vault_clustering_pass4SymmKey: "changeme"
+
+# server.conf [indexer_discovery]
+# outputs.conf [indexer_discovery:xx]
+vault_indexerdiscovery_pass4SymmKey: "changeme"
+
+# replication ssl password in:
+# server.conf [replication_port_ssl]
+vault_replication_port_sslPassword: "password"
+
+# the ssl password in:
+# inputs.conf [SSL]
+vault_SSL_password: "password"
+
+# outputs.conf [tcpout:xx]
+vault_tcpout_sslPassword: "password"
+
+###################################
+# CLOUD
+###################################
+
+# VMware / vSphere access
+# see REQUIREMENTS.md for detailed instructions in how to setup
+# a proper account for ansible in vSphere
+vault_vsphere_user: ""
+vault_vsphere_password: ""
+
+# Google Cloud Platform (GCP)
+# see REQUIREMENTS.md for detailed instructions in how to setup
+# a proper account for ansible in GCP
+vault_googlecp_user: ""
+vault_googlecp_password: ""
+
+###################################
+# CRILB / LOGSTREAM
+###################################
+
+# the CRIB logstream authentication token.
+# will be added to the cribl instance in:
+# local/_system/instance.yml
+vault_logstream_master_authtoken: ""
+

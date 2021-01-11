@@ -7,7 +7,7 @@ system_yum:
   upgrade_system: true
   elrepo:
     enabled: true
-    # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail !!!!
+    # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail (they expect strings) !!!!
     
     # enable (yes) or disable (no) this repo
     main: "no"

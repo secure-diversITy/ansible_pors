@@ -1,9 +1,9 @@
 ---
 #####################################################################################################################
-# Repository Variables
+# Set a name to identify this ansible instance
 #####################################################################################################################
-splunk_repository:
-  repository_root: /opt/ae_repo/production
-  repository_owner: splunk
-  repository_group: splunk
-  git_url: git@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com:splunk
+ansible_conf:
+  host: <SETHOSTNAME>
+
+# the base installation directory of PORS
+base_install_dir: /opt/pors

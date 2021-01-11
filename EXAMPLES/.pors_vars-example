@@ -1,5 +1,108 @@
-# the installation directory of PORS
-export ADIR=/opt/ansible_pors
+###################################################################################
+# USER VARIABLES for Playbooks-On-Rails for Splunk (PORS)
+##########################################################
+#
+# all listed exports showing the DEFAULT used in PORS. 
+# Outcomment them only when you want to change anything (also see: NOTE).
+#
+# Upgrading PORS will NOT touch this file so this is the ONLY safe way to ensure
+# a newer PORS version will not overwrite your settings.
+#
+# NOTE:
+# when referring to another variable the "other" variable must be declared here as
+# well.
+# Example:
+# export ADIR=/my/path/${WHATEVER}/here/
+# --> requires ${WHATEVER} to be set before
+#
+# INSTALL:
+# $> cp .pors_vars-example ${HOME}/.pors/vars
+#
+###################################################################################
 
-# service account username (linux full root access user)
-# export OS_SERVICE_USER=sysadmin
+# DEBUG mode (1) or not (0)
+#export DEBUG=0
+
+## @var OS_SERVICE_USER
+## @brief An (optional) service account username
+## @details This account will be added when installing a new VM only.
+## So on a new VM deployment this user will be created and given root
+## permissions
+#export OS_SERVICE_USER=
+
+## @var ADIR
+## @details the PORS install dir.
+#export ADIR="/opt/pors"
+
+## @var DATADIR
+## @details the PORS data directory
+#export DATADIR="/opt/pors_data"
+
+# the path where your inventories (with their subdirs like development, production) are in
+#export AINVENTORY=$DATADIR/inventories"
+
+## @var ABIN
+## @brief The full path to the regular ansible playbook binary
+#export ABIN="/usr/bin/ansible-playbook"
+
+## @var VBIN
+## @brief The full path to the regular ansible-vault binary
+#export VBIN="/usr/bin/ansible-vault"
+
+## @var MAXLOG
+## @brief How many log files are allowed before rotate starts
+#export MAXLOG=10
+
+## @var EDITBIN
+## @brief The editor which will be used e.g. when editing system/local files
+#export EDITBIN=/usr/bin/vim
+
+## @var PBDIR
+## @brief The directory where all playbooks are expected. must point to the
+## PORS install dir containing the folder playbooks
+#export PBDIR="$ADIR/playbooks"
+
+## @var ROLEDIR
+## @brief The directory where all roles are expected
+#export ROLEDIR="$PBDIR/roles"
+
+## @var DEFSPLAPIADMIN
+## @brief default splunk API (target:8089) admin account
+## @details Defaults to "admin" user and can be changed interactively in PORS when asked.
+## This account needs privileges to run API calls so either the admin or an user with at least the following capabilities (not tested and so maybe incomplete):
+## - rest_apps_view
+## - rest_properties_get
+## - rest_properties_set
+## - restart_splunkd
+#export DEFSPLAPIADMIN=admin
+
+## @var DEFHOSTFILE
+## @brief default filename for host/group definitions in ansible
+## @details Defaults to "hosts" and can be changed interactively in PORS when asked.
+#export DEFHOSTFILE=hosts
+
+## @var GLABSETTINGS
+## @brief gitlab authentication file
+## @details stores the gitlab token for communicationg with gitlab API
+#export GLABSETTINGS="$WORKDIR/gitlab.auth"
+
+## @var AEUSER
+## @brief local username for running PORS
+## @details Defaults to "splunk" as it is meant for multi-user environments to keep track of actions in PORS. 
+#export AEUSER=splunk
+
+## @var ENABLEVAULT
+## @brief Make use of the Ansible Vault
+## @details When set to "yes" PORS will ask for the Vault password on certain actions
+## hint: to operate seamless the typed password gets stored locally but only until the cookie authentication has finished.
+## after that the temporary file gets deleted automatically.
+## If you are scared about storing a password even temporary do not enable this functionality.
+#export ENABLEVAULT=yes
+
+## @var SESSIONBASEDVAULT
+## @brief Store the Ansible Vault temp file for the whole session
+## @details When set to "yes" PORS will not remove the temporary Vault password (req: ENABLEVAULT=yes)
+## for the whole session (less questions but less secure). When PORS ends it will be deleted of course.
+## If you are scared about storing a password even temporary do not enable this functionality.
+#export SESSIONBASEDVAULT=yes
+

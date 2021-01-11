@@ -1,0 +1,35 @@
+---
+#####################################################################################################################
+# Deploy VM's based on a given template.
+# Check documentation.
+#####################################################################################################################
+
+vsphere:
+    host:
+       # you can specify as much vsphere centers as you wish.
+       # vsphere-hostname-01 is just an example any should be replaced by the hostname
+       # of your real FQDN (i.e. without domain).
+       vsphere-hostname-01:
+            dest: "full-fqdn"
+            validate_certs: "no"
+            user: "{{ vault_vsphere_user }}"
+            password: "{{ vault_vsphere_password }}"
+            ansible_template_name: "rhel_ansible_template"
+
+       #vsphere-hostname-02:
+       #     dest: "full-fqdn"
+       #     validate_certs: "no"
+       #     user: "{{ vault_vsphere_user }}"
+       #     password: "{{ vault_vsphere_password }}"
+       #     ansible_template_name: "rhel_ansible_template"
+
+googlecp:
+    # replace "my-project-id" with the REAL project-id!
+    my-project-id:
+        project: my-project-id
+        cred_kind: serviceaccount
+        cred_file: ~/.gcp.json
+        zone: "us-central1-a"
+        region: "us-central1"
+        ansible_template_name: "rhel_ansible_template"
+

@@ -1,7 +1,7 @@
 ---
 ##########################################################################################################
 #
-# Default settings for the system/local/ handling
+# Default settings for the system/local/ handling in splunk
 # 
 ################################
 #
@@ -13,6 +13,8 @@
 #       - "^#+" => search for "#" at the beginning of a line
 #       - "\s"  => 1 white space (no TAB! and not more then 1)
 #       - the full file! will be checked for this phrase (no need to have it on top but its recommended)
+#
+# check documentation!
 ##########################################################################################################
 
 system_local_configs:

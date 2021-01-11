@@ -1,6 +1,10 @@
 ---
 #####################################################################################################################
-# Set a name to identify this ansible instance
+# Configurations for Splunk web.conf
 #####################################################################################################################
-ansible_conf:
-  host: xxxxxxxxxxxxxxxxxxdmc01
+
+splunk_web_conf:
+  settings:
+    enableSplunkWebSSL: 1
+    updateCheckerBaseURL: 0
+

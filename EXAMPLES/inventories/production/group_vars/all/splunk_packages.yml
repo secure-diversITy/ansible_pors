@@ -4,6 +4,7 @@
 #####################################################################################################################
 
 splunk_packages:
+  # note: RPM is deprecated in PORS!
   linux_64_rpm:
     package:
       version: "6.3.3_RPM-IS-DEPRECATED_USE_TGZ"

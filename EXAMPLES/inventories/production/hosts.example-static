@@ -1,0 +1,59 @@
+[all:vars]
+# the environment variable should match the path, 
+# i.e. inventories/moo becomes target_env=moo
+target_env=production
+#target_env=staging
+#target_env=development
+
+# this is where ae runs so no need to change this:
+[repository]
+localhost       ansible_connection=local
+
+###################################################
+# Note: Do not modify stanza names as they are used
+# in several places to identify the proper splunk
+# type
+
+########### regular servers
+
+[deploymentserver]
+
+[dmc]
+
+[licensemaster]
+
+[heavyforwarder]
+
+# active input servers like dbconnect, opsec LEA, tenable, ...
+[activeinput]
+
+[httpeventcollector]
+
+########### Clustering
+
+# SHC Deployer
+[deployer]
+
+# SHC member
+[shcmember]
+
+# Indexer master node
+[masternode]
+
+# Indexer
+[peernode]
+
+########### Sites
+
+[site1:children]
+
+[site2:children]
+
+########## CRIBL logstream
+
+# CRIBL logstream master node
+[logstream_mn]
+
+# CRIBL logstream worker
+[logstream_worker]
+

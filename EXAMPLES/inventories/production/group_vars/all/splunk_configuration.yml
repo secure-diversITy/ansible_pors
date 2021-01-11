@@ -2,6 +2,10 @@
 #####################################################################################################################
 # General Conf Variables
 #####################################################################################################################
+
+# directory of splunk's system/local
 splunk_conf_path: /opt/splunk/etc/system/local
+
+# user/group splunk should run as
 splunk_install_user: splunk
 splunk_install_group: splunk

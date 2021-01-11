@@ -26,13 +26,14 @@ logstream_installation:
   delete_package_after_install: true
   remote_app_temp_path: /tmp
 
+  # set the directory permissions correctly
   # should be true usually but when installing as application user this should be set to false instead
   set_permissions: true
 
   # usually true, checks if the logstream unix account exists and if not creates it
   create_user: True
 
-  # backup before upgrade (can be yes|no)
+  # backup before upgrade (can be true|false)
   backup: false
   remote_backup_path: /opt/backup/
 

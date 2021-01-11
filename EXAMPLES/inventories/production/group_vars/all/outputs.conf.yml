@@ -1,0 +1,21 @@
+---
+#####################################################################################################################
+# Configurations for Splunk outputs.conf
+#####################################################################################################################
+
+splunk_outputs_conf:
+  tcpout:
+    defaultGroup: "{{ target_env }}"
+    target_group:
+      # replace with your target_env (production|staging|development)
+      production:
+        useACK: true
+        indexerDiscovery: "{{ target_env }}"
+        sslPassword: "{{ vault_tcpout_sslPassword }}"
+        sslCertPath: $SPLUNK_HOME/etc/auth/server.pem
+        sslRootCAPath: $SPLUNK_HOME/etc/auth/ca.pem
+  indexer_discovery:
+    # replace with your target_env (production|staging|development)
+    production:
+      pass4SymmKey: "{{ vault_indexerdiscovery_pass4SymmKey }}"
+      master_uri: dynamic

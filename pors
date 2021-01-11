@@ -3,7 +3,7 @@
 ## @file	pors.sh
 ## @brief       PORS is an UI for managing your whole Splunk infrastructure with Ansible
 ## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
-## @date        2017-2020
+## @date        2017-2021
 ## @copyright	AGPL v3
 ## @details     
 ##    This program is free software: you can redistribute it and/or modify
@@ -35,8 +35,8 @@
 ## https://github.com/secure-diversITy/ansible_pors/wiki
 ##<br>
 ###############################################################################################################
-VERSIONTYPE=stable
-VERSIONNUM="4.0-0"
+VERSIONTYPE=alpha
+VERSIONNUM="4.0-1"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -66,6 +66,20 @@ VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 # ensure PuttY will not look ugly
 export NCURSES_NO_UTF8_ACS=1
 
+###############################################################################
+# Do NOT change variables here! 
+###############################################################################
+# all user variables can and have to be set here:
+#
+# --> ${HOME}/.pors/vars
+#
+# init that file with:
+# cp EXAMPLES/.pors_vars-example ${HOME}/.pors/vars
+#
+# then modify ${HOME}/.pors/vars to your needs
+#
+###############################################################################
+
 # source an variable overwrite if available
 [ -f ${HOME}/.pors/vars ] && source ${HOME}/.pors/vars
 
@@ -86,7 +100,8 @@ export RUNMODE="interactive"
 ## @showinitializer
 ## @details This account will be added when installing a new VM only.
 ## So on a new VM deployment this user will be created and given root
-## permissions
+## permissions. The if empty check must exists to make it appear in the doc..
+[ -z "${OS_SERVICE_USER}" ] && \
 export OS_SERVICE_USER=
 
 ## @var PYTHONUNBUFFERED
@@ -130,8 +145,21 @@ chmod 700 $WORKDIR
 [ -z "$ADIR" ] && \
 declare ADIR="${0%/*}"
 
-# the path where your inventories (with their subdirs like development, production) are in
-: "${AINVENTORY:=$ADIR/inventories}"
+## @var DATADIR
+## @brief the PORS data directory 
+## @showinitializer
+## @details the PORS data dir. can be overwritten in ~/.pors/vars
+[ -z "$DATADIR" ] && \
+declare DATADIR="/opt/pors_data"
+
+## @var AINVENTORY
+## @brief Ansible inventories directory
+## @showinitializer
+## @details the PORS inventories dir.
+## the place where your Ansible inventories (with their subdirs like development, production) are in.
+## also includes app links etc. should be overwritten in ~/.pors/vars for production use.
+[ -z "$AINVENTORY" ] && \
+declare AINVENTORY="$DATADIR/inventories"
 
 ## @var KICKUSER
 ## @brief Default setting for overtaken a running session
@@ -143,20 +171,23 @@ declare KICKUSER=N
 ## @var ABIN
 ## @brief The full path to the regular ansible playbook binary
 ## @showinitializer
+[ -z "$ABIN" ] && \
 declare ABIN="/usr/bin/ansible-playbook"
 
 ## @var VBIN
 ## @brief The full path to the regular ansible-vault binary
 ## @showinitializer
+[ -z "$VBIN" ] && \
 declare VBIN="/usr/bin/ansible-vault"
 
 # if you want you can run another ansible version by specifying the A2xx vars:
-: "${A2PATH:=/opt/splunk/ansible-git}"
-: "${A2BIN:=$A2PATH/bin/ansible-playbook}"
+: "${A2PATH:=/usr/bin}"
+: "${A2BIN:=$A2PATH/ansible-playbook}"
 
 ## @var LOGDIR
 ## @brief The log directory
 ## @showinitializer
+[ -z "$LOGDIR" ] && \
 declare LOGDIR=${WORKDIR}/logs
 
 ## @var LOG
@@ -167,6 +198,7 @@ declare LOG=${LOGDIR}/$(date +%F_%H-%M)_${BIN}.log
 ## @var MAXLOG
 ## @brief How many log files are allowed before rotate starts
 ## @showinitializer
+[ -z "$MAXLOG" ] && \
 declare MAXLOG=10
 
 ## @var AEUSRHOSTFILE
@@ -183,29 +215,71 @@ declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
 declare EDITBIN=/usr/bin/vim
 
 ## @var PBDIR
-## @brief The directory where all playbooks are expected
+## @brief The directory where all playbooks are expected (base path)
 ## @details Can be overwritten by ~/.pors/vars
 ## @showinitializer
 [ -z "$PBDIR" ] && \
-declare PBDIR="$ADIR"
+declare PBDIR="$ADIR/playbooks"
+
+## @var PBDIRCRIBL
+## @brief The directory where all CRIBL playbooks are expected
+## @details playbooks for CRIBL logstream
+## @showinitializer
+[ -z "$PBDIRCRIBL" ] && \
+declare PBDIRCRIBL="$PBDIR/cribl"
+
+## @var PBDIRSHELPER
+## @brief The directory where all shelper playbooks are expected
+## @details playbooks for splunk shelper
+## @showinitializer
+[ -z "$PBDIRSHELPER" ] && \
+declare PBDIRSHELPER="$PBDIR/shelper"
+
+## @var PBDIRSPLUNK
+## @brief The directory where all splunk playbooks are expected
+## @details playbooks for splunk
+## @showinitializer
+[ -z "$PBDIRSPLUNK" ] && \
+declare PBDIRSPLUNK="$PBDIR/splunk"
+
+## @var PBDIRVMWARE
+## @brief The directory where all vmware playbooks are expected
+## @details playbooks for VMware
+## @showinitializer
+[ -z "$PBDIRVMWARE" ] && \
+declare PBDIRVMWARE="$PBDIR/vmware"
+
+## @var PBDIRSYSTEM
+## @brief The directory where all system playbooks are expected
+## @details playbooks for System
+## @showinitializer
+[ -z "$PBDIRSYSTEM" ] && \
+declare PBDIRSYSTEM="$PBDIR/system"
+
+## @var PBDIRGOOGLECP
+## @brief The directory where all GCP playbooks are expected
+## @details playbooks for Google Cloud Platform (GCP)
+## @showinitializer
+[ -z "$PBDIRGOOGLECP" ] && \
+declare PBDIRGOOGLECP="$PBDIR/googlecp"
 
 ## @var ROLEDIR
 ## @brief The directory where all roles are expected
 ## @details Can be overwritten by ~/.pors/vars
 ## @showinitializer
 [ -z "$ROLEDIR" ] && \
-declare ROLEDIR="$PBDIR/roles"
+declare ROLEDIR="$ADIR/roles"
 
 ## @var PBENAPP
 ## @brief Adding/Linking new app(s) to PORS
 ## @showinitializer
-declare PBENAPP=${PBDIR}/ae_enable_app.yml
+declare PBENAPP=${PBDIRSPLUNK}/ae_enable_app.yml
 
 ## @var PBREGENDEPLOY
 ## @brief Regenerate ae_deploy_apps.yml
 ## @showinitializer
 ## @details This playbook generates $PBDEPLAPP based on the linked apps<-->targets
-declare PBREGENDEPLOY=${PBDIR}/ae_recreate_deploy.yml
+declare PBREGENDEPLOY=${PBDIRSPLUNK}/ae_recreate_deploy.yml
 
 ## @var PBDEPLAPP
 ## @brief Deploy apps to given targets
@@ -216,76 +290,76 @@ declare PBDEPLAPP=ae_deploy_apps.yml
 ## @var PBDEPLSYSC
 ## @brief Deploy system/local configs to given targets 
 ## @showinitializer
-declare PBDEPLSYSC=${PBDIR}/ae_deploy_systemconfigs.yml
+declare PBDEPLSYSC=${PBDIRSPLUNK}/ae_deploy_systemconfigs.yml
 
 ## @var PBGETTARGETS
 ## @brief Parsing inventories file and create an expanded host list for each target
 ## @showinitializer
-declare PBGETTARGETS=${PBDIR}/ae_get_targets.yml
+declare PBGETTARGETS=${PBDIRSPLUNK}/ae_get_targets.yml
 
 ## @var PBUPGRADE
 ## @brief Upgrade splunk
 ## @showinitializer
-declare PBUPGRADE=${PBDIR}/ae_upgrade_splunk.yml
+declare PBUPGRADE=${PBDIRSPLUNK}/ae_upgrade_splunk.yml
 
 ## @var  PBSHINSTALL
 ## @brief Install/Upgrade the splunk helper
 ## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
 ## @showinitializer
-declare PBSHINSTALL=${PBDIR}/ae_install_shelper.yml
+declare PBSHINSTALL=${PBDIRSHELPER}/ae_install_shelper.yml
 
 ## @var SHOWAPPS
 ## @brief Show app deployment state by target(s) and type (local, git, ...)
 ## @showinitializer
-declare SHOWAPPS=${PBDIR}/ae_show_app_deploymentstate.sh
+declare SHOWAPPS=${ADIR}/ae_show_app_deploymentstate.sh
 
 ## @var PBSHRELOAD
 ## @brief Execute splunk helper tasks
 ## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
 ## @showinitializer
-declare PBSHRELOAD=${PBDIR}/maintenance/ae_shelper_reload.yml
+declare PBSHRELOAD=${PBDIRSYSTEM}/ae_shelper_reload.yml
 
 ## @var PBSPLACT
 ## @brief Maintenance tasks for splunk
 ## @details Examples: splunk stop, start, restart
 ## @showinitializer
-declare PBSPLACT=${PBDIR}/maintenance/ae_splunk_tasks.yml
+declare PBSPLACT=${PBDIRSYSTEM}/ae_splunk_tasks.yml
 
 ## @var PBINSTALL
 ## @brief Install splunk
 ## @details Will install splunk on a single host or group of hosts
 ## @showinitializer
-declare PBINSTALL=${PBDIR}/ae_install_splunk.yml
+declare PBINSTALL=${PBDIRSPLUNK}/ae_install_splunk.yml
 
 ## @var PBINSTALLLOGSTREAM
 ## @brief Install cribl logstream
 ## @details Will install cribl logstream on a single host or group of hosts
 ## @showinitializer
-declare PBINSTALLLOGSTREAM=${PBDIR}/ae_install_logstream.yml
+declare PBINSTALLLOGSTREAM=${PBDIRCRIBL}/ae_install_logstream.yml
 
 ## @var PBCONFMN
 ## @brief Configures splunk as a master node
 ## @details This will configure an existing splunk installation as a MasterNode for a new cluster
 ## @showinitializer
-declare PBCONFMN=${PBDIR}/ae_configure_masternode.yml
+declare PBCONFMN=${PBDIRSPLUNK}/ae_configure_masternode.yml
 
 ## @var PBCONFPEER
 ## @brief Configures splunk as a peernode 
 ## @details This will configure an existing splunk installation as a peernode of an existing indexer cluster
 ## @showinitializer
-declare PBCONFPEER=${PBDIR}/ae_configure_ix_peernode.yml
+declare PBCONFPEER=${PBDIRSPLUNK}/ae_configure_ix_peernode.yml
 
 ## @var PBCONFSH
 ## @brief Configures splunk as a searchhead
 ## @details This will configure an existing splunk installation as a SearchHead
 ## @showinitializer
-declare PBCONFSH=${PBDIR}/ae_configure_searchhead.yml
+declare PBCONFSH=${PBDIRSPLUNK}/ae_configure_searchhead.yml
 
 ## @var PBCONFHF
 ## @brief Configures splunk as a heavy forwarder
 ## @details This will configure an existing splunk installation as a Heavy Forwarder
 ## @showinitializer
-declare PBCONFHF=${PBDIR}/ae_configure_heavyforwarder.yml
+declare PBCONFHF=${PBDIRSPLUNK}/ae_configure_heavyforwarder.yml
 
 ## @var INSTDEF
 ## @brief splunk installation conf
@@ -297,25 +371,25 @@ declare INSTDEF=splunk_installation
 ## @brief Downloader for splunk tar's
 ## @details Will download a defined splunk release (hard coded type: linux/64bit/tar.gz) directly from splunk
 ## @showinitializer
-declare PBDLSPL=${PBDIR}/ae_download_splunk.yml 
+declare PBDLSPL=${PBDIRSPLUNK}/ae_download_splunk.yml 
 
 ## @var PBVCINFO
 ## @brief Collecting vCenter information
 ## @details Will connect to a vCenter and grabs all relevant information for VM deployment
 ## @showinitializer
-declare PBVCINFO="${PBDIR}/vmware/vcenter_get-info.yml"
+declare PBVCINFO="${PBDIRVMWARE}/vcenter_get-info.yml"
 
 ## @var PBVCGETVHOSTSTATES
 ## @brief Collecting / Refreshing vhost conenction states
 ## @details Will connect to a vCenter and re-evaluates the states for each connected vhost (ESX)
 ## @showinitializer
-declare PBVCGETVHOSTSTATES="${PBDIR}/vmware/vcenter_get-vhoststates.yml"
+declare PBVCGETVHOSTSTATES="${PBDIRVMWARE}/vcenter_get-vhoststates.yml"
 
 ## @var PBVCVMDEPLOY
 ## @brief Deploys a VM over a given vCenter to a ESX host
 ## @details Will connect to a vCenter and deploys a new VM to it (based on a given template)
 ## @showinitializer
-declare PBVCVMDEPLOY="${PBDIR}/vmware/vcenter_deploy-vm.yml"
+declare PBVCVMDEPLOY="${PBDIRVMWARE}/vcenter_deploy-vm.yml"
 
 ## @var PBVCSHOW
 ## @brief Parse and show all local defined vCenters
@@ -323,54 +397,54 @@ declare PBVCVMDEPLOY="${PBDIR}/vmware/vcenter_deploy-vm.yml"
 ## $INVENTORY/$TARGETENV/group_vars/all/bare_install
 ## The playbook $PBVCSHOW will parse and write the results to a tmp file defined in $PBVCSHOW
 ## @showinitializer
-declare PBVCSHOW="${PBDIR}/vmware/vcenter_show-avail.yml"
+declare PBVCSHOW="${PBDIRVMWARE}/vcenter_show-avail.yml"
 
 ## @var PBVMNEWDISK
 ## @brief Add an additional disk to an existing VM
 ## @details ..
 ## @showinitializer
-declare PBVMNEWDISK="${PBDIR}/ae_vm_add-new-disk.yml"
+declare PBVMNEWDISK="${PBDIRVMWARE}/ae_vm_add-new-disk.yml"
 
 ## @var PBVMDISKFORMAT
 ## @brief Formatting a given disk in a VM
 ## @details ..
 ## @showinitializer
-declare PBVMDISKFORMAT="${PBDIR}/ae_vm_format-new-disk.yml"
+declare PBVMDISKFORMAT="${PBDIRVMWARE}/ae_vm_format-new-disk.yml"
 
 ## @var PBBASEINSTALL
 ## @brief setup the default base of a deployed system
 ## @details El-Repo kernel and system upgrades are just 2 examples here
 ## @showinitializer
-declare PBBASEINSTALL="${PBDIR}/maintenance/ae_system_base.yml"
+declare PBBASEINSTALL="${PBDIRSYSTEM}/ae_system_base.yml"
 
 ## @var PBSYSKERNEL
 ## @brief Install/Set/Update the kernel
 ## @details El-Repo kernel
 ## @showinitializer
-declare PBSYSKERNEL="${PBDIR}/maintenance/ae_system_kernel.yml"
+declare PBSYSKERNEL="${PBDIRSYSTEM}/ae_system_kernel.yml"
 
 ## @var PBSYSUPGRADE
 ## @brief System Upgrade
 ## @details Refreshes cache DB and starting a full system upgrade
 ## @showinitializer
-declare PBSYSUPGRADE="${PBDIR}/maintenance/ae_system_upgrade.yml"
+declare PBSYSUPGRADE="${PBDIRSYSTEM}/ae_system_upgrade.yml"
 
 ## @var PBSSHCHK
 ## @brief Initial SSH connect
 ## @details Will add the host key when none exists yet. Add will be skipped when a host key changed!
 ## @showinitializer
-declare PBSSHCHK="${PBDIR}/ae_ssh.yml"
+declare PBSSHCHK="${PBDIRSYSTEM}/ae_ssh.yml"
 
 ## @var PBSYSREBOOT
 ## @brief general system reboot (linux)
 ## @details reboots a remote system
 ## @showinitializer
-declare PBSYSREBOOT="${PBDIR}/maintenance/ae_system_reboot.yml"
+declare PBSYSREBOOT="${PBDIRSYSTEM}/ae_system_reboot.yml"
 
 ## @var PBCREATEUSER
 ## @brief Playbook for creating a linux user
 ## @showinitializer
-declare PBCREATEUSER="${PBDIR}/maintenance/ae_create_useracc.yml"
+declare PBCREATEUSER="${PBDIRSYSTEM}/ae_create_useracc.yml"
 
 ## @var DEFSPLAPIADMIN
 ## @brief default splunk API (target:8089) admin account
@@ -382,7 +456,6 @@ declare PBCREATEUSER="${PBDIR}/maintenance/ae_create_useracc.yml"
 ## - rest_properties_set
 ## - restart_splunkd
 ## @showinitializer
-#: "${DEFSPLAPIADMIN:=admin}"
 [ -z "$DEFSPLAPIADMIN" ] && \
 declare DEFSPLAPIADMIN=admin
 
@@ -391,7 +464,6 @@ declare DEFSPLAPIADMIN=admin
 ## @details Defaults to "hosts" and can be changed interactively in PORS when asked.
 ## Do not change it here, for this define AEUSER in {HOME}/.pors/vars instead
 ## @showinitializer
-#: "${DEFHOSTFILE:=hosts}"
 [ -z "$DEFHOSTFILE" ] && \
 declare DEFHOSTFILE=hosts
 
@@ -401,7 +473,6 @@ declare DEFHOSTFILE=hosts
 ## Do not change it here, for this define AEUSER in {HOME}/.pors/vars instead
 ## @showinitializer
 [ -f "${HOME}/.pors/gitlab.auth" ] && GLABSETTINGS="${HOME}/.pors/gitlab.auth"
-#: "${GLABSETTINGS:=$WORKDIR/gitlab.auth}"
 [ -z "$GLABSETTINGS" ] && \
 declare GLABSETTINGS="$WORKDIR/gitlab.auth"
 
@@ -421,6 +492,7 @@ declare AEUSER=splunk
 ## after that the temporary file gets deleted automatically.
 ## If you are scared about storing a password even temporary do not enable this functionality.
 ## @showinitializer
+[ -z "$ENABLEVAULT" ] && \
 declare ENABLEVAULT=yes
 
 ## @var SESSIONBASEDVAULT
@@ -429,18 +501,28 @@ declare ENABLEVAULT=yes
 ## for the whole session (less questions but less secure). When PORS ends it will be deleted of course.
 ## If you are scared about storing a password even temporary do not enable this functionality.
 ## @showinitializer
+[ -z "$SESSIONBASEDVAULT" ] && \
 declare SESSIONBASEDVAULT=yes
 
 ## @var DEFAULTVAULT
 ## @brief full path to the default vault
 ## @details This is used to check the typed password so it must exists (if using ENABLEVAULT=yes)
 ## @showinitializer
+[ -z "$DEFAULTVAULT" ] && \
 declare DEFAULTVAULT=$AINVENTORY/$TARGETENV/group_vars/all/vault
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
 #################################################################################################
 
+# test all playbooks
+# gen: egrep '^declare \w+=|^export \w+=' pors |cut -d = -f1 |grep PB | cut -d " " -f2 | sed 's/^/$/g' | egrep -v "DIR|PBDEPLAPP" |tr "\n" " "
+PBS="$PBENAPP $PBREGENDEPLOY $PBDEPLSYSC $PBGETTARGETS $PBUPGRADE $PBSHINSTALL $PBSHRELOAD $PBSPLACT $PBINSTALL $PBINSTALLLOGSTREAM $PBCONFMN $PBCONFPEER $PBCONFSH $PBCONFHF $PBDLSPL $PBVCINFO $PBVCGETVHOSTSTATES $PBVCVMDEPLOY $PBVCSHOW $PBVMNEWDISK $PBVMDISKFORMAT $PBBASEINSTALL $PBSYSKERNEL $PBSYSUPGRADE $PBSSHCHK $PBSYSREBOOT $PBCREATEUSER"
+
+for pb in $PBS;do
+    #find $PBDIR -name ${pb/*\/}
+    [ ! -f $pb ] && echo "ERROR: playbook missing: $pb" && exit 3 
+done
 
 ## @var VAULTTEMPFILE
 ## @brief The temporary file holding the Ansible Vault password
@@ -668,7 +750,7 @@ F_HELP(){
 	echo -e "\t    -i|--inventory <hosts-file>\t\tThe full path to your hosts filename"
 	echo -e "\t    -t|--target <targetgroup>\t\tThe group name as defined in your inventory"
         echo -e "\n\t  Action OR Play:"
-	echo -e "\t    -p|--play <playbookname>\t\tavailable playbooks are in $ADIR"
+	echo -e "\t    -p|--play <playbookname>\t\tavailable playbooks are in $PBDIR"
         echo -e "\t   OR" 
 	echo -e "\t    -a|--action <predefined action>\tcurrent predefined actions are: deploy"
 	echo -e "\n\t  optional:"
@@ -1544,7 +1626,7 @@ F_PULLSYSC(){
 			DANGEROUS-Import|Pull)
 	  		    for host in $(echo "$HOSTSELEXPANDED"| cut -d : -f1);do
 				OWNDIR=$HOSTSELECTION/$host
-				SYScDIR=${ROLEDIR}/system/$OWNDIR
+				SYScDIR=${DATADIR}/system/$OWNDIR
 				if [ ! -d "$SYScDIR/files" ];then
 				    mkdir -p "$SYScDIR"
 		    		TPLMSG="Base directory structure created!"
@@ -1704,7 +1786,7 @@ F_EDITSYSC(){
 			
 			echo "$FUNCNAME: Continuing after pull selection ($PERR)" >> $LOG
 
-			SYSDIR=${ROLEDIR}/system/$HOSTSELECTION/$EDITHOST/system_local_configs/files/system/local
+			SYSDIR=${DATADIR}/system_local/$HOSTSELECTION/$EDITHOST/system_local_configs/files/system/local
 			unset OPTIONS
        			OPTIONS=($(for hostfile in $(find $SYSDIR -type f) ;do echo "${hostfile##*/}" "file";done|sort -f))
 		        while [ -z "$FTARGET" ];do

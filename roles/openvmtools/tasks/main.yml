@@ -1,2 +1,3 @@
 ---
-- include: install_vmtools.yml
+- include: install_vmtools_rpm.yml
+  when: vmtools_installation.type == "rpm" 
