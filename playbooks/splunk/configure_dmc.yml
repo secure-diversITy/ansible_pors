@@ -1,0 +1,10 @@
+- name: "Configure Distributed Managemnt Console (dmc)"
+  hosts: dmc
+  user: "{{ splunk_install_user }}"
+
+  roles:
+    - conf/web
+    - conf/outputs
+    - conf/server
+    - conf/distsearch
+    - group/searchhead

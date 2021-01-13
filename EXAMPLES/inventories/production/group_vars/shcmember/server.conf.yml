@@ -1,0 +1,32 @@
+---
+
+#####################################################################################################################
+# Configurations for Splunk server.conf
+####################################################################################################################
+
+splunk_server_conf:
+  general:
+    pass4SymmKey: "{{ vault_general_pass4SymmKey }}"
+  license:
+    master_uri: dynamic
+  clustering:
+    mode: searchhead
+    master_uri: dynamic
+  shclustering:
+    mgmt_uri: dynamic
+    conf_deploy_fetch_url: dynamic
+    # DEPRECATED: conf_deploy_fetch_url: https://yourdeployer:8089
+    # OPTIONAL: Unique identifier for this cluster as a whole, shared across all cluster:
+    #id: <GUID>
+    shcluster_label: "shc_{{ target_env }}"
+    pass4SymmKey: "{{ vault_clustering_pass4SymmKey }}"
+    mode: member
+    artifact_status_fields: user,app,label,max_time
+    scheduling_heuristic: round_robin
+  replication_port_ssl:
+    port: 9888
+    rootCA: $SPLUNK_HOME/etc/auth/cacert.pem
+    serverCert: $SPLUNK_HOME/etc/auth/server.pem
+    password: "{{ vault_replication_port_sslPassword }}"
+  sslConfig:
+    sslPassword: "{{ vault_sslConfig_sslPassword }}"

@@ -1,0 +1,19 @@
+---
+#####################################################################################################################
+# Distribute Keys for Distributed Search
+#####################################################################################################################
+
+
+#- debug: msg="{{ splunk_repository.repository_root }} {{ inventory_hostname_short }} / var3- {{ splunk_installation.splunk_home_path }} / var4- {{ splunk_distsearch_conf.distributedSearch.servers }} " 
+
+# - debug: msg="{{ vars['groups'] }}"
+
+- name: Copy Keys for distributed search
+  copy:
+    owner: "{{ splunk_install_user }}"
+    src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ inventory_hostname_short }}/"
+    dest: "{{ item }}:{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/"
+  with_items: "{{ splunk_distsearch_conf.distributedSearch.servers }}"
+
+#  local_action: "shell scp -r {{ splunk_repository.repository_root }}/distServerKeys/{{ inventory_hostname_short }}* {{ item }}:{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys"
+#  # splunk_distsearch_conf

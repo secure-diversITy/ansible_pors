@@ -1,0 +1,11 @@
+---
+
+#####################################################################################################################
+# Configurations for Splunk inputs.conf
+#####################################################################################################################
+
+splunk_inputs_conf:
+  SSL:
+    rootCA: $SPLUNK_HOME/etc/auth/cacert.pem
+    serverCert: $SPLUNK_HOME/etc/auth/server.pem
+    password: "{{ vault_SSL_password }}"

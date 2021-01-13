@@ -1,0 +1,12 @@
+---
+#####################################################################################################################
+# Configurations for Splunk server.conf
+#####################################################################################################################
+
+splunk_server_conf:
+  general:
+    pass4SymmKey: "{{ vault_general_pass4SymmKey }}"
+  license:
+    master_uri: self
+  sslConfig:
+    sslPassword: "{{ vault_sslConfig_sslPassword }}"

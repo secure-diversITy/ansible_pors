@@ -1,0 +1,42 @@
+---
+##############################################################################
+# specific vars just for CRIBL logstream
+##############################################################################
+
+# name of the tuned profile (used as directory name, branch identifier, local repo filename, ...)
+tuned_name: "cribl"
+
+splunk_optimize:
+    initd: True
+    selinux: disabled
+    tuned: True
+
+    #################################################################################################
+    # tuned profile settings
+    #
+    # highly recommended to enable one of the following to achieve the best performance and required
+    # settings like ulimit etc.
+
+    # target install path for the tuned profile
+    tuned_path: "/etc/tuned/{{ tuned_name }}"
+
+    # OPTION A (recommended): GIT repo
+    # choose one of the three methods ONLY - not multiple!! ;)
+    # if the repo does not require authentication remove tuned_gituser and tuned_gitpassword
+    install_tuned_git: yes
+    tuned_git_url: "https://{{ tokenauth.gituser | urlencode }}:{{ tokenauth.gitpassword | urlencode }}@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com/splunkinfra/tuned_profile.git"
+    tuned_git_branch: "rhel_{{ tuned_name }}"
+
+    # OPTION B: download a TGZ (e.g a release package from git or from anywhere else)
+    # choose one of the three methods ONLY - not multiple!! ;)
+    # if the repo does not require authentication remove tuned_gituser and tuned_gitpassword
+    install_tuned_tgz: no
+    tuned_tgz_url: "https://{{ tokenauth.gituser | urlencode }}:{{ tokenauth.gitpassword | urlencode }}@splunkgit.xxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxx.com/splunkinfra/tuned_profile/-/archive/vars['tuned_git_branch']/tuned_profile-.tar.gz"
+
+    # OPTION C: use a LOCAL TGZ which has been downloaded to the ansible repo
+    # choose one of the three methods ONLY - not multiple!! ;)
+    install_tuned_ansible: no
+    tuned_ansible_repo: "{{ splunk_repository.repository_root }}/{{ tuned_name }}_tuned.tgz"
+
+    # << END: tuned profile settings
+    #################################################################################################

@@ -1,0 +1,20 @@
+---
+- name: Check/Create local system dir
+  file:
+    path: "{{ logstream_installation.home_path }}/local/_system"
+    state: directory
+    owner: "{{ cribl_install_group }}"
+    group: "{{ cribl_install_user }}"
+    mode: 0775
+    recurse: yes
+
+- name: Create worker config
+  template: src=worker.j2
+            dest={{ logstream_installation.home_path }}/local/_system/instance.yml
+  when: logstream_upgrade != True and logstream_worker == True
+
+- name: Set permissions on config file
+  file: path={{ logstream_installation.home_path }}/local/_system/instance.yml
+        owner="{{ cribl_install_user }}"
+        group="{{ cribl_install_group }}"
+        mode=0660

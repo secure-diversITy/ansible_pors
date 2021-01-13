@@ -1,0 +1,10 @@
+- name: Configure splunk licensemaster
+  hosts: licensemaster
+  user: "{{ splunk_install_user }}"
+  no_log: True
+
+  roles:
+    #- conf/web
+    #- conf/outputs
+    #- conf/server
+    - group/licensemaster
