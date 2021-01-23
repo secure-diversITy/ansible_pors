@@ -3,6 +3,6 @@ export PROJECT_NUMBER="$(git rev-parse HEAD ; git diff-index --quiet HEAD || ech
 export PROJECT_NUMBER="Generated: $(date +%Y-%m-%d)"
 cd ./docs
 (exec doxygen)
-cd ../github.io/ae/
+cd ../github.io/pors/
 git status
-echo -e "\n\tcd github.io/ae/\n\tgit commit -m 'update documentation'\n\tgit push\n"
+echo -e "\n\tcd github.io/pors/\n\tgit commit -m 'update documentation'\n\tgit push\n"
