@@ -3,4 +3,4 @@
   authorized_key:
     user: "{{ splunk_install_user }}"
     state: present
-    key: "{{ vault_ssh_pubkey }}"
+    key: "{{ vault_ssh_pubkey_splunk }}"

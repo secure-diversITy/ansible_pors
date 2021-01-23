@@ -1,0 +1,17 @@
+---
+- name: Create new container
+  community.general.proxmox:
+        node: "{{ px_var }}"
+        api_user: "{{ proxmox.node[px_var].api_user }}"
+        api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+        api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+        api_host: "{{ proxmox.node[px_var].api_host }}"
+        hostname: "{{ server_hostname }}"
+        ostemplate: "{{ proxmox.node[px_var].ansible_template_name }}"
+        #clone: "{{ proxmox.node[px_var].ansible_template_name }}"
+        netif: '{"net0":"name=eth0,gw=10.9.11.1,ip=10.9.11.20/24,bridge=vmbr911"}'
+        password: "{{ vault_proxmox_ct_default_password }}"
+        description: "{{ server_notes }} on {{ datetime }}"
+        cores: 1
+        storage: "{{ proxmox.node[px_var].storage }}"
+        timeout: 120

@@ -1,0 +1,32 @@
+---
+- name: "Configure VM(s)"
+  community.general.proxmox_kvm:
+        proxmox_default_behavior: compatibility
+        node: "{{ px_var }}"
+        api_user: "{{ proxmox.node[px_var].api_user }}"
+        api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+        api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+        api_host: "{{ proxmox.node[px_var].api_host }}"
+        name: "{{ item }}"
+        description: "Ansible changed VM settings on: {{ datetime }}"
+        ide:
+            ide2: "satahdd:cloudinit,format=qcow2"
+        #net:
+        #    net0: "model=virtio,bridge=vmbr911,firewall=0"
+        ipconfig:
+            ipconfig0: "ip=dhcp"
+        #    ipconfig0: "gw=10.9.11.1,ip=10.9.11.20/24"
+        nameservers:
+            - "{{ server_dns1 }}"
+            - "{{ server_dns2 }}"
+        citype: nocloud
+        ciuser: "{{ vault_proxmox_kvm_ci_user  }}"
+        cipassword: "{{ vault_proxmox_kvm_ci_user  }}"
+        sshkeys: "{{ vault_ssh_pubkey_pors }}"
+        memory: "{{ server_ram_mb }}"
+        cores: "{{ server_cpu_cores_count }}"
+        #storage: "{{ proxmox.node[px_var].storage }}"
+        timeout: 120
+        update: yes
+  run_once: True
+  loop: "{{ server_hostname }}"

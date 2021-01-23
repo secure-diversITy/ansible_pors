@@ -1,0 +1,12 @@
+---
+- name: "Deploy MonitoringConsole keys to: {{ target }}"
+  hosts: "monitoringconsole"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  vars:
+    parsed_groups: "{{ target }}"
+
+  roles:
+    - group/searchhead

@@ -1,5 +1,5 @@
 ---
-- hosts: repository
+- hosts: pors_server
 
   tasks:
   - name: Find app roles (filter a subset)

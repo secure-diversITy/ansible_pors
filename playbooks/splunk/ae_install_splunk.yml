@@ -1,21 +1,29 @@
+- name: Base setup
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  gather_facts: True
+  strategy: free
+
+- include: ../system/ae_system_base.yml
+
+- include: ../vmware/ae_install_openvmtools.yml
+  when: ansible_virtualization_type == "VMware"
+
+- include: ../shelper/ae_install_shelper.yml
+  when: shelper_installation.enabled
+
 - name: Install Splunk on all hosts
-  hosts: "*:!repository"
-  remote_user: ansible
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
   gather_facts: True
   strategy: free
 
   vars:
-        splunk_upgrade: False
+    splunk_upgrade: False
 
   roles:
     - install
-
-- include: maintenance/ae_system_base.yml
-
-- include: ae_install_shelper.yml
-  when: shelper_installation.enabled
-
-- include: ae_install_openvmtools.yml
-  when: ansible_virtualization_type == "VMware"

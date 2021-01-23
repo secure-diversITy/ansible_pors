@@ -1,10 +1,15 @@
+---
+
+# HINT: The "hosts" value here is a dynamic group name used in PORS
+# and so not necessarily the exact group name within your hosts file!
+
 - name: Configure splunk HF
   hosts: 
         - heavyforwarder
         - httpeventcollector
-  user: ansible
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
-  become_user: root
+  become_user: "{{ splunk_install_user }}"
 
   roles:
     - conf/web

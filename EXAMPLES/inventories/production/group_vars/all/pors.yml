@@ -1,7 +1,23 @@
+---
 ######################################################################
 # Configure PORS
 ######################################################################
 
 # the user and group PORS is running as
-pors_user: splunk
-pors_group: splunk
+pors_user: pors
+pors_group: pors
+
+# PORS installation dir
+base_install_dir: /opt/pors
+
+# PORS remote SSH user (which connects to any managed system)
+pors_ssh_user: ansible
+
+# TEMP directory for various tasks
+pors_temp_dir: /tmp/pors
+
+# Set a name to identify this ansible instance
+# (deprecated but must be set atm, identifier for init lines and such
+# can be anything you like to identify this PORS server)
+ansible_conf:
+  host: <SET-HOSTNAME>

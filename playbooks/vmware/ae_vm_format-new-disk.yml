@@ -19,7 +19,7 @@
         wait_for_ip_address: true
 
     - name: partitioning {{ server_disk_dev }}
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       become: yes
       parted: 
         device: "{{ server_disk_dev }}" 
@@ -30,7 +30,7 @@
       when: server_scnd_disk is defined and server_disk_dev is defined 
    
     - name: create new lvm volgroup {{ server_lvm_vg }} with {{ server_disk_dev }}1
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       become: yes
       lvg:
         vg: "{{ server_lvm_vg }}"
@@ -38,7 +38,7 @@
       when: server_scnd_disk is defined and server_disk_dev is defined
 
     - name: create {{ server_lvm_lv }} logical volume in {{ server_lvm_vg }}
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       become: yes
       lvol:
         vg: "{{ server_lvm_vg }}"
@@ -47,7 +47,7 @@
       when: server_scnd_disk is defined and server_disk_dev is defined
 
     - name: format /dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }} with {{ server_disk_fs }}
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       become: yes
       filesystem:
         fstype: "{{ server_disk_fs }}"
@@ -55,7 +55,7 @@
       when: server_scnd_disk is defined and server_disk_dev is defined
    
     - name: add {{ server_disk_mountpoint }} to fstab
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       become: yes
       mount:
         src: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
@@ -68,7 +68,7 @@
       when: server_scnd_disk is defined and server_disk_dev is defined
 
     - name: create mountpoint {{ server_disk_mountpoint }} 
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       become: yes
       file:
         path: "{{ server_disk_mountpoint }}"

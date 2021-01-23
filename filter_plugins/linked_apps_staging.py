@@ -2,8 +2,27 @@
 import os
 import re
 
+# the PORS variable file
+pors_varfile = os.path.expanduser("~/.pors/vars")
+target_env = 'staging'
+
+f = open(pors_varfile, 'r')
+for line in map(str.strip,f.read().splitlines()):
+    line = line.split('=')
+    if 'export DATADIR' == line[0]:
+        data_path = line[1].strip('"')
+        # we do not go on once found
+        break
+    elif re.match('^#(\s+)?export DATADIR', line[0]) is not None:
+        # we do not break here as the user might has appended
+        # instead of outcommenting
+        data_path = line[1].strip('"')
+
+#print(data_path)
+mapp=data_path + "/apps"
+
 def linked_app_list_staging(app):
-  base_dir=dir_path + '/../inventories/' + 'staging' + '/group_vars/'
+  base_dir=data_path + '/inventories/' + target_env + '/group_vars/'
   eapp={}
   mopp={}
   overalldict={}
@@ -27,6 +46,4 @@ class FilterModule(object):
  def filters(self):
    return {'link_app_list_staging': linked_app_list_staging}
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-mapp=os.listdir(dir_path + "/../roles/apps")
 linked_app_list_staging(mapp)

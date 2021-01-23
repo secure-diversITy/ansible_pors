@@ -1,3 +1,9 @@
-- name: Set SELinux mode
+- name: Check SELinux install state
+  shell: getenforce
+  register: selstate
+  ignore_errors: True
+
+- name: Set SELinux mode (if installed)
   selinux: 
       state: "{{ splunk_optimize.selinux }}"
+  when: selstate.rc == 0

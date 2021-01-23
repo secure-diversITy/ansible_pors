@@ -3,15 +3,19 @@
   hosts: localhost
 
   tasks:
-    # networks
+    - name: Ensure temp dir is there
+      file:
+        path: "{{ pors_temp_dir }}"
+        state: directory
+
     - name: Clear/Prepare vCenters temp file
       copy:
         content: ""
-        dest: "{{ inventory_dir }}/tmp/vcenters.list"
+        dest: "{{ pors_temp_dir }}/vcenters.list"
 
     - name: Collecting defined vCenters (sorted by occurence)
       lineinfile:
         line: "{{ item }}"
-        path: "{{ inventory_dir }}/tmp/vcenters.list"
+        path: "{{ pors_temp_dir }}/vcenters.list"
       with_items: "{{ vsphere.host }}"
 

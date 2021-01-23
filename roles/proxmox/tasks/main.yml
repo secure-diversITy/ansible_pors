@@ -1,0 +1,23 @@
+---
+- set_fact: datetime="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
+  run_once: True
+
+- include_tasks: ct_create.yml
+  when: ct_create is defined and ct_create != False
+
+- include_tasks: kvm_create.yml
+  when: kvm_create is defined and kvm_create != False
+
+- include_tasks: kvm_configure.yml
+  when: kvm_create is defined and kvm_create != False
+
+- include_tasks: kvm_poweron.yml
+  when: kvm_create is defined and kvm_create != False
+
+- include_tasks: kvm_add_disk.yml
+  when: kvm_add_disk is defined and kvm_add_disk != False
+
+- include_tasks: kvm_poweroff.yml
+  when: kvm_poweroff is defined and kvm_poweroff != False
+
+

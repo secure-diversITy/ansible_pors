@@ -1,6 +1,15 @@
 ---
-- hosts: repository
+- hosts: pors_server
+
   tasks:
+
+  - name: Check/Create repo dir
+    file:
+        path: "{{ splunk_repository.repository_root }}/packages"
+        state: directory
+
+
+
   - name: Download Splunk rpm packages
     get_url: url="{{ item.value.url }}"
              dest={{ splunk_repository.repository_root }}/packages 

@@ -1,0 +1,19 @@
+---
+- name: "Power On VM"
+  community.general.proxmox_kvm:
+        proxmox_default_behavior: compatibility
+        node: "{{ px_var }}"
+        api_user: "{{ proxmox.node[px_var].api_user }}"
+        api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+        api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+        api_host: "{{ proxmox.node[px_var].api_host }}"
+        name: "{{ item }}"
+        state: started
+  run_once: True
+  loop: "{{ server_hostname }}"
+  loop_control:
+    pause: 5
+
+#- name: Giving PVE some time to actually start the VM...
+#  pause:
+#    minutes: 1

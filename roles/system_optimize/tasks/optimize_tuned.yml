@@ -74,6 +74,18 @@
         (splunk_optimize.install_tuned_ansible == true and
          splunk_optimize.tuned_ansible_repo is defined)"
 
+- name: Enable tuned
+  service:
+    name: tuned
+    enabled: yes
+    state: started
+  when: splunk_optimize.tuned is defined and splunk_optimize.tuned is defined == True 
+ 
+- name: (Re)start tuned
+  service:
+        name: tuned
+        state: restarted
+
 - name: Activate tuned profile
   shell: "tuned-adm profile {{ tuned_name }}"
   when: "(splunk_optimize.install_tuned_tgz == true and
@@ -82,11 +94,6 @@
          splunk_optimize.tuned_ansible_repo is defined) or
         (splunk_optimize.install_tuned_git == true and
          splunk_optimize.tuned_git_url is defined)"
-
-- name: Restart tuned
-  service:
-        name: tuned
-        state: restarted
 
 # put some delay before verifying otherwise it will FAIL
 - name: Verify tuned profile

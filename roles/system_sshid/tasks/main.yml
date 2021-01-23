@@ -1,3 +1,4 @@
 ---
 - include: add_privkey.yml
 - include: add_authkey.yml
+- include: update_authkey.yml

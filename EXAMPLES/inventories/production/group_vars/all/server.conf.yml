@@ -9,4 +9,5 @@ splunk_server_conf:
   license:
     master_uri: dynamic
   sslConfig:
+    sslRootCAPath: $SPLUNK_HOME/etc/auth/cacert.pem
     sslPassword: "{{ vault_sslConfig_sslPassword }}"

@@ -1,6 +1,6 @@
 - name: Upgrade Splunk
-  hosts: "*:!repository"
-  remote_user: ansible
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
   strategy: free
@@ -10,17 +10,9 @@
   vars:
     splunk_upgrade: True
 
-#  vars_prompt:
-#    - name: "splunk_user"
-#      prompt: "\n\tsplunk> API account name (required for Indexer upgrades!)\n\tONLY leave this empty when you do NOT want to upgrade splunk on an indexer!! "
-#      private: no
-#    - name: "splunk_password"
-#      prompt: "\n\tsplunk> API password (optional)\n\t(supports only these special chars for sure: -,_,%,@)"
-#      private: yes
-
   roles:
     - splunk_info
     - install
 
-- include: ae_install_shelper.yml
+- include: ../shelper/ae_install_shelper.yml
   when: shelper_installation.enabled

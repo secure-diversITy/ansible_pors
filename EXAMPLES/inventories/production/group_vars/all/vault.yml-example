@@ -1,0 +1,182 @@
+#########################################################################
+# GLOBAL VAULT file
+# to make use of ansible vault and so encrypt the content you have to do:
+#
+# $> mv vault.example vault.yml
+# $> ansible-vault encrypt vault.yml
+#
+# details on ansible vaults:
+# https://docs.ansible.com/ansible/latest/user_guide/vault.html
+#########################################################################
+
+###################################
+# general splunk authentication
+###################################
+
+# admin account on your splunk instances
+vault_splunk_admin_user: "admin"
+vault_splunk_admin_password: "abcdefg4321"
+
+# PORS needs access to several parts of your splunk instances which
+# require authentication (e.g. bootstrapping a SH captain and such)
+# It is recommended to not use the default splunk admin account
+# for splunk tasks. here you can define a custom user account instead.
+# this will be used to create a user during splunk installation
+vault_splunk_ae_user: ansible_pors
+vault_splunk_ae_password: "4321abcdefg"
+# set a role for the above account (usually admin but any role which exists
+# can be used, when it has proper privileges)
+vault_splunk_ae_role: admin
+
+# the splunk secret.
+# it will be set on all new instances during splunk installation/configuration.
+vault_splunk_secret: "asdjhasdlhaslgfjg-Looooooooooooong-KEY-here"
+
+###################################
+# SSH
+###################################
+
+# the PUBLIC key of the PORS user on the PORS system (i.e. the host where you are at currently)
+# ed25519 is the recommended format these days.
+# If you haven't already generate a new key, e.g.:
+# 1. ssh-keygen -a 100 -t ed25519 -N '' -f ~/.ssh/id_ed25519 
+# 2. ssh-keygen -y -f ~/.ssh/id_ed25519 (set "vault_ssh_pubkey_pors" with this output)
+vault_ssh_pubkey_pors: "ssh-ed25519 AAAACTE5AAAAIPy3FL+....."
+
+# the PRIVATE and PUBLIC keys which should be placed used to connect to any ansible managed host.
+# the public key must be set in the bare template, of course.
+# ed25519 is the recommended format these days.
+# note: add the keys without any carriage returns!
+# note2: this is NOT the key to connect from the PORS server to any server!
+# e.g.:
+# 1. ssh-keygen -a 100 -t ed25519 -N '' -f privkey.pem
+# 2. cat privkey.pem | tr -d '\n' (set "vault_ssh_privkey" with this output)
+# 3. ssh-keygen -y -f privkey.pem (set "vault_ssh_pubkey" with this output)
+# 3. rm privkey.pem
+vault_ssh_privkey_splunk: "-----BEGIN OPENSSH PRIVATE KEY-----AAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZWQyNTUxOQAAACBYuKNv8RTKiDVU5ohHEP0BOo488jD6PyczeXQbVCsLmwAAAJB1+AACBYuKNv8RTKiDVU5ohHEP0BOo488jD6PyczeXQbVCsLmwAiwf5oHlVv0tLAAOLvmCRcG0sUFEDZvaVi4o2/b.......................................AAAADHRmaUBzZWRpYm9vawE=-----END OPENSSH PRIVATE KEY-----"
+
+vault_ssh_pubkey_splunk:  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFi4o2/x.............5dBtUKwub splunk"
+#(the vault_ssh_privkey and pubkey above are just an example!
+# they are made just for you to better understand how it should look like)
+
+###################################
+# specific splunk
+###################################
+# sometimes it is necessary to have different user credentials based
+# on the server type. 1 real-life example is where the Deployment Server
+# had another user/pass then on any other machine (as that one was not
+# self hosted)
+#
+# id | hosts target group name
+# ------------------------------
+# ai:  activeinput
+# ds:  deploymentserver
+# hf:  heavyforwarder
+# mn:  masternode
+# idx: peernode
+# sh:  searchhead
+# dep: deployer
+vault_ai_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_ai_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_ds_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_ds_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_hf_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_hf_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_mn_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_mn_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_idx_ae_user: "{{ vault_splunk_ae_user }}"
+vault_idx_ae_pass: "{{ vault_splunk_ae_password }}"
+vault_sh_ae_user:  "{{ vault_splunk_ae_user }}"
+vault_sh_ae_pass:  "{{ vault_splunk_ae_password }}"
+vault_dep_ae_user: "{{ vault_splunk_ae_user }}"
+vault_dep_ae_pass: "{{ vault_splunk_ae_password }}"
+
+###################################
+# .conf files
+###################################
+
+# the ssl password in:
+# server.conf [sslConfig]
+# do not change when using splunk default certificates!
+vault_sslConfig_sslPassword: "password"
+
+# pass4SymmKey (e.g. connection with LicenseMaster) in:
+# server.conf [general]
+vault_general_pass4SymmKey: "general1234"
+
+# Indexer Cluster pass4SymmKey in:
+# server.conf [clustering]
+vault_idxclustering_pass4SymmKey: "clusterkey1234"
+
+# SH Cluster pass4SymmKey in:
+# server.conf [clustering]
+vault_shclustering_pass4SymmKey: "clusterkey4321"
+
+# server.conf [indexer_discovery]
+# outputs.conf [indexer_discovery:xx]
+vault_indexerdiscovery_pass4SymmKey: "idxdisco1234"
+
+# replication ssl password in:
+# server.conf [replication_port_ssl]
+# No default! so set this only when using own certs.
+vault_replication_port_sslPassword: password
+
+# the ssl password in:
+# inputs.conf [SSL]
+# do not change when using splunk default certificates!
+vault_SSL_password: "password"
+
+# outputs.conf [tcpout:xx]
+# do not change when using splunk default certificates!
+vault_tcpout_sslPassword: "password"
+
+###################################
+# VMware / vSphere
+###################################
+
+# check the documentation for detailed instructions in how to setup
+# a proper account for ansible in vSphere
+vault_vsphere_user: ""
+vault_vsphere_password: ""
+
+###################################
+# Google Cloud Platform (GCP)
+###################################
+
+# check the documentation for detailed instructions in how to setup
+# a proper account for ansible in GCP
+# DEPRECATED: pls check the PORS documentation!
+vault_googlecp_user: ""
+vault_googlecp_password: ""
+
+###################################
+# Proxmox VE
+###################################
+# check the documentation for detailed instructions in how to setup
+# a proper account for ansible in Proxmox
+vault_proxmox_api_user: ansible@pve
+vault_proxmox_api_token_id: proxmoxer
+vault_proxmox_api_token_secret: <looong-token-key>
+
+# regular (i.e. not token based) user account (optional but required
+# when using dynamic inventories)
+# check the documentation for detailed instructions in how to setup
+vault_proxmox_pve_user: "ansible@pve"
+vault_proxmox_pve_password: "<high-secure-password" 
+
+# default root password for containers
+vault_proxmox_ct_default_password: "abcdefg1234"
+
+# user & password auto-created by cloud-init when deploying
+vault_proxmox_kvm_ci_user: "ansible"
+vault_proxmox_kvm_ci_password: "abc123"
+
+###################################
+# CRILB / LOGSTREAM
+###################################
+
+# the CRIB logstream authentication token.
+# will be added to the cribl instance in:
+# local/_system/instance.yml
+vault_logstream_master_authtoken: ""
+

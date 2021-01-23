@@ -1,7 +1,15 @@
 ---
-- name: System upgrade
+- name: System upgrade (yum)
   yum: 
     update_cache: yes
     state: latest
     name: '*'
     use_backend: yum
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: System upgrade (zypper)
+  zypper: 
+    update_cache: yes
+    state: latest
+    name: '*'
+  when: ansible_facts['os_family'] == "Suse"

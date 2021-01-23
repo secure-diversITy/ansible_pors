@@ -1,5 +1,11 @@
 ---
 - include: touch.yml
-- include: distributedSearch/disabled.yml
-- include: distributedSearch/server.yml
+#- include: distributedSearch/disabled.yml
+
+- include_tasks: distributedSearch/server.yml
+
+#  when: "site{{site_val}}" is defined
+#  loop: "{{ range(1, site_val) | list }}"
+#  vars:
+#    site_val: 3
 

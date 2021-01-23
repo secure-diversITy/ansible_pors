@@ -1,7 +1,7 @@
 ---
 - name: Create a new application admin linux user (shell)
   hosts: "{{ target }}"
-  user: ansible
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
 

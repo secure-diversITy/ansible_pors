@@ -31,6 +31,8 @@
 - name: Enable Splunk boot-start (when >= 7.x enforce non-systemd)
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt -systemd-managed 0"
   when: splunkversion_majorminor|int >= 70
+  register: enableinit
+  failed_when: enableinit.rc != 0 and enableinit.rc != 8
 
 - name: Enable Splunk boot-start (when < 7.x)
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt"

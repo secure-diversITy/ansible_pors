@@ -1,0 +1,27 @@
+- name: Generate hosts file from inventory
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  hosts: "all:!pors_server"
+  gather_facts: True
+
+  tasks:
+  - setup:
+       filter: ansible_default_ipv4.address
+
+  - name: Build /etc/hosts from inventory
+    lineinfile:
+      #dest: /etc/hosts
+      dest: /etc/cloud/templates/hosts.suse.tmpl
+      regexp: '.*{{ item }}$'
+      line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{item}}"
+      backup: yes
+      state: present
+    when: hostvars[item]['ansible_facts']['default_ipv4'] is defined and item != "localhost"
+    with_items: "{{ groups['all'] }}"
+
+  - name: Reload cloud-init to apply the new hosts
+    shell: "cloud-init init"
+    become: yes
+    become_user: root
+

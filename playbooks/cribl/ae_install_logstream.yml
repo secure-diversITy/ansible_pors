@@ -1,5 +1,5 @@
 - name: Install cribl logstream
-  hosts: "*:!repository"
+  hosts: "*:!pors_server"
   remote_user: "{{ cribl_ssh_user }}"
   become: yes
   become_user: root
@@ -13,7 +13,7 @@
   roles:
     - install_logstream
 
-- include: maintenance/ae_system_base.yml
+- include: ../system/ae_system_base.yml
 
-- include: ae_install_openvmtools.yml
+- include: ../vmware/ae_install_openvmtools.yml
   when: ansible_virtualization_type == "VMware"

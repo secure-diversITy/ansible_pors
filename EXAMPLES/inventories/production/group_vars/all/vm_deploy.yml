@@ -4,6 +4,9 @@
 # Check documentation.
 #####################################################################################################################
 
+##############################
+# VMware vSphere definitions #
+##############################
 vsphere:
     host:
        # you can specify as much vsphere centers as you wish.
@@ -17,19 +20,62 @@ vsphere:
             ansible_template_name: "rhel_ansible_template"
 
        #vsphere-hostname-02:
-       #     dest: "full-fqdn"
-       #     validate_certs: "no"
-       #     user: "{{ vault_vsphere_user }}"
-       #     password: "{{ vault_vsphere_password }}"
-       #     ansible_template_name: "rhel_ansible_template"
+           #dest: "full-fqdn"
+            #...
 
+##############################
+# Google GCP definitions     #
+##############################
 googlecp:
-    # replace "my-project-id" with the REAL project-id!
-    my-project-id:
-        project: my-project-id
-        cred_kind: serviceaccount
-        cred_file: ~/.gcp.json
-        zone: "us-central1-a"
-        region: "us-central1"
-        ansible_template_name: "rhel_ansible_template"
+    project:
+        # replace <prod_site1_us> with a freely choosen name and "<my-project-id>" with the REAL project-id!
+        # while you're free to choose any name it might be a good idea to choose something like:
+        # <environment>_<splunksite>_<location>
+        # rule of thumb is to split by service account, project id, metadata, region, zone, source image
+        prod_site1_us:
+            id: <my-project-id>
+            cred_kind: serviceaccount
+            cred_file: ~/.gcp.json
+            zone: "us-central1-a"
+            region: "us-central1"
+            scopes:
+                - https://www.googleapis.com/auth/compute
+            source_image: "projects/templates/global/images/sles12-sp4-latest"
+            metadata_service: "splunk"
+            metadata_landscape: "production"
+            metadata_role: "splunksrv"
 
+        #staging_site2_eu:
+        #    id: <my-project-id>
+        #    ....
+
+##############################
+# Proxmox PVE definitions    #
+##############################
+proxmox:
+    # datacenter node
+    dc: 
+        host: "host-FQDN"
+        validate_certs: yes
+    node:
+        # replace <prod_site1_de> with the actual node name of your Proxmox VE
+        # while you're free to choose any name it might be a good idea to choose something like:
+        # <environment>_<splunksite>_<location>
+        prod_site1_de:
+            # the api server we connect to (should be the datacenter usually):
+            api_host: "host-FQDN"
+            api_user: "{{ vault_proxmox_api_user }}"
+            api_token_id: "{{ vault_proxmox_api_token_id }}"
+            api_token_secret: "{{ vault_proxmox_api_token_secret }}"
+            validate_certs: yes
+            # proxmox CT template including storage location.
+            # usually you will use ansible_template_name instead
+            #ostemplate: "ovh-nfs:vztmpl/opensuse-15.2-default_20200824_amd64.tar.xz"
+            # proxmox server template used to clone a new machine:
+            ansible_template_name: "suse-ansible-template"
+            # the default storage where new VMs should be deployed:
+            storage: <storage-name>
+        #staging_site1_us:
+            #api_host: "host-FQDN"
+            #....
+ 

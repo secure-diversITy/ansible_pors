@@ -1,5 +1,5 @@
 - name: Install cribl logstream
-  hosts: "*:!repository"
+  hosts: "*:!pors_server"
   remote_user: {{ cribl_ssh_user }}
   become: yes
   become_user: {{ cribl_install_user }}

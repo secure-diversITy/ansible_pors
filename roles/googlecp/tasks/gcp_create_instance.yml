@@ -1,0 +1,37 @@
+---
+- name: create a instance
+  gcp_compute_instance:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_name }}"
+    hostname: "{{ server_name }}.{{ server_domain }}"
+    machine_type: "{{ server_machine_type }}"
+    metadata:
+        service: "googlecp.project.{{ project_name }}.metadata_service"
+        landscape: "googlecp.project.{{ project_name }}.metadata_landscape"
+        role: "googlecp.project.{{ project_name }}.metadata_role"
+    disks:
+        - auto_delete: true
+          boot: true
+          source: "{{ root_disk }}"
+        - auto_delete: true
+          boot: false
+          source: "{{ opt_disk }}"
+        - auto_delete: true
+          boot: false
+          source: "{{ tmp_disk }}"
+        - auto_delete: true
+          boot: false
+          source: "{{ swap_disk }}"
+        - auto_delete: true
+          boot: false
+          source: "{{ var_disk }}"
+    network_interfaces:
+        - network:
+            selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/subnet"
+    state: present
+  register: instance

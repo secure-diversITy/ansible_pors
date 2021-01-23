@@ -1,22 +1,12 @@
 - name: Deploy System Configs
   hosts: "{{ exp_host }}"
-  remote_user: ansible
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
   gather_facts: False
-
-#  pre_tasks: 
-#     shell: /usr/bin/hostname
-#     register: repo
-
-#  tasks:
-#     debug: msg="Directory is empty"
-#     when: repo.stdout == ""
 
   pre_tasks:
     - include_vars: inventories/{{ target_env }}/group_vars/all/ansible
 
-#  vars:
-#    repo: "{{ hostvars['localhost'] }}"
- 
   roles:
-    #- { role: system/dmc/system_local_configs, when: target == "dmc" }
     - system/{{ target }}/{{ exp_host }}/system_local_configs

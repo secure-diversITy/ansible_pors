@@ -1,0 +1,23 @@
+---
+- name: Get configured Proxmox Nodes
+  hosts: "pors_server"
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Ensure temp dir is there
+      file:
+        path: "{{ pors_temp_dir }}"
+        state: directory
+
+    - name: Clean old lists
+      file:
+        path: "{{ pors_temp_dir }}/pve_nodes.lst"
+        state: absent
+
+    - name: get nodes
+      lineinfile:
+        path: "{{ pors_temp_dir }}/pve_nodes.lst"
+        line: "{{ item }}"
+        create: yes
+      loop: "{{ proxmox.node | flatten(1) }}"

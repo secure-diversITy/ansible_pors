@@ -1,0 +1,9 @@
+---
+#####################################################################################################################
+# Configurations for Splunk deployment directory
+# Keep in mind to replace "-" and "/" with an underscore "_"
+#####################################################################################################################
+
+deployment:
+    # no direct push of apps to a peernode! Use the MasterNode to push.
+    dir: disabled-apps

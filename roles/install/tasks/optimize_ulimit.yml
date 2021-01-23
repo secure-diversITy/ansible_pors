@@ -1,0 +1,37 @@
+---
+- name: Set splunk's ulimit recommendation (nofile,soft)
+  community.general.pam_limits:
+    domain: "{{splunk_install_user }}"
+    limit_type: soft
+    limit_item: nofile
+    value: 32768
+
+- name: Set splunk's ulimit recommendation (nofile,hard)
+  community.general.pam_limits:
+    domain: "{{splunk_install_user }}"
+    limit_type: hard
+    limit_item: nofile
+    value: 65536
+
+- name: Set splunk's ulimit recommendation (nproc,soft+hard)
+  community.general.pam_limits:
+    domain: "{{splunk_install_user }}"
+    limit_type: '-'
+    limit_item: nproc
+    value: 16000
+
+- name: Set splunk's ulimit recommendation (fsize,soft+hard)
+  community.general.pam_limits:
+    domain: "{{splunk_install_user }}"
+    limit_type: '-'
+    limit_item: fsize
+    value: unlimited
+
+- name: Set splunk's ulimit recommendation (data,soft+hard)
+  community.general.pam_limits:
+    domain: "{{splunk_install_user }}"
+    limit_type: '-'
+    limit_item: data
+    value: unlimited
+
+

@@ -1,3 +1,0 @@
-- name: Set SELinux mode
-  selinux: 
-      state: "{{ splunk_optimize.selinux }}"

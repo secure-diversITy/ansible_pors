@@ -1,5 +1,5 @@
 ---
-- hosts: repository
+- hosts: pors_server
   tasks:
   - debug: msg="{{ file.linux_64_rpm.tools.name }}"
 

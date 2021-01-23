@@ -1,0 +1,12 @@
+---
+#####################################################################################################################
+# Configurations for Splunk inputs.conf
+#####################################################################################################################
+
+splunk_inputs_conf:
+  splunktcp_ssl: 
+    port: 9998
+  SSL:
+    sslPassword: "{{ vault_SSL_password }}"
+    sslRootCAPath: $SPLUNK_HOME/etc/auth/cacert.pem
+    serverCert: $SPLUNK_HOME/etc/auth/server.pem

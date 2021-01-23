@@ -1,15 +1,54 @@
 ---
-- hosts: repository
+- hosts: pors_server
+  gather_facts: false
+
+  roles:
+    - splunk_sites
 
   tasks:
+    - set_fact:
+        parsed_groups: ["{{ target }}"]
+      when: parsed_groups is not defined
+
     - name: Clean any previous tmp file
       file:
           path: "{{ expandfile }}"
           state: absent
-      #no_log: True
+      when: clean_tmp is defined and clean_tmp == "yes"
 
-    - name: Write tmp file 
-      shell: echo "{{ item }}:{{ hostvars[item]['ansible_ssh_port'] | default(22)}}" >> "{{ expandfile }}"
-      with_items: groups['{{ target }}']
-      #no_log: True
+    - name: Create empty tmp file
+      file:
+        path: "{{ expandfile }}"
+        state: touch
+
+#    - set_fact:
+#        #pg: "{{ pg|default({}) | combine({ key:{{item}}, value:{{ query('inventory_hostnames', item) }} }) }}"
+#        #pg: "{{ pg|default({}) | combine({ key:{{item}}, value:{{ query('inventory_hostnames', item) }} }) }}"
+#        #pg: "{{ pg | combine({ key:{{item}}, value:{{ query('inventory_hostnames', item) }} },list_merge='append') }}"
+#        #pg: "{{ pg | combine({ 'key':item, 'value':item }) }}"
+#        #pg: "[ 'key:{{item}}', 'value:{{query('inventory_hostnames', item)}}']"
+#        #pg: "{{ item.0 }}:{{query('inventory_hostnames', item)}}"
+#        pg: "{{ item.0 }}:{{ item.1 }}"
+#      when: item.1 in groups['{{item.0}}']
+#      loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | list }}"
+#
+#    - debug:
+#        msg: "{{ parsed_groups }}"
+
+    - name: "Write {{ expandfile }} file"
+      ini_file:
+        dest: "{{ expandfile }}"
+        section: "{{ item.0 }}"
+        allow_no_value: yes
+        option: "{{ item.1 }}:{{ hostvars[item.1]['ansible_ssh_port'] | default(22)}}"
+        state: present
+      connection: local
+      when: item.1 in groups['{{item.0}}']
+      loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | list }}"
+
+      #loop: "{{ parsed_groups }}"
+      #loop: "{{ parsed_groups | subelements(query('inventory_hostnames', '{{ parsed_groups }}')) }}"
+      #loop: "{{ parsed_groups | product(parsed_groups) | list }}"
+      #loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | product(parsed_groups) | list }}"
+ #     shell: echo "{{ item }}:{{ hostvars[item]['ansible_ssh_port'] | default(22)}}" >> "{{ expandfile }}"
 

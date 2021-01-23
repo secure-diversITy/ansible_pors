@@ -1,0 +1,75 @@
+---
+- name: create root disk
+  gcp_compute_disk:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_name }}-root"
+    size_gb: "{{ server_disk_sizegb }}"
+    source_image: "googlecp.project.{{ project_name }}.source_image"
+    state: present
+  register: root_disk
+  when: server_disk_sizegb is defined
+
+- name: create opt disk
+  gcp_compute_disk:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_name }}-opt"
+    size_gb: "{{ server_disk_sizegb_opt }}"
+    type: "{{ disk_type_opt }}"
+    state: present
+  register: opt_disk
+  when: gcp_configure_disk.opt is defined and server_disk_sizegb_opt is defined
+
+- name: create tmp disk
+  gcp_compute_disk:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_name }}-tmp"
+    size_gb: "{{ server_disk_sizegb_tmp }}"
+    type: "{{ disk_type_tmp }}"
+    state: present
+  register: tmp_disk
+  when: gcp_configure_disk.tmp is defined server_disk_sizegb_tmp is defined
+
+- name: create swap disk
+  gcp_compute_disk:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_name }}-swap"
+    size_gb: "{{ server_disk_sizegb_swap }}"
+    type: "{{ disk_type_swap }}"
+    state: present
+  register: swap_disk
+  when: gcp_configure_disk.swap is defined and server_disk_sizegb_swap is defined
+
+- name: create var disk
+  gcp_compute_disk:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_name }}-var"
+    size_gb: "{{ server_disk_sizegb_var }}"
+    type: "{{ disk_type_var }}"
+    state: present
+  register: var_disk
+  when: gcp_configure_disk.var is defined server_disk_sizegb_var is defined

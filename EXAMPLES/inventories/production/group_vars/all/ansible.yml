@@ -1,9 +1,0 @@
----
-#####################################################################################################################
-# Set a name to identify this ansible instance
-#####################################################################################################################
-ansible_conf:
-  host: <SETHOSTNAME>
-
-# the base installation directory of PORS
-base_install_dir: /opt/pors

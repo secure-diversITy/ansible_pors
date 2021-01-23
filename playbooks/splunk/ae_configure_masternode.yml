@@ -1,6 +1,11 @@
+---
+
+# HINT: The "hosts" value here is a dynamic group name used in PORS
+# and so not necessarily the exact group name within your hosts file!
+
 - name: Configure splunk masternode
   hosts: masternode
-  remote_user: ansible
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
 
@@ -9,3 +14,4 @@
     - conf/web
     - conf/outputs
     - conf/server
+    - group/searchhead

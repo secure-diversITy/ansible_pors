@@ -1,0 +1,32 @@
+---
+#####################################################################################################################
+# Configurations for Splunk server.conf
+####################################################################################################################
+
+splunk_server_conf:
+  general:
+    pass4SymmKey: "{{ vault_general_pass4SymmKey }}"
+    site: site1
+  sslConfig:
+    sslRootCAPath: $SPLUNK_HOME/etc/auth/cacert.pem
+    sslPassword: "{{ vault_sslConfig_sslPassword }}"
+  license:
+    master_uri: dynamic
+  clustering:
+    mode: slave
+    master_uri: dynamic
+    pass4SymmKey: "{{ vault_idxclustering_pass4SymmKey }}"
+    multisite: true
+    #available_sites: "{{ idx_cluster_available_sites }}"
+    cluster_label: "{{ target_env }}"
+    replication_factor: "{{ idx_cluster_replicationfactor }}"
+    search_factor: "{{ idx_cluster_searchfactor }}"
+    site_replication_factor: "{{ idx_cluster_site_searchfactor }}"
+    site_search_factor: "{{ idx_cluster_site_searchfactor }}"
+  replication_port_ssl:
+    port: 9888
+    serverCert: $SPLUNK_HOME/etc/auth/server.pem
+    sslPassword: "{{ vault_replication_port_sslPassword }}"
+    disabled: false
+  diskUsage:
+    minFreeSpace: 1000

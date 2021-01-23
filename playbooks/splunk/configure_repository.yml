@@ -1,6 +1,7 @@
 ---
-- hosts: repository
-  user: root
+- hosts: pors_server
+  connection: local
+
   tasks:
   - name: Create repository root directory
     file: path="{{ splunk_repository.repository_root }}"

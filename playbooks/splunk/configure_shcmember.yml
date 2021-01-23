@@ -1,8 +1,30 @@
+---
+
+# HINT: The "hosts" value here is a dynamic group name used in PORS
+# and so not necessarily the exact group name within your hosts file!
+
 - name: Configure splunk shcmember
   hosts: shcmember
-  user: "{{ splunk_install_user }}"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
 
   roles:
+    - system_sshid
     - conf/web
     - conf/outputs
     - conf/server
+    - group/shcmember
+
+
+- name: Deploy keys (peernode)
+  hosts: shcmember
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  vars:
+    parsed_groups: "peernode"
+
+  roles:
+    - group/searchhead

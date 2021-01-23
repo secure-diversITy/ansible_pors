@@ -1,0 +1,21 @@
+###############################################################
+# dynamic inventory for VMware/vSphere
+###############################################################
+plugin: vmware_vm_inventory
+strict: False
+with_tags: True
+
+# target environment
+all:
+    vars:
+        target_env: "<production|staging|development>"
+
+# do not touch this
+pors_server:
+    hosts:
+        localhost:
+
+hostname: "{{ vsphere.host.<replace-this-as-in-vm_deploy.yml>.dest }}"
+validate_certs: "{{ vsphere.host.<replace-this-as-in-vm_deploy.yml>.validate_certs }}"
+username: "{{ vault_vsphere_user }}"
+password: "{{ vault_vsphere_password }}"

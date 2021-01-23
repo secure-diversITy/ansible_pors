@@ -1,0 +1,24 @@
+---
+
+#####################################################################################################################
+# Configurations for Splunk server.conf
+####################################################################################################################
+
+splunk_server_conf:
+  general:
+    pass4SymmKey: "{{ vault_general_pass4SymmKey }}"
+    site: site1
+  license:
+    master_uri: dynamic
+  clustering:
+    mode: searchhead
+    master_uri: dynamic
+    multisite: True
+    pass4SymmKey: "{{ vault_idxclustering_pass4SymmKey }}"
+  shclustering:
+    shcluster_label: "shc_{{ target_env }}"
+    pass4SymmKey: "{{ vault_shclustering_pass4SymmKey }}"
+    disabled: "false"
+  sslConfig:
+    sslRootCAPath: $SPLUNK_HOME/etc/auth/cacert.pem
+    sslPassword: "{{ vault_sslConfig_sslPassword }}"

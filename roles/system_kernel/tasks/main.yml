@@ -1,6 +1,8 @@
 ---
 - include: add_elrepo.yml
-  when: system_yum.elrepo.enabled
+  when:
+    - system_yum.elrepo.enabled and ansible_facts['os_family'] == "RedHat"
 
 - include: install_elrepo_kernel.yml
-  when: 'system_yum.elrepo.kernel.setup == "yes"'
+  when: 
+    - system_yum.elrepo.kernel.setup == "yes" and ansible_facts['os_family'] == "RedHat"

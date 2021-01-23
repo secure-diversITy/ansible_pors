@@ -1,6 +1,6 @@
 - name: Renew splunk server certificate
   hosts: all
-  remote_user: ansible
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
 

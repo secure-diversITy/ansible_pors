@@ -1,0 +1,9 @@
+# call PORS
+PORSPATH=/opt/pors
+PORSINV=/opt/pors_data/inventories
+
+alias pors='cd '$PORSPATH' && ./pors ${@}' # will ask for an environment on start
+
+alias pors-prod='cd '$PORSPATH' && ./pors --env production -i '$PORSINV'/production/hosts $@'
+alias pors-staging='cd '$PORSPATH' && ./pors --env staging -i '$PORSINV'/staging/hosts $@'
+alias pors-dev='cd '$PORSPATH' && ./pors --env development -i '$PORSINV'/development/hosts $@'

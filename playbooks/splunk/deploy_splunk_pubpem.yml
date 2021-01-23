@@ -1,0 +1,13 @@
+---
+- name: "Add public key to given target group"
+  hosts: "all:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  vars:
+    parsed_groups: "{{ target_group }}"
+
+  roles:
+    #- splunk_sites
+    - group/searchhead 

@@ -3,17 +3,21 @@
 # Distribute Keys for Distributed Search
 #####################################################################################################################
 
-
-#- debug: msg="{{ splunk_repository.repository_root }} {{ inventory_hostname_short }} / var3- {{ splunk_installation.splunk_home_path }} / var4- {{ splunk_distsearch_conf.distributedSearch.servers }} " 
-
-# - debug: msg="{{ vars['groups'] }}"
-
-- name: Copy Keys for distributed search
+- name: "Copy Keys for distributed search to {{ parsed_groups }}"
   copy:
     owner: "{{ splunk_install_user }}"
-    src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ inventory_hostname_short }}/"
-    dest: "{{ item }}:{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/"
-  with_items: "{{ splunk_distsearch_conf.distributedSearch.servers }}"
+    src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ inventory_hostname }}/"
+    dest: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/{{ inventory_hostname }}"
+  when: item not in inventory_hostname 
+  delegate_to: "{{ item }}"
+  loop: "{{ query('inventory_hostnames', parsed_groups) }}"
+  loop_control:
+    pause: 1
+  #notify: splunk restart
 
-#  local_action: "shell scp -r {{ splunk_repository.repository_root }}/distServerKeys/{{ inventory_hostname_short }}* {{ item }}:{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys"
-#  # splunk_distsearch_conf
+#  loop: "{{ query('inventory_hostnames', 'monitoringconsole') | product(splunk_mgm_list) | list }}"
+
+  #loop: "{{ splunk_mgm_list | regex_search('site.*peernode') }}"
+
+  #  src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ item }}/"
+  #  dest: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/{{ item }}/"

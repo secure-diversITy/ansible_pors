@@ -11,7 +11,7 @@ read -p "This has to be executed on the server to be connected - NOT on the ansi
 
 echo "Creating ansible user ($ANSIBLEUSR):"
 
-/sbin/useradd $ANSIBLEUSR -U -m -G wheel
+useradd $ANSIBLEUSR -U -m -G wheel
 
 echo -e "# Ansible management for the splunk> platform\nansible\tALL=(ALL)\tNOPASSWD: ALL\n" > /etc/sudoers.d/ansible-admin-root
 chmod 440 /etc/sudoers.d/ansible-admin-root
@@ -31,7 +31,7 @@ echo "The ansible pipelining acceleration requires to disable requiretty in sudo
 echo "While it is not necessary it speed ups things by factor 10"
 read -p "Ensure the line: 'Defaults requiretty' is outcommented on the next screen" ENTER
 sed 's/^Defaults requiretty/##Defaults requiretty/g' -i /etc/sudoers
-/sbin/visudo
+visudo
 
 read -p "Now open another shell and test sudo before proceeding!" ENTER
 

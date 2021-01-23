@@ -1,5 +1,2 @@
 ---
-- include: update.yml
-
-- include: software.yml
-#- include: system_configuration.yml
+- include_tasks: software.yml

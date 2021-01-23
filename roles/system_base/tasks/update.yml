@@ -1,9 +1,0 @@
----
-- name: System upgrade
-  yum: 
-    update_cache: yes
-    state: latest
-    name: '*'
-    use_backend: yum
-  become: yes
-  become_user: root

@@ -10,7 +10,7 @@
       changed_when: false
       ignore_errors: yes
 
-    - name: debugg
+    - name: debug
       debug: msg="has_entry_in_known_hosts_file = {{ has_entry_in_known_hosts_file }}"
 
     - name: Ignore host key on first run
@@ -20,7 +20,7 @@
 
     - name: connect and save key (when first run)
       connection: ssh
-      remote_user: ansible
+      remote_user: "{{ pors_ssh_user }}"
       command: echo successfully added host key
       when: has_entry_in_known_hosts_file.rc == 1
     

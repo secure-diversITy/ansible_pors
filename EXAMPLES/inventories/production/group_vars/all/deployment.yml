@@ -4,5 +4,7 @@
 # Keep in mind to replace "-" and "/" with an underscore "_"
 #####################################################################################################################
 
+# default directory to put splunk apps in (i.e {splunk install dir}/etc/<this-var>)
+# must be overwritten in a group_vars/deploymentserver, ..., etc
 deployment:
     dir: apps

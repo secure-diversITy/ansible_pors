@@ -1,0 +1,13 @@
+---
+- name: Add disk to an existing VM (proxmox)
+  hosts: "{{ server_hostname }}*"
+  gather_facts: false
+  connection: local
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    kvm_add_disk: True
+    kvm_create: False
+
+  roles:
+        - proxmox

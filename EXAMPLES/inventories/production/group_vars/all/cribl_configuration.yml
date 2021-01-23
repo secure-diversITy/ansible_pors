@@ -8,10 +8,10 @@ cribl_ssh_user: ansible
 
 # used to set directory permissions and for running 
 # several tasks in the context of this uer
-cribl_install_user: "{{ cribl_install_user }}"
+cribl_install_user: clintsharp
 
 # permissions of directories will be set to this group
-cribl_install_group: "{{ cribl_install_user }}"
+cribl_install_group: clintsharp
 
 # should we tune (e.g. ulimits) the system for cribl?
 cribl_optimize:

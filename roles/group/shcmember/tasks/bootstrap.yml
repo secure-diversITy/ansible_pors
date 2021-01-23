@@ -4,6 +4,6 @@
 #####################################################################################################################
 
 - name: Run bootstrap shcluster-captain
-  command: "{{ splunk_installation.splunk_home_path }}/bin/splunk bootstrap shcluster-captain -servers_list {{ groups['shcmember'] | create_shcluster_mgmt_uri_servers }} -auth admin:{{ splunk_auth.admin_password }}"
-  when: splunk_server_conf.shclustering.id is defined
+  command: "{{ splunk_installation.splunk_home_path }}/bin/splunk bootstrap shcluster-captain -servers_list {{ groups['shcmember'] | create_shcluster_mgmt_uri_servers }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  when: splunk_server_conf.shclustering is defined and splunk_server_conf.shclustering.disabled == "false"
   run_once: true

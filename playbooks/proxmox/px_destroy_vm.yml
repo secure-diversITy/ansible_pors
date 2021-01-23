@@ -1,0 +1,27 @@
+---
+- name: Destroy a Proxmox VM
+  hosts: "{{ server_hostname }}*"
+  gather_facts: false
+  connection: local
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    kvm_poweroff: yes
+    kvm_create: False
+    kvm_configure: False
+    kvm_poweron: False
+
+  roles:
+    - proxmox
+
+  post_tasks:
+    - name: "Trash {{ server_hostname }}"
+      community.general.proxmox_kvm:
+        node: "{{ px_var }}"
+        api_user: "{{ proxmox.node[px_var].api_user }}"
+        api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+        api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+        api_host: "{{ proxmox.node[px_var].api_host }}"
+        name: "{{ server_hostname }}"
+        state: absent
+        timeout: 120

@@ -15,7 +15,7 @@
             option=replication_factor
             value={{ splunk_server_conf.shclustering.replication_factor }}
             state=present
-  when: splunk_server_conf.shclustering.disabled == "false" and
+  when: splunk_server_conf.shclustering.disabled == False and
         (splunk_server_conf.shclustering.replication_factor is defined or
         splunk_server_conf.shclustering.replication_factor != 3)
   notify: splunk restart
@@ -25,7 +25,7 @@
             section=shclustering
             option=replication_factor
             state=absent
-  when: splunk_server_conf.shclustering.disabled == "true" and
+  when: splunk_server_conf.shclustering.disabled == True and
         (splunk_server_conf.shclustering.replication_factor is undefined or
         splunk_server_conf.shclustering.replication_factor == 3)
   notify: splunk restart

@@ -1,0 +1,13 @@
+---
+- name: Check if custom authorized_keys exists
+  stat:
+      path: "{{ splunk_repository.repository_root }}/authorized_keys_{{ shared_service_account }}"
+  register: stat_auth_file
+  when: shared_service_account is defined
+
+- name: "Set/Update authorized keys for {{ shared_service_account }}"
+  authorized_key:
+    user: "{{ shared_service_account }}"
+    state: present
+    key: "{{ lookup('file', '{{ splunk_repository.repository_root }}/authorized_keys_{{ shared_service_account }}') }}"
+  when: stat_auth_file.stat.exists is defined and shared_service_account is defined

@@ -40,13 +40,10 @@
 - include: replication_port_ssl/port.yml
   when: splunk_server_conf.replication_port_ssl is defined
 
-- include: replication_port_ssl/rootCA.yml
-  when: splunk_server_conf.replication_port_ssl is defined
-
 - include: replication_port_ssl/serverCert.yml
   when: splunk_server_conf.replication_port_ssl is defined
 
-- include: replication_port_ssl/password.yml
+- include: replication_port_ssl/sslPassword.yml
   when: splunk_server_conf.replication_port_ssl is defined
 
 - include: shclustering/conf_deploy_fetch_url.yml
@@ -65,9 +62,17 @@
   when: splunk_server_conf.shclustering is defined
 
 - include: shclustering/replication_factor.yml
-  when: splunk_server_conf.shclustering is defined
+  when: splunk_server_conf.shclustering is defined and splunk_server_conf.shclustering.replication_factor is defined
 
 - include: shclustering/shcluster_label.yml
   when: splunk_server_conf.shclustering is defined
 
+- include: shclustering/disabled.yml
+  when: splunk_server_conf.shclustering is defined
+
+- include: shclustering/mode.yml
+  when: splunk_server_conf.shclustering.mode is defined
+
 - include: sslConfig/sslKeysfilePassword.yml
+
+- include: sslConfig/sslRootCAPath.yml

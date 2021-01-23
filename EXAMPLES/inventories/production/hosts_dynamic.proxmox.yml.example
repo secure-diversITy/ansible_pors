@@ -1,0 +1,23 @@
+###############################################################
+# dynamic inventory for Proxmox VE
+###############################################################
+plugin: community.general.proxmox
+
+# target environment
+all:
+    vars:
+        target_env: "<production|staging|development>"
+
+# do not touch this
+pors_server:
+    hosts:
+        localhost:
+
+url: "https://{{ proxmox.dc.host }}:8006"
+user: "{{ vault_proxmox_pve_user }}"
+password: "{{ vault_proxmox_pve_password }}" 
+validate_certs: "{{ proxmox.dc.validate_certs }}"
+
+want_facts: yes
+facts_prefix: ""
+group_prefix: ""

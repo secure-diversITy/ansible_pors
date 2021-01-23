@@ -1,2 +1,3 @@
 ---
+#- include_tasks: "{{ base_install_dir }}/roles/splunk_sites/tasks/get_peernode_sites.yml"
 - include: distribute_distsearch_trustedkey.yml

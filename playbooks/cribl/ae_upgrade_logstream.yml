@@ -1,6 +1,6 @@
 - name: Upgrade cribl logstream
-  hosts: "*:!repository"
-  remote_user: ansible
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
   strategy: free

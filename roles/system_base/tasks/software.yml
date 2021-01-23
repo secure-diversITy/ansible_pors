@@ -1,17 +1,29 @@
 ---
-- name: Install needed stuff
-  yum: 
-    update_cache: no
-    name: "{{ packages }}"
-  vars: 
-    packages:
+- name: Install base packages
+  package:
+    name:
         - git
         - ntp
-        - ntpdate
         - vim
         - tuned
         - wget
         - unzip
+        - tuned
+        - make
+    state: present
+
+- name: Install user-defined packages
+  package:
+    name: "{{ packages }}"
+    state: present
+  when: packages is defined
+
+- name: SuSE requirements
+  zypper:
+    name:
+        - systemd-sysvinit
+        - python3-selinux
+  when: ansible_facts['os_family'] == "Suse"
 
 - name: enable NTPd
   systemd:

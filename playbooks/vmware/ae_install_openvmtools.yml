@@ -1,6 +1,6 @@
 - name: Install open-vm-tools on all hosts
-  hosts: "*:!repository"
-  remote_user: ansible
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
 

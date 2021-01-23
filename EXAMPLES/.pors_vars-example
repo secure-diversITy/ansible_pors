@@ -88,8 +88,8 @@
 
 ## @var AEUSER
 ## @brief local username for running PORS
-## @details Defaults to "splunk" as it is meant for multi-user environments to keep track of actions in PORS. 
-#export AEUSER=splunk
+## @details Defaults to "pors" as it is meant for multi-user environments to keep track of actions in PORS. 
+#export AEUSER=pors
 
 ## @var ENABLEVAULT
 ## @brief Make use of the Ansible Vault

@@ -52,11 +52,11 @@
     - splunk_optimize.initd == True
 #    - splunkversionnum < 72
     
-- include: optimize_selinux.yml
-  when: 
-    - splunk_optimize.selinux is defined
+- include: ../../system_optimize/tasks/optimize_selinux.yml
 
 - include: set_perms.yml
+
+- include_tasks: optimize_ulimit.yml
 
 - include: splunk_start.yml
 #  when:

@@ -1,53 +1,125 @@
 [all:vars]
-# the environment variable should match the path, 
-# i.e. inventories/moo becomes target_env=moo
+# the environment variable is predefined and only
+# production, staging, development are supported out-of-the-box.
+# check documentation for details or if you want to extend them.
 target_env=production
 #target_env=staging
 #target_env=development
 
-# this is where ae runs so no need to change this:
-[repository]
+# this is where PORS runs so do not change this:
+[pors_server]
 localhost       ansible_connection=local
 
 ###################################################
-# Note: Do not modify stanza names as they are used
-# in several places to identify the proper splunk
-# type
+# WARNING:
+# Do not modify stanza names as they are used
+# in several places to identify the proper splunk role.
+#
+# PORS uses a VERY strict naming convention for group names.
+# If you do not follow this advice it WILL break stuff.
+#
+# Most important: sites. PORS will setup your environment
+# as MultiSite ALWAYS - even if you do not want/need a
+# MultiSite it is good practice setting it up anyways
+# because you won't loose anything but be prepared for the
+# future.
+#
+# All groups which must be in a site have to be prefixed
+# with "siteX_<groupname>". Those which are not site specific
+# (e.g. MN) dont need a "siteX_" flag but it must be a valid
+# <groupname> as listed.
+#
+# siteX:        site1-site63 (max atm - see server.conf.spec)
+# _ :           this delimiter is mandatory for site groups!
+# <groupname>:  must be one of:
+#               - deploymentserver
+#               - monitoringconsole
+#               - licensemaster
+#               - masternode
+#               - heavyforwarder
+#               - activeinput
+#               - httpeventcollector
+#               - deployer ("siteX_" is mandatory)
+#               - shcmember ("siteX_" is mandatory)
+#               - peernode ("siteX_" is mandatory)
+#
+###################################################
 
-########### regular servers
+########### Servers not bound to a site (usually)
 
+# Deployment Server
 [deploymentserver]
+splunkds01
 
-[dmc]
+# Monitoring Console
+[monitoringconsole]
+splunkmc
 
+# License Master
 [licensemaster]
-
-[heavyforwarder]
-
-# active input servers like dbconnect, opsec LEA, tenable, ...
-[activeinput]
-
-[httpeventcollector]
-
-########### Clustering
-
-# SHC Deployer
-[deployer]
-
-# SHC member
-[shcmember]
+splunklm01
 
 # Indexer master node
 [masternode]
+splunkmn
+
+########### Site1 Forwarders
+
+# classical Heavy forwarder(s)
+[site1_heavyforwarder]
+splunkhf01
+
+# active input servers like dbconnect, opsec LEA, tenable, ...
+[site1_activeinput]
+#splunkai01
+
+# HTTP Event Collector(s) aka HEC
+[site1_httpeventcollector]
+#splunkhec01
+
+########### Site1 Clustering
+
+# SHC Deployer
+[site1_deployer]
+splunkdep
+
+# SHC member
+[site1_shcmember]
+splunkshc01
+splunkshc02
+splunkshc03
 
 # Indexer
-[peernode]
+[site1_peernode]
+splunkidx01
+splunkidx02
 
-########### Sites
+[site2_peernode]
+splunkidx03.splunkd.local
+splunkidx04.splunkd.local
+
+########### SiteX Clustering
+
+# copy above Site1 stanza's and replace site1 with the new one
+
+########### Site grouping
+# not used in PORS (atm)
 
 [site1:children]
+site1_heavyforwarder
+site1_activeinput
+site1_httpeventcollector
+site1_deployer
+site1_shcmember
+site1_peernode
 
+# extend the following if you have more then 1 site
 [site2:children]
+
+[site3:children]
+
+# ...
+# [site63:children]
 
 ########## CRIBL logstream
 

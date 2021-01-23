@@ -1,0 +1,12 @@
+---
+##############################################################
+# Indexer Cluster settings
+##############################################################
+
+idx_cluster_available_sites: site1
+
+idx_cluster_replicationfactor: 1
+idx_cluster_searchfactor: 1
+
+idx_cluster_site_replicationfactor: "origin:1,total:1"
+idx_cluster_site_searchfactor: "origin:1,total:1"

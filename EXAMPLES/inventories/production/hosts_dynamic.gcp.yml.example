@@ -1,0 +1,59 @@
+###############################################################
+# dynamic inventory for Google Cloud Platform (GCP)
+###############################################################
+plugin: gcp_compute
+
+# target environment
+all:
+    vars:
+        target_env: "<production|staging|development>"
+
+# do not touch this
+pors_server:
+    hosts:
+        localhost:
+
+# replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
+projects:
+  - googlecp.project.<my-project>.gcp_project_id
+
+# replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
+regions:
+  - googlecp.project.<my-project>.region
+
+# group hosts by zone (optional)
+#keyed_groups:
+#  - key: zone
+
+###################################################
+# Note: Do not modify stanza names as they are used
+# in several places to identify the proper splunk
+# type
+# the search string might need to be adapted to 
+# your host naming scheme though.
+# it is recommended to use a site indicator within
+# your splunk host name so you can dynamic add them
+# the right group
+groups:
+    - site1_activeinput:          "'s1-ai' in name"
+    - site1_httpeventcollector:   "'s1-hec' in name"
+    - site1_heavyforwarder:       "'s1-hf' in name"
+    - site1_deployer:             "'s1-dep' in name"
+    - site1_peernode:             "'s1-idx' in name"
+    - masternode:                 "'mn' in name"
+    - searchhead:                 "'sh' in name"
+    - licensemaster:              "'lm' in name"
+    - monitoringconsole:          "'mc' in name"
+    - deploymentserver:           "'ds' in name"
+    - logstream_masternode:       "'criblmn' in name"
+    - logstream_worker:           "'cribl' in name"
+
+# A list of options that describe the ordering for which hostnames should be assigned. Currently supported hostnames are 'public_ip', 'private_ip', or 'name'.
+hostnames:
+  - name
+
+filters: []
+
+# replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
+auth_kind: "{{ googlecp.<my-project>.gcp_cred_kind }}"
+service_account_file: "{{ googlecp.<my-project>.gcp_cred_file }}"

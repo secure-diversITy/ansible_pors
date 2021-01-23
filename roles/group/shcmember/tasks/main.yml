@@ -1,5 +1,13 @@
 ---
+- include: state.yml
+
 - include: restart_shcmember.yml
-- include: init.yml
-- include: restart_shcmember.yml
+
+#- include: init.yml
+#  when: captain_elected.rc != 0
+
 - include: bootstrap.yml
+  when: captain_elected.rc != 0
+
+- include: restart_shcmember.yml
+  when: captain_elected.rc != 0

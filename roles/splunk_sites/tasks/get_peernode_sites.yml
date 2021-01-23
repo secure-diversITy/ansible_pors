@@ -1,0 +1,12 @@
+---
+# Get and store all configured sites for siteX_peernode
+# into the list "parsed_groups"
+
+- set_fact:
+    parsed_groups: []
+
+# find all site's groups
+- set_fact:
+    parsed_groups: "{{ parsed_groups }} + ['{{ item }}']"
+  when: "item is match('site.*peernode')"
+  loop: "{{ groups.keys() | list }}"

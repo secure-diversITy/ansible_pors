@@ -1,0 +1,23 @@
+---
+- name: Get configured GCP project ids
+  hosts: "pors_server"
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Ensure temp dir is there
+      file:
+        path: "{{ pors_temp_dir }}"
+        state: directory
+
+    - name: Clean old lists
+      file:
+        path: "{{ pors_temp_dir }}/googlecp.ids"
+        state: absent
+
+    - name: get ids
+      lineinfile:
+        path: "{{ pors_temp_dir }}/googlecp.ids"
+        line: "{{ item }}"
+        create: yes
+      loop: "{{ googlecp.project | flatten(1) }}"

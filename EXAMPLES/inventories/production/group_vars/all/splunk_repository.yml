@@ -4,7 +4,7 @@
 #####################################################################################################################
 
 splunk_repository:
-    repository_root: "/opt/pors_data/{{ target_env }}"
+    repository_root: "/opt/pors_repo/{{ target_env }}"
     repository_owner: "{{ pors_user }}"
     repository_group: "{{ pors_group }}"
     # the git repository containing all splunk apps you want to manage/deploy

@@ -1,5 +1,5 @@
 ---
-- hosts: repository
+- hosts: pors_server
 
   vars_prompt:
     - name: "app_name"
