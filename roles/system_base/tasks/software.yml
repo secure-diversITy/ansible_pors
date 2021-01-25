@@ -23,6 +23,7 @@
     name:
         - systemd-sysvinit
         - python3-selinux
+        - insserv-compat
   when: ansible_facts['os_family'] == "Suse"
 
 - name: enable NTPd

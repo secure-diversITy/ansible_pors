@@ -2,7 +2,7 @@
 - name: "Add/Change disk on {{ server_hostname }}"
   community.general.proxmox_kvm:
         proxmox_default_behavior: compatibility
-        node: "{{ px_var }}"
+        node: "{{ proxmox.node[px_var].name }}"
         api_user: "{{ proxmox.node[px_var].api_user }}"
         api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
         api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"

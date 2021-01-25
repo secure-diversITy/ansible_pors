@@ -1,5 +1,7 @@
 ---
 - name: clear history root
+  become: yes
+  become_user: root
   command: rm /root/.bash_history
 
 - name: clear history splunk

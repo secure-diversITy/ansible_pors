@@ -93,9 +93,12 @@ class CallbackModule(Default):
 
         # Censor the log based on known splunk cmd's
         HIDE_PARAM = ['-auth .*:.*','-password .*(\s|$)']
+
         for pattern in HIDE_PARAM:
-            if '_raw_params' in abridged_result:
-                abridged_result['invocation']['module_args']['_raw_params'] = re.sub(pattern,'CENSORED-by-HIDE_PARAM', abridged_result['invocation']['module_args']['_raw_params'])
+            if 'invocation' in abridged_result:
+                if 'module_args' in abridged_result['invocation']:
+                    if '_raw_params' in abridged_result['invocation']['module_args']:
+                        abridged_result['invocation']['module_args']['_raw_params'] = re.sub(pattern,'CENSORED-by-HIDE_PARAM', abridged_result['invocation']['module_args']['_raw_params'])
             if 'cmd' in abridged_result:
                 if type(abridged_result['cmd']) == list:
                     cmd_str = ','.join(abridged_result['cmd'])

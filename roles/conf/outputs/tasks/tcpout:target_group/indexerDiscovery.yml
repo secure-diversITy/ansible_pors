@@ -9,23 +9,29 @@
 
 # tcpout:target_group
 
+- name: debugmealter
+  debug:
+        msg: "echo noop splunk_outputs_conf.tcpout.target_group.{{item.key}}.indexerDiscovery"
+  loop: "{{ splunk_outputs_conf.tcpout.target_group | dict2items }}"
+  when: '"splunk_outputs_conf.tcpout.target_group.item.key.indexerDiscovery" is defined'
+
 - name: "Configure outputs.conf [tcpout:<tcpout:target_group>] - indexerDiscovery state=present"
-  ini_file: dest="{{ splunk_conf_path }}/outputs.conf"
-            section="tcpout:{{ item.key }}"
-            option=indexerDiscovery
-            value="{{ item.value.indexerDiscovery }}"
-            state=present
-#  when: "{{ splunk_outputs_conf.tcpout.target_group.vars[item['key']].indexerDiscovery }} is defined"
-  when: "splunk_outputs_conf.tcpout.target_group.{{ item.key }}.indexerDiscovery is defined"
-  with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
+  ini_file: 
+    dest: "{{ splunk_conf_path }}/outputs.conf"
+    section: "tcpout:{{ item.key }}"
+    option: indexerDiscovery
+    value: "{{ item.value.indexerDiscovery }}"
+    state: present
+  when: '"splunk_outputs_conf.tcpout.target_group.item.key.indexerDiscovery" is defined'
+  loop: "{{ splunk_outputs_conf.tcpout.target_group | dict2items }}"
   notify: splunk restart
 
 - name: "Configure outputs.conf [tcpout:<tcpout:target_group>] - indexerDiscovery state=absent (default)"
-  ini_file: dest="{{ splunk_conf_path }}/outputs.conf"
-            section="tcpout:{{ item.key }}"
-            option=indexerDiscovery
-            state=absent
-#  when: splunk_outputs_conf.tcpout.target_group.vars[item['key']].indexerDiscovery is undefined
-  when: "splunk_outputs_conf.tcpout.target_group.{{ item.key }}.indexerDiscovery is undefined"
+  ini_file:
+    dest: "{{ splunk_conf_path }}/outputs.conf"
+    section: "tcpout:{{ item.key }}"
+    option: indexerDiscovery
+    state: absent
+  when: '"splunk_outputs_conf.tcpout.target_group.item.key.indexerDiscovery" is undefined'
   with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
   notify: splunk restart

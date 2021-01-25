@@ -6,3 +6,5 @@ ae_deploy_apps.yml
 *.bak
 *.backup
 /lab_splunk_binary_replacement
+gen_hosts.yml
+*.pyc

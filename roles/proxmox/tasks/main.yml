@@ -9,7 +9,7 @@
   when: kvm_create is defined and kvm_create != False
 
 - include_tasks: kvm_configure.yml
-  when: kvm_create is defined and kvm_create != False
+  when: kvm_configure is defined and kvm_configure != False
 
 - include_tasks: kvm_poweron.yml
   when: kvm_create is defined and kvm_create != False

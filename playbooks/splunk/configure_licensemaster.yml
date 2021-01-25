@@ -28,3 +28,11 @@
   roles:
     - splunk_sites
     - group/searchhead
+
+  vars:
+    splunk_restart: True
+
+  # flush notify handlers to activate the splunk config
+  post_tasks:
+    - meta: flush_handlers
+

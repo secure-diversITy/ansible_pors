@@ -1,0 +1,26 @@
+---
+- name: splunk actions
+  hosts: "*"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  no_log: false 
+  gather_facts: False
+
+  handlers:
+    - include: ../../roles/common/handlers/main.yml
+
+  tasks:
+    - name: "splunk {{ splunk_action }}"
+      shell: "echo 'splunk {{ splunk_action }} initiated... it can take some time before you see results here ...'"
+      notify: "splunk {{ splunk_action }}"
+      register: actionresult
+      when: shelper is undefined
+
+    - name: "shelper {{ splunk_action }}"
+      shell: "echo 'shelper {{ splunk_action }} initiated... it can take some time before you see results here ...'"
+      notify: "shelper {{ splunk_action }}"
+      register: actionresult
+      when: shelper is defined
+
+    - meta: flush_handlers

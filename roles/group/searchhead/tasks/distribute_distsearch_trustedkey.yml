@@ -13,7 +13,7 @@
   loop: "{{ query('inventory_hostnames', parsed_groups) }}"
   loop_control:
     pause: 1
-  #notify: splunk restart
+  notify: splunk restart
 
 #  loop: "{{ query('inventory_hostnames', 'monitoringconsole') | product(splunk_mgm_list) | list }}"
 

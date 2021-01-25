@@ -14,3 +14,11 @@
     - conf/web
     - conf/outputs
     - conf/server
+
+  vars:
+    splunk_restart: True
+
+  # flush notify handlers to activate the splunk config
+  post_tasks:
+    - meta: flush_handlers
+

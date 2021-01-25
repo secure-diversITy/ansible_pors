@@ -1,0 +1,29 @@
+---
+- name: "Deploy MonitoringConsole keys to: {{ target }}"
+  hosts: "monitoringconsole"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  vars:
+    splunk_restart: False
+
+  roles:
+    - splunk_sites
+
+  tasks:
+    - set_fact:
+        parsed_groups: ["{{ target }}"]
+      when: parsed_groups is undefined or "[]"
+
+    - debug:
+        var: parsed_groups
+
+- name: "Deploy MonitoringConsole keys to: {{ target }}"
+  hosts: "monitoringconsole"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  roles:
+    - group/searchhead

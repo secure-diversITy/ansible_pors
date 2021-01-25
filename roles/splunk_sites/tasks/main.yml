@@ -1,4 +1,7 @@
 ---
+- debug:
+    var: target
+
 - include: get_peernode_sites.yml
   when: target == "peernode"
 
@@ -7,3 +10,7 @@
 
 - include: get_shcmember_sites.yml
   when: target == "shcmember"
+
+- debug:
+    var: parsed_groups
+  when: parsed_groups is defined

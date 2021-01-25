@@ -24,6 +24,11 @@ tokenauth:
 # exists.
 #shared_service_account:
 
+# should PORS run a system upgrade when a splunk upgrade is initiated?
+# if you choose True a linux system upgrade will be run first, then
+# the actual splunk upgrade
+splunk_with_system_upgrade: True
+
 # NTP settings
 ntp_enabled: true
 ntp_timezone: Europe/Berlin

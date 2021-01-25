@@ -17,3 +17,11 @@
     - conf/server
     - conf/outputs
     - system_sshid
+
+  vars:
+    splunk_restart: True
+
+  # flush notify handlers to activate the splunk config
+  post_tasks:
+    - meta: flush_handlers
+

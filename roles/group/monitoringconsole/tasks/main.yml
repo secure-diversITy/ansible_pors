@@ -3,8 +3,8 @@
 # https://github.com/splunk/splunk-ansible/blob/develop/roles/splunk_monitor/tasks/main.yml
 
 - set_fact:
-    retry_num: 10
-    retry_delay: 15
+    retry_num: 6
+    retry_delay: 5
 
 - name: Fetch server info
   uri:
@@ -23,19 +23,19 @@
 
 - name: Fetch clusterMaster peers
   uri:
-    url: "https://splunkmn:8089/services/cluster/master/peers?output_mode=json"
+    url: "https://{{ item }}:8089/services/cluster/master/peers?output_mode=json"
     method: GET
     user: "{{ vault_splunk_ae_user }}"
     password: "{{ vault_splunk_ae_password }}"
     validate_certs: false
     status_code: 200
-    timeout: 10
+    timeout: 20
     return_content: yes
     use_proxy: no
   register: clusterMaster_peers_info
   retries: "{{ retry_num }}"
   delay: "{{ retry_delay }}"
-#  loop: "{{ groups['masternode'] }}"
+  loop: "{{ groups['masternode'] }}"
 
 - name: Initialize lists
   set_fact:
@@ -48,7 +48,7 @@
 
 - name: Fetch distributed peers
   uri:
-    url: "https://{{ inventory_hostname }}:8089/services/search/distributed/peers?output_mode=json"
+    url: "https://splunkmc:8089/services/search/distributed/peers?output_mode=json"
     method: GET
     user: "{{ vault_splunk_ae_user }}"
     password: "{{ vault_splunk_ae_password }}"

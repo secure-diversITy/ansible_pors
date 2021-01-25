@@ -6,3 +6,9 @@
 
 - name: Enable Splunk boot-start
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license"
+
+- name: Start splunk on system boot
+  service:
+    name: splunk
+    enabled: yes
+

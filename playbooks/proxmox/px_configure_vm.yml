@@ -1,15 +1,14 @@
 ---
-- name: Deploy a Proxmox VM
+- name: (Re-)configure a Proxmox VM
   hosts: "pors_server"
   gather_facts: false
   connection: local
 
   vars:
-    server_notes: "Based on {{ proxmox.node[px_var].ansible_template_name }} and deployed by ansible"
     ansible_python_interpreter: /usr/bin/python3
-    kvm_create: true
+    kvm_create: false
     kvm_configure: true
-    kvm_poweron: true
+    kvm_poweron: false
 
   roles:
         - proxmox

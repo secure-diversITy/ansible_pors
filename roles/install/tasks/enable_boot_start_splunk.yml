@@ -43,5 +43,8 @@
   when: 
     - "run_in_docker.rc == 1"
 
-#    - "splunk_optimize.initd == true | default(false)"
+- name: Start splunk on system boot
+  service:
+    name: splunk
+    enabled: yes
 

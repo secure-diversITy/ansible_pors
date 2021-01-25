@@ -16,6 +16,12 @@
     - conf/server
     - group/shcmember
 
+  vars:
+    splunk_restart: True
+
+  # flush notify handlers to activate the splunk config
+  post_tasks:
+    - meta: flush_handlers
 
 - name: Deploy keys (peernode)
   hosts: shcmember
@@ -28,3 +34,11 @@
 
   roles:
     - group/searchhead
+
+  vars:
+    splunk_restart: True
+
+  # flush notify handlers to activate the splunk config
+  post_tasks:
+    - meta: flush_handlers
+

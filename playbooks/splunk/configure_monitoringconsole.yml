@@ -1,5 +1,4 @@
 ---
-
 # HINT: The "hosts" value here is a dynamic group name used in PORS
 # and so not necessarily the exact group name within your hosts file!
 
@@ -11,16 +10,14 @@
 
   roles:
     - system_sshid
-#    - conf/web
-#    - conf/outputs
-#    - conf/server
-#    - conf/distsearch
+    - conf/web
+    - conf/outputs
+    - conf/server
+    - conf/distsearch
 
-- name: "Configure splunk Monitoring Console (Roles)"
-  hosts: monitoringconsole
-  connection: local
+  vars:
+    splunk_restart: True
 
-  roles:
-    - group/monitoringconsole
-
-# - include: add_to_monitoring.yml
+  # flush notify handlers to activate the splunk config
+  post_tasks:
+    - meta: flush_handlers

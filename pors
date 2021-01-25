@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-12"
+VERSIONNUM="4.0-14"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -330,7 +330,7 @@ declare PBSHRELOAD=${PBDIRSYSTEM}/ae_shelper_reload.yml
 ## @brief Maintenance tasks for splunk
 ## @details Examples: splunk stop, start, restart
 ## @showinitializer
-declare PBSPLACT=${PBDIRSYSTEM}/ae_splunk_tasks.yml
+declare PBSPLACT=${PBDIRSPLUNK}/splunk_actions.yml
 
 ## @var PBINSTALL
 ## @brief Install splunk
@@ -368,11 +368,15 @@ declare PBCONFDS=${PBDIRSPLUNK}/configure_deploymentserver.yml
 ## @showinitializer
 declare PBCONFMC=${PBDIRSPLUNK}/configure_monitoringconsole.yml
 
-## @var PBCONFMON
-## @brief Configures MC monitoring on all given targets
-## @details This will setup monitoring access by the MC
+## @var PBDEPLMONKEY
+## @brief Deploys the MonitoringConsole key for monitoring given targets
 ## @showinitializer
-declare PBCONFMON=${PBDIRSPLUNK}/add_to_monitoring.yml
+declare PBDEPLMONKEY=${PBDIRSPLUNK}/deploy_monitoringkeys.yml
+
+## @var PBCONFMONROLES
+## @brief (Re-)configure the MonitoringConsole roles
+## @showinitializer
+declare PBCONFMONROLES=${PBDIRSPLUNK}/configure_monitoringroles.yml
 
 ## @var PBCONFPEER
 ## @brief Configures splunk as a peernode 
@@ -2632,7 +2636,7 @@ F_SELHOST(){
 ## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
         F_LOG $FUNCNAME started
-	# this installs pure splunk without configuration
+	# this installs pure splunk (i.e. without any configuration)
 	
         SHOSTS="$(F_SELHOST)"
         [ "$SHOSTS" == ABORTED ] && return 4
@@ -3578,7 +3582,11 @@ F_ADDMC(){
         [ $SERR -eq 1 ] && F_LOG "$FUNCNAME" "Aborted by user" && return 4
     done
 
-    [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby.. (setting up some magic)" 5 45
+    F_LOG "$FUNCNAME" "Will configure $WHAT on <$HOSTSELECTION>"
+    [ $RUNMODE != "batch" ] && F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas ${WHAT}. Are you sure?" 30 100
+    [ $? -ne 0 ] && F_LOG "$FUNCNAME" "Aborted by user" && return 4
+
+    [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\n... preparing all requirements" 5 35
 
     > ${ITMPGRP}_dep
     > ${ITMPGRP}_peers
@@ -3608,10 +3616,6 @@ F_ADDMC(){
     F_EXPANDHOSTS activeinput "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
     F_EXPANDHOSTS httpeventcollector "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
 
-#    echo -e "\n[${WHAT}]" >> $ITMPGRP
-#    for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-#    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
-
     # target environment must be set always
     echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
 
@@ -3619,29 +3623,51 @@ F_ADDMC(){
     F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
     F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
 
-    F_LOG "$FUNCNAME" "Will configure $WHAT on <$HOSTSELECTION>"
-    F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas ${WHAT}. Are you sure?" 30 100
-    [ $? -ne 0 ] && F_LOG "$FUNCNAME" "Aborted by user" && return 4
-
     F_LOG $FUNCNAME "Temporary generated group:\n$(cat $ITMPGRP)"
     F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFMC --limit $WHAT"
 
     # doit
     F_A2BIN "$ITMPGRP" "$PBCONFMC" "\Za\Z1Configure ...\Z\n" "--limit $WHAT"
     CONERR=$?
-    #F_ERRLOG "$CONERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG"
-    [ $CONERR -ne 0 ] && F_LOG "$FUNCNAME" "aborted due to an error on configure playbook ($CONERR)" && return $CONERR
+    [ $CONERR -ne 0 ] && F_LOG "$FUNCNAME" "aborted due to an error on configure playbook ($CONERR)" && F_ERRLOG $CONERR "issue during configuration" $LOG && return $CONERR
     F_LOG $FUNCNAME "Finished configuration successfully.."
 
     # Add to monitoring
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFMON --limit $WHAT"
+    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFMC --limit $WHAT"
     GRPS="deployer peernode shcmember heavyforwarder deploymentserver heavyforwarder activeinput httpeventcollector masternode licensemaster"
     DERR=0
     for t in $GRPS;do
-        F_A2BIN "$ITMPGRP" "$PBCONFMON" "\Za\Z1Configure monitoring ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
-        [ $? -ne 0 ] && F_LOG $FUNCNAME "Failed to setup monitoring for: $t" && DERR=1
+        F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBDEPLMONKEY 'Deploying MC key ...' -e {'target':'$t'} --limit $WHAT"
+        F_A2BIN "$ITMPGRP" "$PBDEPLMONKEY" "\Za\Z1Deploying MC key ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Failed to setup monitoring for: $t" && DERR=1 && break
     done
-    F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG"
+    [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
+
+    # configure MC as MC
+    DERR=0
+    F_A2BIN "$ITMPGRP" "$PBCONFMC" "\Za\Z1Setup MC ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+    [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
+
+    # TODO: restart all GRPS
+    GRPCOL=$(echo "$GRPS" | tr " " ":")
+    DERR=0
+    F_DIALOG --scrollbar --yesno "\n\nMonitoringConsole setup finished. To fully enable monitoring access splunk must be RESTARTED on all configured hosts: \n\n$GRPS\n\nIf you skip this step you have to configure the MC roles by yourself.\n\nSo, should I splunk restart all these hosts?" 30 100
+    if [ $? -ne 0 ];then 
+        F_LOG "$FUNCNAME" "Aborted by user"
+        F_ERRLOG 4 "ABORTED by user - configuration as $WHAT on:\n\n$SHOSTST" "$LOG"
+        return 4
+    else
+        F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBSPLACT 'Reloading splunk ...' -e {'splunk_action':'reload_all','shelper':'True'} --limit $GRPCOL"
+        F_A2BIN "$ITMPGRP" $PBSPLACT "\Za\Z1Reloading splunk ...\Z\n" "-e {'splunk_action':'reload_all','shelper':'True'} --limit $GRPCOL"
+        [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
+        # auto-configure MC roles
+        DERR=0
+        F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBCONFMONROLES 'Setting up MC Roles ...' -e {'target':'$t'} --limit $WHAT"
+        F_A2BIN "$ITMPGRP" "$PBCONFMONROLES" "\Za\Z1Setting up MC Roles ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+        [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
+    fi
+    
+    F_ERRLOG $? "configuration as $WHAT on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
 }
@@ -4551,7 +4577,7 @@ F_STARTVMDEP(){
         F_LOG "$FUNCNAME" "VMHOST,VMCPU,VMRAM_GB,,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VM_PROVIDER"
         F_LOG "$FUNCNAME" "$VMHOST,$VMCPU,$VMRAM_GB,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VM_PROVIDER"
 
-        if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM_GB" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" -o -z "$VMSDOMAIN" ];then
+        if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM_GB" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" ];then
             F_DIAERR 9 "A required field is missing.. try again"
             F_LOG $FUNCNAME "ERROR: A required field is missing!"
             VMERR=99
@@ -4733,6 +4759,7 @@ F_STARTVMDEP(){
                     *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
             esac
             F_ERRLOG $VMERR "Deploying $VMHOST" $LOG
+            [ $VMERR -ne 0 ] && F_LOG $FUNCNAME "deleting IaC file due to a previous error" && rm $TMPHWPROFILE
         fi
     done
 
@@ -4787,7 +4814,7 @@ F_PROXMOX_DEPLOY(){
 
 # -e '{ "server_hostname":["splunkmc","splunklm01","splunkmn","splunkidx01","splunkidx02","splunkdep","splunkshc01","splunkshc02","splunkshc03","splunkds01","splunkhf01"], "px_var":"hotel", "server_ram_mb":"786", "server_dns1":"9.9.9.9", "server_dns2":"9.9.9.10", "server_cpu_cores_count":"1" }
 
-    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit repository -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOST}.${VMSDOMAIN}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
+    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOST}.${VMSDOMAIN}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
 #2>&1 >> $LOG
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -4884,8 +4911,11 @@ F_PROXMOX_DEPLOY(){
     # make all user defined settings available here
     source $TMPHWPROFILE
 
+    # allow empty domain
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOSTF}.${VMSDOMAIN}"; fi
+
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    Proxmox Node:"$'\t'"\Zb$VM_PROXMOX_NODE\ZB\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
+    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    Proxmox Node:"$'\t'"\Zb$VM_PROXMOX_NODE\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
@@ -4895,7 +4925,7 @@ F_PROXMOX_DEPLOY(){
 
 # -e '{ "server_hostname":["splunkmc","splunklm01","splunkmn","splunkidx01","splunkidx02","splunkdep","splunkshc01","splunkshc02","splunkshc03","splunkds01","splunkhf01"], "px_var":"hotel", "server_ram_mb":"786", "server_dns1":"9.9.9.9", "server_dns2":"9.9.9.10", "server_cpu_cores_count":"1" }
 
-    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit repository -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOST}.${VMSDOMAIN}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
+    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
 #2>&1 >> $LOG
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -5122,12 +5152,12 @@ F_MENUMAIN(){
 			Edit-SYSC "Fetch/Edit/Show/Manage remote conf files" \
 			Deploy-SYSC "Deploy enabled system configs"\
 			"" "" \
-			'' '\Zb\Zusplunk> Tasks\ZB\ZU' \
+			'' '\Zb\ZuSPLUNK ACTIONS\ZB\ZU' \
 			"" "" \
 			shelper	"Upgrade/Install/Exec shelper (reload,DEP/MN/DS apply bundles)" \
 			splunkd "splunk> daemon commands (restart, webrestart ,..)" \
 			"" "" \
-			'' '\Zb\Zusplunk> Maintenance\ZB\ZU' \
+			'' '\Zb\ZuSYSTEM MAINTENANCE\ZB\ZU' \
 			"" "" \
 			Upgrade	"Opens a submenu with upgrade tasks" \
                         VM-Management "Deploy and manage VMs" \

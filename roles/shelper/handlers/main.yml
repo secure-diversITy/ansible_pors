@@ -1,6 +1,10 @@
 ---
-# IMPORTANT: 
-# no_log: true for every command with credentials!
+# IMPORTANT:
+# if you do NOT use the default PORS configuration
+# you should set 
+# no_log: true 
+# for every command with credentials here!
+# PORS will censor automatically when using the yaml_censored plugin (default: enabled)
 
 - name: shelper start
   shell: "{{ shelper_installation.shelper_path }}/shelperstart"
@@ -8,38 +12,38 @@
 
 - name: shelper stop
   shell: "{{ shelper_installation.shelper_path }}/shelperstop"
-  no_log: false
+#  no_log: false
   register: shelper_result
 
 - name: shelper restart
   shell: "{{ shelper_installation.shelper_path }}/shelperrestart"
-  no_log: false
+#  no_log: false
   register: shelper_result
         
 - name: shelper reload_deploy_server
   shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_ds_ae_user }}:{{ vault_ds_ae_pass }}"
-  no_log: true
+#  no_log: true
   when: inventory_hostname in groups['deploymentserver']
   register: shelper_result
 
 - name: shelper reload_custom
   shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
-  no_log: true
+#  no_log: true
   register: shelper_result
 
 - name: shelper reload_all
   shell: "timeout -s HUP -k 80s 60s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
-  no_log: true
+#  no_log: true
   register: shelper_result
 
 - name: shelper apply_cluster_bundle
   shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_mn_ae_user }}:{{ vault_mn_ae_pass }}"
-  no_log: true
+#  no_log: true
   when: inventory_hostname in groups['masternode']
   register: shelper_result
 
 - name: shelper apply_shcluster_bundle
   shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ groups['shcmember'][0] }} -auth {{ vault_dep_ae_user }}:{{ vault_dep_ae_pass }} --batch"
-  no_log: true
+#  no_log: true
   when: inventory_hostname in groups['deployer']
   register: shelper_result

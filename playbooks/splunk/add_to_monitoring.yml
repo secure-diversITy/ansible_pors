@@ -7,6 +7,17 @@
 
   vars:
     parsed_groups: "{{ target }}"
+    splunk_restart: False
 
   roles:
     - group/searchhead
+
+- name: "Configure splunk Monitoring Console (Roles)"
+  hosts: monitoringconsole
+  connection: local
+
+  roles:
+    - group/monitoringconsole
+
+  vars:
+    splunk_restart: False
