@@ -1,0 +1,4 @@
+@INCLUDE                = Doxyfile
+# Taken from:
+# https://github.com/aklapatch/doxygenTheme
+HTML_EXTRA_STYLESHEET=CustomDoxygen.css
