@@ -4817,11 +4817,11 @@ F_GOOGLECP_DEPLOY(){
 
 #server_disk_sizegb             1
 #server_disk_sizegb_opt         2
-#server_disk_sizegb_swap        
 #server_disk_sizegb_tmp         3
 #server_disk_sizegb_var         4
+#server_disk_sizegb_swap        5
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB'}"
+    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB','server_disk_sizegb_swap':'$VMDISK5SIZEGB'}"
     DEPERR=$?
 
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
