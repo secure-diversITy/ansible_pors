@@ -4807,7 +4807,7 @@ F_GOOGLECP_DEPLOY(){
     source $TMPHWPROFILE
 
     # allow empty domain
-    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOSTF}.${VMSDOMAIN}"; fi
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
     # sum up (makes uses of real tab spaces in dialog):
     F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP\n    Machine Type:"$'\t\t'"$VM_GOOGLECP_MTYPE\n    Metadata Role:"$'\t\t'"$VM_GOOGLECP_MROLE\nDNS servers:"$'\t'"$VMDNS1, $VMDNS2\n\nDo you want to continue?\n" 30 80
@@ -4873,7 +4873,7 @@ F_PROXMOX_DEPLOY(){
     source $TMPHWPROFILE
 
     # allow empty domain
-    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOSTF}.${VMSDOMAIN}"; fi
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
     # sum up (makes uses of real tab spaces in dialog):
     F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    Proxmox Node:"$'\t'"\Zb$VM_PROXMOX_NODE\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
