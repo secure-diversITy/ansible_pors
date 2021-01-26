@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-14"
+VERSIONNUM="4.0-15"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -475,6 +475,12 @@ declare PBPVEGETNODES="${PBDIRPROXMOX}/px_get_nodes.yml"
 ## @details Get configured Google Cloud Platform project ids from the ansible config
 ## @showinitializer
 declare PBGCPGETIDS="${PBDIRGOOGLECP}/gcp_get_ids.yml"
+
+## @var PBGCPDEPLOY
+## @brief Deploy GCP instance(s)
+## @details Deploy a Google Cloud Platform (GCP) instance (including configuration)
+## @showinitializer
+declare PBGCPDEPLOY="${PBDIRGOOGLECP}/gcp_deploy_vm.yml"
 
 ## @var PBBASEINSTALL
 ## @brief setup the default base of a deployed system
@@ -4782,7 +4788,7 @@ F_STARTVMDEP(){
 ## @param1 required: source file containing the hw config
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
-F_PROXMOX_DEPLOY(){ 
+F_GOOGLECP_DEPLOY(){ 
     F_LOG $FUNCNAME started
 
     TMPHWPROFILE="$1"
@@ -4791,105 +4797,27 @@ F_PROXMOX_DEPLOY(){
     # make all user defined settings available here
     source $TMPHWPROFILE
 
+    # allow empty domain
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOSTF}.${VMSDOMAIN}"; fi
+
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
+    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-#server_disk_sizegb
-#server_disk_sizegb_opt
-#server_disk_sizegb_swap
-#server_disk_sizegb_tmp
-#server_disk_sizegb_var
-#server_ip
-#server_machine_type
-#server_metadata_landscape
-#server_metadata_role
-#server_metadata_service
-#server_name
+#server_disk_sizegb             1
+#server_disk_sizegb_opt         2
+#server_disk_sizegb_swap        
+#server_disk_sizegb_tmp         3
+#server_disk_sizegb_var         4
 
-    F_LOG $FUNCNAME "Will start provisionining with: $PBPVEDEPLOY -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
-
-
-# -e '{ "server_hostname":["splunkmc","splunklm01","splunkmn","splunkidx01","splunkidx02","splunkdep","splunkshc01","splunkshc02","splunkshc03","splunkds01","splunkhf01"], "px_var":"hotel", "server_ram_mb":"786", "server_dns1":"9.9.9.9", "server_dns2":"9.9.9.10", "server_cpu_cores_count":"1" }
-
-    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOST}.${VMSDOMAIN}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
-#2>&1 >> $LOG
+    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_TYPE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB'}"
     DEPERR=$?
+
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
-    F_DIAERR $DEPERR "Deploying $VMHOST to $VM_PROXMOX_NODE" 
+    F_DIAERR $DEPERR "Deploying $VMHOST to $VM_GOOGLECP_ID"
     [ $DEPERR -ne 0 ] && return 99
-
-    if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
-        # add as many disk(s) as needed
-
-        VMDISKCNT=0
-        while [ $VMDISKCNT -ne $VMDISK ];do
-            VMDISKCNT=$((VMDISKCNT +1))
-
-            # dynamic variable names..
-            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-
-            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-            VMDISKFS="VMDISK${VMDISKCNT}FS"
-            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-
-            # Target Datastore name
-            FINISHED=0    
-            while [ $FINISHED -eq 0 ];do        
-                OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
-                VCDS=$(F_DIALOG --colors --radiolist \
-                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} - ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
-                100 80 100 \
-                "${OPTIONS[@]}" \
-                2>&1 >/dev/tty)
-                [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
-                F_LOG $FUNCNAME "Choosen: $VCDS"
-                [ ! -z "$VCDS" ] && FINISHED=1
-            done
-
-            # sum up (makes uses of real tab spaces in dialog):
-            F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to VM $VMHOST with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n\nDo you want to continue?\n" 50 80
-            DEPLOYIT=$?
-
-            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
-
-            F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
-            #F_LOG $FUNCNAME "will call $PBVMNEWDISK with: 'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'"
-
-            F_A2BIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
-            ADDERR=$?
-            [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
-
-            F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
-        done
-        VMDISKCNT=0
-        while [ $VMDISKCNT -ne $VMDISK ];do
-            VMDISKCNT=$((VMDISKCNT +1))
-            
-            # dynamic variable names..
-            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-            VMDISKFS="VMDISK${VMDISKCNT}FS"
-            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-   
-            F_A2BIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
-            ERR=$?
-            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
-            
-       done
-    else
-        F_LOG $FUNCNAME "No additional disk config needed"
-    fi
 
     F_LOG $FUNCNAME ended
 }
