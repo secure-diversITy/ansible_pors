@@ -8,7 +8,6 @@
         - tuned
         - wget
         - unzip
-        - tuned
         - make
     state: present
 
@@ -18,6 +17,10 @@
     state: present
   when: packages is defined
 
+# family requirements
+# possible ansible families:
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks_conditionals.html#ansible-facts-os-family
+
 - name: SuSE requirements
   zypper:
     name:
@@ -25,6 +28,12 @@
         - python3-selinux
         - insserv-compat
   when: ansible_facts['os_family'] == "Suse"
+
+- name: RHEL requirements
+  zypper:
+    name:
+        - libselinux-python
+  when: ansible_facts['os_family'] == "RedHat"
 
 - name: enable NTPd
   systemd:
