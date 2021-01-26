@@ -8,8 +8,8 @@
 - include_tasks: gcp_configure_address.yml
   when: gcp_configure_address is defined and gcp_configure_address != False
 
-- include_tasks: gcp_create.yml
-  when: gcp_create is defined and gcp_create != False
+- include_tasks: gcp_create_instance.yml
+  when: gcp_create_instance is defined and gcp_create_instance != False
 
 - include_tasks: gcp_poweron.yml
   when: gcp_poweron is defined and gcp_poweron != False

@@ -1,0 +1,13 @@
+---
+- name: Deploy Google Cloud instance(s)
+  hosts: "*:!pors_server"
+  gather_facts: false
+
+  vars:
+    gcp_configure_disk: True 
+    gcp_configure_address: True
+    gcp_create_instance: True
+    gcp_poweron: True
+
+  roles:
+    - googlecp 
