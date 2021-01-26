@@ -1,0 +1,14 @@
+- name: Format new disk storage
+  hosts: "{{ server_hostname }}*"
+  gather_facts: False
+
+  vars:
+    gcp_configure_disk: False
+    gcp_configure_address: False
+    gcp_create_instance: False
+    gcp_poweron: True
+    gcp_format_disk: True
+
+  roles:
+    - googlecp
+ 

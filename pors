@@ -482,6 +482,12 @@ declare PBGCPGETIDS="${PBDIRGOOGLECP}/gcp_get_ids.yml"
 ## @showinitializer
 declare PBGCPDEPLOY="${PBDIRGOOGLECP}/gcp_deploy_vm.yml"
 
+## @var PBGCPDISKFORMAT
+## @brief Format a GCP instance disk
+## @details Formats an existing GCP instance disk
+## @showinitializer
+declare PBGCPDISKFORMAT="${PBDIRGOOGLECP}/gcp_disk_format.yml"
+
 ## @var PBBASEINSTALL
 ## @brief setup the default base of a deployed system
 ## @details El-Repo kernel and system upgrades are just 2 examples here
@@ -4822,10 +4828,34 @@ F_GOOGLECP_DEPLOY(){
     F_DIAERR $DEPERR "Deploying $VMHOST to $VM_GOOGLECP_ID"
     [ $DEPERR -ne 0 ] && return 99
 
+    if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
+        # add as many disk(s) as needed
+
+        VMDISKCNT=0
+        while [ $VMDISKCNT -ne $VMDISK ];do
+            VMDISKCNT=$((VMDISKCNT +1))
+            
+            # dynamic variable names..
+            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+            VMDISKFS="VMDISK${VMDISKCNT}FS"
+            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+   
+            F_A2BIN $HOSTFILE $PBGCPDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'$VMHOST','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            ERR=$?
+            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
+            
+       done
+    else
+        F_LOG $FUNCNAME "No additional disk config needed"
+    fi
+
     F_LOG $FUNCNAME ended
 }
-
-
 
 
 ## @fn F_PROXMOX_DEPLOY()
