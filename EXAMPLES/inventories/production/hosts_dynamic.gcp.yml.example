@@ -1,3 +1,4 @@
+---
 ###############################################################
 # dynamic inventory for Google Cloud Platform (GCP)
 ###############################################################
@@ -13,11 +14,19 @@ pors_server:
     hosts:
         localhost:
 
-# replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
+# replace "<my-project>" with what you have defined in your group_vars/all/vm_deploy.yml
+# e.g: googlecp.project.prod_site1_us.id
 projects:
-  - googlecp.project.<my-project>.gcp_project_id
+  - googlecp.project.<my-project>.id
+
+# replace "<my-project>" with what you have defined in your group_vars/all/vm_deploy.yml
+# e.g: googlecp.project.prod_site1_us.cred_kind
+# e.g: googlecp.project.prod_site1_us.cred_file
+auth_kind: "{{ googlecp.project.<my-project>.cred_kind }}"
+service_account_file: "{{ googlecp.project.<my-project>.cred_file }}"
 
 # replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
+# e.g: googlecp.project.prod_site1_us.region
 regions:
   - googlecp.project.<my-project>.region
 
@@ -53,7 +62,3 @@ hostnames:
   - name
 
 filters: []
-
-# replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
-auth_kind: "{{ googlecp.<my-project>.gcp_cred_kind }}"
-service_account_file: "{{ googlecp.<my-project>.gcp_cred_file }}"
