@@ -1,0 +1,49 @@
+---
+- name: Wait for SSH coming up
+  wait_for:
+    port: 22
+    host: '{{ server_hostname }}'
+    search_regex: OpenSSH
+    delay: 10
+    timeout: 120
+  connection: local
+
+- name: partitioning {{ server_disk_dev }}
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  parted: 
+    device: "{{ server_disk_dev }}" 
+    number: 1
+    label: gpt
+    state: present
+  when: server_scnd_disk is defined and server_disk_dev is defined 
+
+- name: format {{ server_disk_dev }} with {{ server_disk_fs }}
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  filesystem:
+    fstype: "{{ server_disk_fs }}"
+    dev: "{{ server_disk_dev }}"
+  when: server_scnd_disk is defined and server_disk_dev is defined
+
+- name: add {{ server_disk_mountpoint }} to fstab
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  mount:
+    src: "{{ server_disk_dev }}"
+    path: "{{ server_disk_mountpoint }}"
+    opts: "{{ server_disk_mountopts | default('defaults')}}"
+    fstype: "{{ server_disk_fs }}"
+    passno: 0
+    backup: yes
+    state: present
+  when: server_scnd_disk is defined and server_disk_dev is defined
+
+- name: create mountpoint {{ server_disk_mountpoint }} 
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  file:
+    path: "{{ server_disk_mountpoint }}"
+    mode: '0755'
+    state: directory
+  when: server_scnd_disk is defined and server_disk_dev is defined

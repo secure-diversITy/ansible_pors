@@ -14,8 +14,11 @@
 - include_tasks: gcp_poweron.yml
   when: gcp_poweron is defined and gcp_poweron != False
 
-- include_tasks: gcp_format_disk.yml
-  when: gcp_format_disk is defined and gcp_format_disk != False
+- include_tasks: gcp_format_disk_lvm.yml
+  when: gcp_format_disk_lvm is defined and gcp_format_disk != False
+
+- include_tasks: gcp_format_disk_nolvm.yml
+  when: gcp_format_disk_lvm is undefined and gcp_format_disk != False
 
 - include_tasks: gcp_poweroff.yml
   when: gcp_poweroff is defined and gcp_poweroff != False
