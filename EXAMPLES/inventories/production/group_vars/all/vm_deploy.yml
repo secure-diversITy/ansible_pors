@@ -43,7 +43,7 @@ googlecp:
             source_image: "projects/templates/global/images/sles12-sp4-latest"
             metadata_service: "splunk"
             metadata_landscape: "production"
-            metadata_role: "splunksrv"
+            subnet: "<network-subnet-name-as-defined-in-GCP"
 
         #staging_site2_eu:
         #    id: <my-project-id>

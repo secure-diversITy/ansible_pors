@@ -13,7 +13,7 @@
     metadata:
         service: "googlecp.project.{{ project_name }}.metadata_service"
         landscape: "googlecp.project.{{ project_name }}.metadata_landscape"
-        role: "googlecp.project.{{ project_name }}.metadata_role"
+        role: "{{ metadata_role }}"
     disks:
         - auto_delete: true
           boot: true
@@ -32,6 +32,7 @@
           source: "{{ var_disk }}"
     network_interfaces:
         - network:
-            selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/subnet"
+            selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/googlecp.project.{{ project_name }}.subnet"
+          network_ip: "{{ server_ip }}"
     state: present
   register: instance

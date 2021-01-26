@@ -13,6 +13,6 @@
     address_type: INTERNAL
     address: "{{ server_ip | default() }}"
     subnetwork:
-        selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/subnet"
+        selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/googlecp.project.{{ project_name }}.subnet"
     state: present
   register: address

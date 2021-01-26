@@ -4637,15 +4637,18 @@ F_STARTVMDEP(){
                                 "GCP project id:" 1 1 "$VM_GOOGLECP_ID" 1 30 27 28 0 \
                                 "(available ids: $VM_GOOGLECP_IDS)" 2 1 " " 2 50 0 0 2 \
                                 "Machine Type:" 3 1 "$VM_GOOGLECP_MTYPE" 3 30 27 28 0 \
+                                "Metadata Role:" 4 1 "$VM_GOOGLECP_MROLE" 4 30 27 28 0 \
                                 3>&1 1>&2 2>&3)
                     PROVERR=$?
                     # normalize the output so it can be parsed correctly
                     NDIAOUT=$(echo -e "$PROVOUT" | tr "\n" "|")
                     VM_GOOGLECP_ID=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")
                     VM_GOOGLECP_MTYPE=$(echo $NDIAOUT | cut -d "|" -f2 | tr -d " ")
+                    VM_GOOGLECP_MROLE=$(echo $NDIAOUT | cut -d "|" -f3 | tr -d " ")
 
                     echo "VM_GOOGLECP_ID=$VM_GOOGLECP_ID" >> $TMPHWPROFILE
                     echo "VM_GOOGLECP_MTYPE=$VM_GOOGLECP_MTYPE" >> $TMPHWPROFILE
+                    echo "VM_GOOGLECP_MROLE=$VM_GOOGLECP_MROLE" >> $TMPHWPROFILE
 #server_disk_sizegb_opt
 #server_disk_sizegb_swap
 #server_disk_sizegb_tmp
@@ -4801,7 +4804,7 @@ F_GOOGLECP_DEPLOY(){
     if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOSTF}.${VMSDOMAIN}"; fi
 
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
+    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP\n    Machine Type:"$'\t\t'"$VM_GOOGLECP_MTYPE\n    Metadata Role:"$'\t\t'"$VM_GOOGLECP_MROLE\nDNS servers:"$'\t'"$VMDNS1, $VMDNS2\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
@@ -4812,7 +4815,7 @@ F_GOOGLECP_DEPLOY(){
 #server_disk_sizegb_tmp         3
 #server_disk_sizegb_var         4
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_TYPE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB'}"
+    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB'}"
     DEPERR=$?
 
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
