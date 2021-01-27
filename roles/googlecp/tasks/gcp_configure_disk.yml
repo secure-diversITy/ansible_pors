@@ -39,7 +39,7 @@
     type: "{{ disk_type_tmp }}"
     state: present
   register: tmp_disk
-  when: gcp_configure_disk_tmp is defined server_disk_sizegb_tmp is defined
+  when: gcp_configure_disk_tmp is defined and server_disk_sizegb_tmp is defined
 
 - name: create var disk
   google.cloud.gcp_compute_disk:
@@ -53,7 +53,7 @@
     type: "{{ disk_type_var }}"
     state: present
   register: var_disk
-  when: gcp_configure_disk_var is defined server_disk_sizegb_var is defined
+  when: gcp_configure_disk_var is defined and server_disk_sizegb_var is defined
 
 - name: create swap disk
   google.cloud.gcp_compute_disk:
