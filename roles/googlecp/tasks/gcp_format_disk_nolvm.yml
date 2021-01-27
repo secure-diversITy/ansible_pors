@@ -30,7 +30,7 @@
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   mount:
-    src: "{{ server_disk_dev }}"
+    src: "{{ server_disk_dev }}1"
     path: "{{ server_disk_mountpoint }}"
     opts: "{{ server_disk_mountopts | default('defaults')}}"
     fstype: "{{ server_disk_fs }}"
@@ -47,3 +47,10 @@
     mode: '0755'
     state: directory
   when: server_scnd_disk is defined and server_disk_dev is defined
+
+- name: create mountpoint {{ server_disk_mountpoint }} 
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  shell: "mount {{ server_disk_mountpoint }}"
+  when: server_scnd_disk is defined and server_disk_mountpoint is defined
