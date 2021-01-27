@@ -8,7 +8,7 @@
     # add defined disks to the instance
     gcp_configure_disk: True
     # format defined disks within the instance
-    gcp_format_disk: True
+    gcp_format_disk: False
     gcp_configure_address: True
     gcp_create_instance: True
     gcp_poweron: True

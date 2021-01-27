@@ -4,7 +4,10 @@
 
   vars:
     ansible_python_interpreter: /usr/bin/python3
+    # add defined disks to the instance
     gcp_configure_disk: False
+    # format defined disks within the instance
+    gcp_format_disk: True
     gcp_configure_address: False
     gcp_create_instance: False
     gcp_poweron: True
