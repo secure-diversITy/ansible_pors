@@ -23,7 +23,7 @@
   become: yes
   filesystem:
     fstype: "{{ server_disk_fs }}"
-    dev: "{{ server_disk_dev }}"
+    dev: "{{ server_disk_dev }}1"
   when: server_scnd_disk is defined and server_disk_dev is defined
 
 - name: add {{ server_disk_mountpoint }} to fstab
