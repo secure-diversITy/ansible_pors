@@ -2,10 +2,6 @@
 - set_fact: datetime="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
   run_once: True
 
-- set_fact:
-    server_hostname: "{{ item }}"
-  loop: "{{ server_hostname }}"
-
 - include_tasks: gcp_configure_disk.yml
   when: gcp_configure_disk is defined and gcp_configure_disk != False
 
