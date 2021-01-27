@@ -26,7 +26,7 @@
         - auto_delete: true
           boot: false
           source: "{{ var_disk }}"
-    - auto_delete: true
+        - auto_delete: true
           boot: false
           source: "{{ swap_disk }}"
     network_interfaces:
