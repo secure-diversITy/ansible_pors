@@ -5,7 +5,6 @@
     auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
-    zone: "{{ googlecp.project[project_name].zone }}"
     region: "{{ googlecp.project[project_name].region }}" 
     scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-ip"

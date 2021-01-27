@@ -9,6 +9,7 @@
     name: "{{ server_shortname }}-root"
     size_gb: "{{ server_disk_sizegb }}"
     source_image: "{{ googlecp.project[project_name].source_image }}"
+    type: "{{ disk_type_root }}"
     state: present
   register: root_disk
   when: server_disk_sizegb is defined
