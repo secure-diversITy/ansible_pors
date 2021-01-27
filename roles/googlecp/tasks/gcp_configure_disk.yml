@@ -44,7 +44,7 @@
   register: tmp_disk
   when: gcp_configure_disk.tmp is defined server_disk_sizegb_tmp is defined
 
- name: create var disk
+- name: create var disk
   gcp_compute_disk:
     auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
     service_account_file: "googlecp.project.{{ project_name }}.cred_file"
