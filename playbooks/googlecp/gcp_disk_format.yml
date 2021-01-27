@@ -1,9 +1,9 @@
 - name: Format new disk storage
-  hosts: "{{ server_hostname }}*"
+  hosts: "{{ server_hostname }}"
   gather_facts: False
 
   vars:
-    ansible_python_interpreter: /usr/bin/python3
+    ansible_python_interpreter: auto_silent
     # add defined disks to the instance
     gcp_configure_disk: False
     # format defined disks within the instance
