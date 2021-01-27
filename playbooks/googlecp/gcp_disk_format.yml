@@ -3,6 +3,7 @@
   gather_facts: False
 
   vars:
+    ansible_python_interpreter: /usr/bin/python3
     gcp_configure_disk: False
     gcp_configure_address: False
     gcp_create_instance: False

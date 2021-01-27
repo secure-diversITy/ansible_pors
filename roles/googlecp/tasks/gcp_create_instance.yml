@@ -1,6 +1,6 @@
 ---
 - name: create a instance
-  gcp_compute_instance:
+  google.cloud.gcp_compute_instance:
     auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"

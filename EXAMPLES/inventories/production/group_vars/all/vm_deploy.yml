@@ -35,7 +35,7 @@ googlecp:
         prod_site1_us:
             id: <my-project-id>
             cred_kind: serviceaccount
-            cred_file: ~/.gcp.json
+            cred_file: /home/pors/.gcp.json
             zone: "us-central1-a"
             region: "us-central1"
             scopes:

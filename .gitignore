@@ -8,3 +8,4 @@ ae_deploy_apps.yml
 /lab_splunk_binary_replacement
 gen_hosts.yml
 *.pyc
+test.yml
