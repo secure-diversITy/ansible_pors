@@ -5,8 +5,7 @@
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
-    scopes:
-        - "{{ googlecp.project[project_name].scopes }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_shortname }}-root"
     size_gb: "{{ server_disk_sizegb }}"
     source_image: "{{ googlecp.project[project_name].source_image }}"
@@ -20,8 +19,7 @@
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
-    scopes:
-        - "{{ googlecp.project[project_name].scopes }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_shortname }}-opt"
     size_gb: "{{ server_disk_sizegb_opt }}"
     type: "{{ disk_type_opt }}"
@@ -35,8 +33,7 @@
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
-    scopes:
-        - "{{ googlecp.project[project_name].scopes }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_shortname }}-tmp"
     size_gb: "{{ server_disk_sizegb_tmp }}"
     type: "{{ disk_type_tmp }}"
@@ -50,8 +47,7 @@
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
-    scopes:
-        - "{{ googlecp.project[project_name].scopes }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_shortname }}-var"
     size_gb: "{{ server_disk_sizegb_var }}"
     type: "{{ disk_type_var }}"
@@ -65,8 +61,7 @@
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
-    scopes:
-        - "{{ googlecp.project[project_name].scopes }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_shortname }}-swap"
     size_gb: "{{ server_disk_sizegb_swap }}"
     type: "{{ disk_type_swap }}"

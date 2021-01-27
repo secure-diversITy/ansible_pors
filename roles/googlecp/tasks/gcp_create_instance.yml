@@ -5,8 +5,7 @@
     service_account_file: "{{ googlecp.project[project_name].cred_file }}"
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
-    scopes:
-        - "{{ googlecp.project[project_name].scopes }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}"
     hostname: "{{ server_hostname }}.{{ server_domain }}"
     machine_type: "{{ server_machine_type }}"
