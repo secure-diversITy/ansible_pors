@@ -26,9 +26,9 @@
         - auto_delete: true
           boot: false
           source: "{{ var_disk }}"
-        - auto_delete: true
-          boot: false
-          source: "{{ swap_disk }}"
+#        - auto_delete: true
+#          boot: false
+#          source: "{{ swap_disk }}"
     network_interfaces:
         - subnetwork:
             selfLink: "https://www.googleapis.com/compute/v1/projects/{{ googlecp.project[project_name].id }}/regions/{{ googlecp.project[project_name].region }}/subnetworks/{{ googlecp.project[project_name].subnet }}"
