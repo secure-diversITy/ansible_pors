@@ -1,12 +1,12 @@
 ---
 - name: Deploy Google Cloud instance(s)
-  hosts: "*pors_server"
+  hosts: "pors_server"
   gather_facts: false
 
   vars:
     ansible_python_interpreter: /usr/bin/python3
     # add defined disks to the instance
-    gcp_configure_disk: True
+    gcp_add_disk: False
     # format defined disks within the instance
     gcp_format_disk: False
     gcp_configure_address: True

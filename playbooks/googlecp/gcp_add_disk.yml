@@ -1,0 +1,12 @@
+---
+- name: Add a disk to an existing GCP instance
+  hosts: "{{ server_hostname }}"
+  gather_facts: false
+  connection: local
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    gcp_add_disk: True
+
+  roles:
+    - googlecp

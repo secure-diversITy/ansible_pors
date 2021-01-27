@@ -482,11 +482,17 @@ declare PBGCPGETIDS="${PBDIRGOOGLECP}/gcp_get_ids.yml"
 ## @showinitializer
 declare PBGCPDEPLOY="${PBDIRGOOGLECP}/gcp_deploy_vm.yml"
 
-## @var PBGCPDISKFORMAT
-## @brief Format a GCP instance disk
-## @details Formats an existing GCP instance disk
+## @var PBGCPNEWDISK
+## @brief Add disk to an existing GCP instance
+## @details Add a disk to an existing instance (without formatting etc)
 ## @showinitializer
-declare PBGCPDISKFORMAT="${PBDIRGOOGLECP}/gcp_disk_format.yml"
+declare PBGCPNEWDISK="${PBDIRGOOGLECP}gcp_add_disk.yml"
+
+## @var PBSYSDISKFORMAT
+## @brief Formats a disk
+## @details Formats an existing (!) disk
+## @showinitializer
+declare PBSYSDISKFORMAT="${PBDIRSYSTEM}/disk_format.yml"
 
 ## @var PBBASEINSTALL
 ## @brief setup the default base of a deployed system
@@ -4821,7 +4827,9 @@ F_GOOGLECP_DEPLOY(){
 #server_disk_sizegb_var         4
 #server_disk_sizegb_swap        5
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB','server_disk_sizegb_swap':'$VMDISK5SIZEGB'}"
+    #F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB','server_disk_sizegb_swap':'$VMDISK5SIZEGB'}"
+
+    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE'}"
     DEPERR=$?
 
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -4830,6 +4838,9 @@ F_GOOGLECP_DEPLOY(){
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
         # add as many disk(s) as needed
+        F_ADDDISK $TMPHWPROFILE
+        LERR=$?
+        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
         VMDISKCNT=0
         while [ $VMDISKCNT -ne $VMDISK ];do
@@ -4845,7 +4856,7 @@ F_GOOGLECP_DEPLOY(){
             VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
             VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
    
-            F_A2BIN $HOSTFILE $PBGCPDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
             ERR=$?
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
             
@@ -4884,8 +4895,6 @@ F_PROXMOX_DEPLOY(){
     F_LOG $FUNCNAME "Will start provisionining with: $PBPVEDEPLOY -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
 
 
-# -e '{ "server_hostname":["splunkmc","splunklm01","splunkmn","splunkidx01","splunkidx02","splunkdep","splunkshc01","splunkshc02","splunkshc03","splunkds01","splunkhf01"], "px_var":"hotel", "server_ram_mb":"786", "server_dns1":"9.9.9.9", "server_dns2":"9.9.9.10", "server_cpu_cores_count":"1" }
-
     F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
 #2>&1 >> $LOG
     DEPERR=$?
@@ -4895,51 +4904,13 @@ F_PROXMOX_DEPLOY(){
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
         # add as many disk(s) as needed
+        F_ADDDISK $TMPHWPROFILE
+        LERR=$?
+        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
-        VMDISKCNT=0
-        while [ $VMDISKCNT -ne $VMDISK ];do
-            VMDISKCNT=$((VMDISKCNT +1))
 
-            # dynamic variable names..
-            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+        #TODO: move to func:
 
-            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-            VMDISKFS="VMDISK${VMDISKCNT}FS"
-            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-
-            # Target Datastore name
-            FINISHED=0    
-            while [ $FINISHED -eq 0 ];do        
-                OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
-                VCDS=$(F_DIALOG --colors --radiolist \
-                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} - ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
-                100 80 100 \
-                "${OPTIONS[@]}" \
-                2>&1 >/dev/tty)
-                [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
-                F_LOG $FUNCNAME "Choosen: $VCDS"
-                [ ! -z "$VCDS" ] && FINISHED=1
-            done
-
-            # sum up (makes uses of real tab spaces in dialog):
-            F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to VM $VMHOST with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n\nDo you want to continue?\n" 50 80
-            DEPLOYIT=$?
-
-            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
-
-            F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
-            #F_LOG $FUNCNAME "will call $PBVMNEWDISK with: 'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'"
-
-            F_A2BIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
-            ADDERR=$?
-            [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
-
-            F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
-        done
         VMDISKCNT=0
         while [ $VMDISKCNT -ne $VMDISK ];do
             VMDISKCNT=$((VMDISKCNT +1))
@@ -4953,8 +4924,14 @@ F_PROXMOX_DEPLOY(){
             VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
             VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
             VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-   
-            F_A2BIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+  
+            if [ -z "$VMDISKLVMLV" ];then
+                F_LOG "$FUNCNAME" "Will configure without LVM.."
+                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
+            else
+                F_LOG "$FUNCNAME" "Will configure with LVM.."
+                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            fi
             ERR=$?
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
             
@@ -4963,6 +4940,87 @@ F_PROXMOX_DEPLOY(){
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
 
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_ADDDISK()
+## @brief Add a new disk to a system
+## @param1 required: source file containing the hw config
+## @exception TODO
+## @details TODO
+F_ADDDISK(){
+    F_LOG $FUNCNAME started
+
+    TMPHWPROFILE="$1"
+    [ ! -f $TMPHWPROFILE ] && F_ERRLOG 3 "Missing hw config: $TMPHWPROFILE" $LOG && return 3
+
+    # make all user defined settings available here
+    source $TMPHWPROFILE
+
+    # allow empty domain
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
+
+    # set specific variables based on which provider is used
+    case $VM_PROVIDER in
+        googlecp|gcp)
+            PROVIDERVARS="'project_name':'$VM_GOOGLECP_ID','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE'"
+            PROVPB=$PBGCPNEWDISK
+        ;;
+        proxmox|pve)
+            PROVIDERVARS="'px_var':'$VM_PROXMOX_NODE'"
+            PROVPB=$PBPVENEWDISK
+        ;;
+        vsphere|vmware)
+            PROVIDERVARS="'vsphere_esx_host':'$VM_VSPHERE_ESX','vsphere_datacenter':'$VM_VSPHERE_DC','vsphere_datastore':'$VM_VSPHERE_DS','server_scsi_controller':'$VMSCSI'"
+            PROVPB=$PBVMNEWDISK
+        ;;
+        *) F_LOG $FUNCNAME "ERROR: >$VM_PROVIDER< is not supported!" ; return 3  ;;
+    esac
+
+    FPROVIDERVARS=$(echo "\ZbProvider\ZB\n----------\n$PROVIDERVARS" | sed 's/,/\\n/g' |tr -d "'")
+
+    VMDISKCNT=0
+    while [ $VMDISKCNT -ne $VMDISK ];do
+            VMDISKCNT=$((VMDISKCNT +1))
+
+            # dynamic variable names..
+            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+            VMDISKDEVBOOT="VMDISK${VMDISKCNT}DEVBOOT"
+            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+            VMDISKFS="VMDISK${VMDISKCNT}FS"
+            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+
+            # gen disk name from mnt point
+            VMDISKNAME=${VMDISKMNTP/*\/}
+
+            # sum up (makes uses of real tab spaces in dialog):
+            if [ -z "$VMDISKLVMLV" ];then
+                F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to a system with the following details:\n\n    Target:"$'\t\t'"\Zb$VMHOSTF\ZB\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM: "$'\t'"NO\n\nDo you want to continue?\n" 50 80
+            else
+                F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to a system with the following details:\n\n    Target:"$'\t\t'"\Zb$VMHOSTF\ZB\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n\nDo you want to continue?\n" 50 80
+            fi
+            DEPLOYIT=$?
+            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
+
+            F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
+
+            if [ -z "$VMDISKLVMLV" ];then
+                F_LOG "$FUNCNAME" "Will configure without LVM.."
+                F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'$VMDISKNAME','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
+            else
+                F_LOG "$FUNCNAME" "Will configure with LVM.."
+                F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'$VMDISKNAME','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
+            fi
+            ADDERR=$?
+            [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
+
+            F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
+    done
+ 
     F_LOG $FUNCNAME ended
 }
 

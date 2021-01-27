@@ -2,8 +2,8 @@
 - set_fact: datetime="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
   run_once: True
 
-- include_tasks: gcp_configure_disk.yml
-  when: gcp_configure_disk is defined and gcp_configure_disk != False
+- include_tasks: gcp_add_disk.yml
+  when: gcp_add_disk is defined and gcp_add_disk != False
 
 - include_tasks: gcp_configure_address.yml
   when: gcp_configure_address is defined and gcp_configure_address != False
@@ -13,12 +13,6 @@
 
 #- include_tasks: gcp_poweron.yml
 #  when: gcp_poweron is defined and gcp_poweron != False
-
-- include_tasks: gcp_format_disk_lvm.yml
-  when: gcp_format_disk_lvm is defined and gcp_format_disk != False
-
-- include_tasks: gcp_format_disk_nolvm.yml
-  when: gcp_format_disk_lvm is undefined and gcp_format_disk != False
 
 #- include_tasks: gcp_poweroff.yml
 #  when: gcp_poweroff is defined and gcp_poweroff != False
