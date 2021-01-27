@@ -7,7 +7,7 @@
     project: "{{ googlecp.project[project_name].id }}"
     region: "{{ googlecp.project[project_name].region }}" 
     scopes: "{{ googlecp.project[project_name].scopes }}"
-    name: "{{ server_hostname }}-ip"
+    name: "{{ server_shortname }}-ip"
     address_type: INTERNAL
     address: "{{ server_ip | default() }}"
     subnetwork:
