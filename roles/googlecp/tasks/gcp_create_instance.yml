@@ -7,12 +7,12 @@
     zone: "{{ googlecp.project[project_name].zone }}"
     scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}"
-    hostname: "{{ server_hostname }}.{{ server_domain }}"
+    hostname: "{{ server_hostname }}"
     machine_type: "{{ server_machine_type }}"
     metadata:
         service: "{{ googlecp.project[project_name].metadata_service }}"
         landscape: "{{ googlecp.project[project_name].metadata_landscape }}"
-        role: "{{ metadata_role }}"
+        role: "{{ server_metadata_role }}"
     disks:
         - auto_delete: true
           boot: true
