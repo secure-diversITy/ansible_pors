@@ -6,7 +6,7 @@
     project: "{{ googlecp.project[project_name].id }}"
     zone: "{{ googlecp.project[project_name].zone }}"
     scopes: "{{ googlecp.project[project_name].scopes }}"
-    name: "{{ server_hostname }}"
+    name: "{{ server_shortname }}"
     hostname: "{{ server_hostname }}"
     machine_type: "{{ server_machine_type }}"
     metadata:
