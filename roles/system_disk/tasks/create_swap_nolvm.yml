@@ -1,0 +1,30 @@
+---
+- name: Create swap device {{ server_disk_dev }}
+  shell: "dd if=/dev/zero of={{ server_disk_dev }} bs=1M count=512"
+  when: 
+    - ansible_swaptotal_mb < 1
+    - server_disk_dev is defined
+
+- name: Make {{ server_disk_dev }} a swap device
+  command: "mkswap {{ server_disk_dev }}"
+  when: 
+    - ansible_swaptotal_mb < 1
+    - server_disk_dev is defined
+
+- name: add {{ server_disk_dev }} to fstab
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  mount:
+    src: "{{ server_disk_dev }}"
+    path: none
+    opts: "{{ server_disk_mountopts | default('sw')}}"
+    fstype: swap
+    passno: 0
+    backup: yes
+    state: present
+  when:
+    - ansible_swaptotal_mb < 1
+    - server_disk_dev is defined
+
+- name: Enable the new swap space
+  shell: swapon -a

@@ -1,0 +1,15 @@
+---
+- set_fact: datetime="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
+  run_once: True
+
+- include_tasks: format_disk_lvm.yml
+  when: format_disk_lvm is defined and format_disk != False
+
+- include_tasks: format_disk_nolvm.yml
+  when: format_disk_lvm is undefined and format_disk != False
+
+- include_tasks: create_swap_lvm.yml
+  when: server_lvm_lv is defined and server_disk_fs == "swap"
+ 
+- include_tasks: create_swap_nolvm.yml
+  when: server_lvm_lv is undefined and server_disk_fs == "swap"

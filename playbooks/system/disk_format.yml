@@ -1,0 +1,11 @@
+- name: Format new disk storage
+  hosts: "{{ server_hostname }}"
+  gather_facts: False
+
+  vars:
+    # format defined disks within an instance
+    format_disk: True
+
+  roles:
+    - system_disk
+ 
