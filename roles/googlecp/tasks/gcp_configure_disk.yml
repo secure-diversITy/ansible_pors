@@ -44,6 +44,21 @@
   register: tmp_disk
   when: gcp_configure_disk.tmp is defined server_disk_sizegb_tmp is defined
 
+ name: create var disk
+  gcp_compute_disk:
+    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
+    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
+    project: "googlecp.project.{{ project_name }}.id"
+    zone: "googlecp.project.{{ project_name }}.zone"
+    scopes:
+        - "googlecp.project.{{ project_name }}.scopes"
+    name: "{{ server_hostname }}-var"
+    size_gb: "{{ server_disk_sizegb_var }}"
+    type: "{{ disk_type_var }}"
+    state: present
+  register: var_disk
+  when: gcp_configure_disk.var is defined server_disk_sizegb_var is defined
+
 - name: create swap disk
   gcp_compute_disk:
     auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
@@ -58,18 +73,3 @@
     state: present
   register: swap_disk
   when: gcp_configure_disk.swap is defined and server_disk_sizegb_swap is defined
-
-- name: create var disk
-  gcp_compute_disk:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
-    scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_hostname }}-var"
-    size_gb: "{{ server_disk_sizegb_var }}"
-    type: "{{ disk_type_var }}"
-    state: present
-  register: var_disk
-  when: gcp_configure_disk.var is defined server_disk_sizegb_var is defined
