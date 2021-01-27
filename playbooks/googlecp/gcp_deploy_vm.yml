@@ -1,6 +1,6 @@
 ---
 - name: Deploy Google Cloud instance(s)
-  hosts: "*:!pors_server"
+  hosts: "*pors_server"
   gather_facts: false
 
   vars:
