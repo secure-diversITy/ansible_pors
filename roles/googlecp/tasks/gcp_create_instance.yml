@@ -7,8 +7,8 @@
     zone: "googlecp.project.{{ project_name }}.zone"
     scopes:
         - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_name }}"
-    hostname: "{{ server_name }}.{{ server_domain }}"
+    name: "{{ server_hostname }}"
+    hostname: "{{ server_hostname }}.{{ server_domain }}"
     machine_type: "{{ server_machine_type }}"
     metadata:
         service: "googlecp.project.{{ project_name }}.metadata_service"

@@ -7,7 +7,7 @@
     zone: "googlecp.project.{{ project_name }}.zone"
     scopes:
         - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_name }}-root"
+    name: "{{ server_hostname }}-root"
     size_gb: "{{ server_disk_sizegb }}"
     source_image: "googlecp.project.{{ project_name }}.source_image"
     state: present
@@ -22,7 +22,7 @@
     zone: "googlecp.project.{{ project_name }}.zone"
     scopes:
         - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_name }}-opt"
+    name: "{{ server_hostname }}-opt"
     size_gb: "{{ server_disk_sizegb_opt }}"
     type: "{{ disk_type_opt }}"
     state: present
@@ -37,7 +37,7 @@
     zone: "googlecp.project.{{ project_name }}.zone"
     scopes:
         - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_name }}-tmp"
+    name: "{{ server_hostname }}-tmp"
     size_gb: "{{ server_disk_sizegb_tmp }}"
     type: "{{ disk_type_tmp }}"
     state: present
@@ -52,7 +52,7 @@
     zone: "googlecp.project.{{ project_name }}.zone"
     scopes:
         - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_name }}-swap"
+    name: "{{ server_hostname }}-swap"
     size_gb: "{{ server_disk_sizegb_swap }}"
     type: "{{ disk_type_swap }}"
     state: present
@@ -67,7 +67,7 @@
     zone: "googlecp.project.{{ project_name }}.zone"
     scopes:
         - "googlecp.project.{{ project_name }}.scopes"
-    name: "{{ server_name }}-var"
+    name: "{{ server_hostname }}-var"
     size_gb: "{{ server_disk_sizegb_var }}"
     type: "{{ disk_type_var }}"
     state: present
