@@ -1,27 +1,27 @@
 ---
 - name: create root disk
   gcp_compute_disk:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-root"
     size_gb: "{{ server_disk_sizegb }}"
-    source_image: "googlecp.project.{{ project_name }}.source_image"
+    source_image: "{{ googlecp.project[project_name].source_image }}"
     state: present
   register: root_disk
   when: server_disk_sizegb is defined
 
 - name: create opt disk
   gcp_compute_disk:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-opt"
     size_gb: "{{ server_disk_sizegb_opt }}"
     type: "{{ disk_type_opt }}"
@@ -31,12 +31,12 @@
 
 - name: create tmp disk
   gcp_compute_disk:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-tmp"
     size_gb: "{{ server_disk_sizegb_tmp }}"
     type: "{{ disk_type_tmp }}"
@@ -46,12 +46,12 @@
 
 - name: create var disk
   gcp_compute_disk:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-var"
     size_gb: "{{ server_disk_sizegb_var }}"
     type: "{{ disk_type_var }}"
@@ -61,12 +61,12 @@
 
 - name: create swap disk
   gcp_compute_disk:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-swap"
     size_gb: "{{ server_disk_sizegb_swap }}"
     type: "{{ disk_type_swap }}"

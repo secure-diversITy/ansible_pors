@@ -2,17 +2,17 @@
 
 - name: create a address
   gcp_compute_address:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
-    region: "googlecp.project.{{ project_name }}.region" 
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
+    region: "{{ googlecp.project[project_name].region }}" 
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}-ip"
     address_type: INTERNAL
     address: "{{ server_ip | default() }}"
     subnetwork:
-        selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/googlecp.project.{{ project_name }}.subnet"
+        selfLink: "https://www.googleapis.com/compute/v1/projects/{{ googlecp.project[project_name].id }}/regions/{{ googlecp.project[project_name].region }}/subnetworks/{{ googlecp.project[project_name].subnet }}"
     state: present
   register: address

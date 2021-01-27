@@ -17,18 +17,18 @@ pors_server:
 # replace "<my-project>" with what you have defined in your group_vars/all/vm_deploy.yml
 # e.g: googlecp.project.prod_site1_us.id
 projects:
-  - googlecp.project.<my-project>.id
+  - "{{ googlecp.project[<my-project>].id"
 
 # replace "<my-project>" with what you have defined in your group_vars/all/vm_deploy.yml
 # e.g: googlecp.project.prod_site1_us.cred_kind
 # e.g: googlecp.project.prod_site1_us.cred_file
-auth_kind: "{{ googlecp.project.<my-project>.cred_kind }}"
-service_account_file: "{{ googlecp.project.<my-project>.cred_file }}"
+auth_kind: "{{ {{ googlecp.project[<my-project>].cred_kind }}"
+service_account_file: "{{ {{ googlecp.project[<my-project>].cred_file }}"
 
 # replace "<my-project>" as defined in your group_vars/all/vm_deploy.yml
 # e.g: googlecp.project.prod_site1_us.region
 regions:
-  - googlecp.project.<my-project>.region
+  - "{{ googlecp.project[<my-project>].region"
 
 # group hosts by zone (optional)
 #keyed_groups:

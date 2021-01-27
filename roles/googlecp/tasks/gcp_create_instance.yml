@@ -1,18 +1,18 @@
 ---
 - name: create a instance
   gcp_compute_instance:
-    auth_kind: "googlecp.project.{{ project_name }}.cred_kind"
-    service_account_file: "googlecp.project.{{ project_name }}.cred_file"
-    project: "googlecp.project.{{ project_name }}.id"
-    zone: "googlecp.project.{{ project_name }}.zone"
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
     scopes:
-        - "googlecp.project.{{ project_name }}.scopes"
+        - "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_hostname }}"
     hostname: "{{ server_hostname }}.{{ server_domain }}"
     machine_type: "{{ server_machine_type }}"
     metadata:
-        service: "googlecp.project.{{ project_name }}.metadata_service"
-        landscape: "googlecp.project.{{ project_name }}.metadata_landscape"
+        service: "{{ googlecp.project[project_name].metadata_service }}"
+        landscape: "{{ googlecp.project[project_name].metadata_landscape }}"
         role: "{{ metadata_role }}"
     disks:
         - auto_delete: true
@@ -32,7 +32,7 @@
           source: "{{ swap_disk }}"
     network_interfaces:
         - network:
-            selfLink: "https://www.googleapis.com/compute/v1/projects/googlecp.project.{{ project_name }}.id/regions/googlecp.project.{{ project_name }}.region/subnetworks/googlecp.project.{{ project_name }}.subnet"
+            selfLink: "https://www.googleapis.com/compute/v1/projects/{{ googlecp.project[project_name].id }}/regions/{{ googlecp.project[project_name].region }}/subnetworks/{{ googlecp.project[project_name].subnet }}"
           network_ip: "{{ server_ip }}"
     state: present
   register: instance
