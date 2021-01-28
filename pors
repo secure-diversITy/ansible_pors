@@ -4994,7 +4994,9 @@ F_ADDDISK(){
 
             # gen disk name from mnt point
             VMDISKNAME=$(echo "${!VMDISKMNTP}" | sed 's/.*\///g')
+            [ -z "$VMDISKNAME" ] && VMDISKNAME=$(echo "${!VMDISKDEV}" | sed 's/.*\///g')
 
+            F_LOG $FUNCNAME "VMDISKNAME: $VMDISKNAME"
             F_LOG $FUNCNAME "VMDISKLVMLV: $VMDISKLVMLV"
             F_LOG $FUNCNAME "PROVIDERVARS: $PROVIDERVARS"
 
@@ -5009,7 +5011,7 @@ F_ADDDISK(){
 
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
 
-            F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'$VMDISKNAME','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
+            F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'${VMDISKNAME}','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
