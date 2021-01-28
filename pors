@@ -486,7 +486,7 @@ declare PBGCPDEPLOY="${PBDIRGOOGLECP}/gcp_deploy_vm.yml"
 ## @brief Add disk to an existing GCP instance
 ## @details Add a disk to an existing instance (without formatting etc)
 ## @showinitializer
-declare PBGCPNEWDISK="${PBDIRGOOGLECP}gcp_add_disk.yml"
+declare PBGCPNEWDISK="${PBDIRGOOGLECP}/gcp_add_disk.yml"
 
 ## @var PBSYSDISKFORMAT
 ## @brief Formats a disk
@@ -4993,13 +4993,13 @@ F_ADDDISK(){
             VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
             # gen disk name from mnt point
-            VMDISKNAME=$(echo "${!VMDISKMNTP/*\/}")
+            VMDISKNAME=$(echo "${!VMDISKMNTP}" | sed 's/.*\///g')
 
             F_LOG $FUNCNAME "VMDISKLVMLV: $VMDISKLVMLV"
             F_LOG $FUNCNAME "PROVIDERVARS: $PROVIDERVARS"
 
             # sum up (makes uses of real tab spaces in dialog):
-            if [ -z "$VMDISKLVMLV" ];then
+            if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
                 F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to a system with the following details:\n\n    Target:"$'\t\t'"\Zb$VMHOSTF\ZB\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM: "$'\t'"NO\n\nDo you want to continue?\n" 50 80
             else
                 F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to a system with the following details:\n\n    Target:"$'\t\t'"\Zb$VMHOSTF\ZB\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n\nDo you want to continue?\n" 50 80
