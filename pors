@@ -4995,6 +4995,9 @@ F_ADDDISK(){
             # gen disk name from mnt point
             VMDISKNAME=${VMDISKMNTP/*\/}
 
+            F_LOG $FUNCNAME "VMDISKLVMLV: $VMDISKLVML"
+            F_LOG $FUNCNAME "PROVIDERVARS: $PROVIDERVARS"
+
             # sum up (makes uses of real tab spaces in dialog):
             if [ -z "$VMDISKLVMLV" ];then
                 F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to a system with the following details:\n\n    Target:"$'\t\t'"\Zb$VMHOSTF\ZB\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM: "$'\t'"NO\n\nDo you want to continue?\n" 50 80
@@ -5006,13 +5009,7 @@ F_ADDDISK(){
 
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
 
-            if [ -z "$VMDISKLVMLV" ];then
-                F_LOG "$FUNCNAME" "Will configure without LVM.."
-                F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'$VMDISKNAME','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
-            else
-                F_LOG "$FUNCNAME" "Will configure with LVM.."
-                F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'$VMDISKNAME','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
-            fi
+            F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'$VMDISKNAME','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
