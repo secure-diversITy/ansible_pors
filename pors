@@ -4830,12 +4830,12 @@ F_GOOGLECP_DEPLOY(){
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
         # add as many disk(s) as needed
-        F_ADDDISK $TMPHWPROFILE
+        F_ADDDISK $TMPHWPROFILE 1
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
         # format all specified disks
-        F_FORMATDISK $TMPHWPROFILE
+        F_FORMATDISK $TMPHWPROFILE 1
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
     else
@@ -4880,12 +4880,12 @@ F_PROXMOX_DEPLOY(){
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
         # add as many disk(s) as needed
-        F_ADDDISK $TMPHWPROFILE
+        F_ADDDISK $TMPHWPROFILE 1
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
         # format all specified disks
-        F_FORMATDISK $TMPHWPROFILE
+        F_FORMATDISK $TMPHWPROFILE 1
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
    else
@@ -4898,12 +4898,16 @@ F_PROXMOX_DEPLOY(){
 ## @fn F_FORMATDISK()
 ## @brief Formats a new added disk of a system
 ## @param1 required: source file containing the hw config
+## @param2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
 ## @exception Fail: when disk is formatted already
 ## @details Will format all disks specified in the given PORS hardware config
 ## Formatting a new single disk to an existing system must ensure that param1 is
 ## containing just the new disk
 F_FORMATDISK(){
     F_LOG $FUNCNAME started
+    unset VMDISKCNT
+
+    VMDISKCNT="$2"
 
     # make all user defined settings available here
     source $TMPHWPROFILE
@@ -4911,7 +4915,7 @@ F_FORMATDISK(){
     # allow empty domain
     if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
-    VMDISKCNT=0
+    [ -z "$VMDISKCNT" ] && VMDISKCNT=0
     while [ $VMDISKCNT -ne $VMDISK ];do
         VMDISKCNT=$((VMDISKCNT +1))
             
@@ -4942,12 +4946,17 @@ F_FORMATDISK(){
 ## @fn F_ADDDISK()
 ## @brief Add a new disk to a system
 ## @param1 required: source file containing the hw config
+## @param2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
 ## @exception TODO
 ## @details Will add all disks specified in the given PORS hardware config
 ## Adding a new single disk to an existing system must ensure that param1 is
 ## containing just the new disk
 F_ADDDISK(){
     F_LOG $FUNCNAME started
+
+    unset VMDISKCNT
+
+    VMDISKCNT="$2"
 
     TMPHWPROFILE="$1"
     [ ! -f $TMPHWPROFILE ] && F_ERRLOG 3 "Missing hw config: $TMPHWPROFILE" $LOG && return 3
@@ -4977,7 +4986,7 @@ F_ADDDISK(){
 
     FPROVIDERVARS=$(echo "\ZbProvider\ZB\n----------\n$PROVIDERVARS" | sed 's/,/\\n/g' |tr -d "'")
 
-    VMDISKCNT=0
+    [ -z "$VMDISKCNT" ] && VMDISKCNT=0
     while [ $VMDISKCNT -ne $VMDISK ];do
             VMDISKCNT=$((VMDISKCNT +1))
 
