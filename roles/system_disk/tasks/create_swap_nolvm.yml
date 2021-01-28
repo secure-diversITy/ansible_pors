@@ -6,7 +6,7 @@
     - server_disk_dev is defined
 
 - name: Make {{ server_disk_dev }} a swap device
-  command: "mkswap {{ server_disk_dev }}"
+  shell: "mkswap {{ server_disk_dev }}"
   when: 
     - ansible_swaptotal_mb < 1
     - server_disk_dev is defined
@@ -19,7 +19,7 @@
     path: none
     opts: "{{ server_disk_mountopts | default('sw')}}"
     fstype: swap
-    passno: 0
+    passno: "0"
     backup: yes
     state: present
   when:
