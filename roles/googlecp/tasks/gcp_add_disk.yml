@@ -8,7 +8,6 @@
     scopes: "{{ googlecp.project[project_name].scopes }}"
     name: "{{ server_shortname }}-{{ server_disk_name }}"
     size_gb: "{{ server_disk_sizegb }}"
-    source_image: "{{ googlecp.project[project_name].source_image }}"
     type: "{{ server_disk_type }}"
     state: present
   register: computed_disk
