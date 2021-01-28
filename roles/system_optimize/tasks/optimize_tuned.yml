@@ -98,3 +98,5 @@
 # put some delay before verifying otherwise it will FAIL
 - name: Verify tuned profile
   shell: "sleep 3; tuned-adm verify"
+  when: tuned_version > 2100
+
