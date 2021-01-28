@@ -19,7 +19,7 @@
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   mount:
-    src: "{{ server_disk_dev }}"
+    src: "{{ server_disk_dev }}1"
     path: none
     opts: "{{ server_disk_mountopts | default('sw')}}"
     fstype: swap
