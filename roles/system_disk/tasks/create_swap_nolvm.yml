@@ -10,6 +10,8 @@
   when: server_disk_dev is defined
 
 - name: Make {{ server_disk_dev }} a swap device
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
   shell: "mkswap {{ server_disk_dev }}1"
   when: server_disk_dev is defined
 
@@ -27,4 +29,6 @@
   when: server_disk_dev is defined
 
 - name: Enable the new swap space
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
   shell: swapon -a
