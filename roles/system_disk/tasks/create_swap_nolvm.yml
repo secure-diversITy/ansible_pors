@@ -1,12 +1,18 @@
 ---
-- name: Create swap device {{ server_disk_dev }}
-  shell: "dd if=/dev/zero of={{ server_disk_dev }} bs=1M count=512"
-  when: 
+- name: Partitioning {{ server_disk_dev }}
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  parted:
+    device: "{{ server_disk_dev }}"
+    number: 1
+    label: gpt
+    state: present
+  when:
     - ansible_swaptotal_mb < 1
     - server_disk_dev is defined
 
 - name: Make {{ server_disk_dev }} a swap device
-  shell: "mkswap {{ server_disk_dev }}"
+  shell: "mkswap {{ server_disk_dev }}1"
   when: 
     - ansible_swaptotal_mb < 1
     - server_disk_dev is defined
