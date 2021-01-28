@@ -33,4 +33,4 @@
           boot: "{{ server_disk_bootdev }}"
           source: "{{ computed_disk }}"
     state: present
-    when: computed_disk is defined
+  when: computed_disk is defined
