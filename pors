@@ -4993,9 +4993,9 @@ F_ADDDISK(){
             VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
             # gen disk name from mnt point
-            VMDISKNAME=${VMDISKMNTP/*\/}
+            VMDISKNAME=$(echo "${!VMDISKMNTP/*\/}")
 
-            F_LOG $FUNCNAME "VMDISKLVMLV: $VMDISKLVML"
+            F_LOG $FUNCNAME "VMDISKLVMLV: $VMDISKLVMLV"
             F_LOG $FUNCNAME "PROVIDERVARS: $PROVIDERVARS"
 
             # sum up (makes uses of real tab spaces in dialog):
