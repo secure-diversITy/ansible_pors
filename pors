@@ -4821,7 +4821,7 @@ F_GOOGLECP_DEPLOY(){
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE'}"
+    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
 
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"

@@ -1,4 +1,19 @@
 ---
+- name: create root disk
+  google.cloud.gcp_compute_disk:
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
+    scopes: "{{ googlecp.project[project_name].scopes }}"
+    name: "{{ server_shortname }}-root"
+    size_gb: "{{ server_disk_sizegb }}"
+    source_image: "{{ googlecp.project[project_name].source_image }}"
+    type: "{{ disk_type_root }}"
+    state: present
+  register: root_disk
+  when: server_disk_sizegb is defined
+
 - name: create a instance
   google.cloud.gcp_compute_instance:
     auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
@@ -13,6 +28,10 @@
         service: "{{ googlecp.project[project_name].metadata_service }}"
         landscape: "{{ googlecp.project[project_name].metadata_landscape }}"
         role: "{{ server_metadata_role }}"
+    disks:
+        - auto_delete: true
+          boot: true
+          source: "{{ root_disk }}"
     network_interfaces:
         - subnetwork:
             selfLink: "https://www.googleapis.com/compute/v1/projects/{{ googlecp.project[project_name].id }}/regions/{{ googlecp.project[project_name].region }}/subnetworks/{{ googlecp.project[project_name].subnet }}"
