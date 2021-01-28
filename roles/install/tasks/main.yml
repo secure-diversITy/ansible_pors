@@ -30,7 +30,7 @@
   when: splunk_upgrade == False
 
 - include: firewalld.yml
-  when: splunk_upgrade == False
+  when: splunk_upgrade == False and splunk_installation.firewalld_disable != False
 
 - include: splunk_startstop.yml
   when: splunk_upgrade == False
