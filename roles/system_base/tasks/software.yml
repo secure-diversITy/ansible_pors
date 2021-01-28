@@ -25,7 +25,7 @@
   zypper:
     name:
         - systemd-sysvinit
-        - python3-selinux
+        - python-selinux
         - insserv-compat
   when: ansible_facts['os_family'] == "Suse"
 
