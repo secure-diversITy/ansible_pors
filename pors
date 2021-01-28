@@ -4821,14 +4821,6 @@ F_GOOGLECP_DEPLOY(){
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-#server_disk_sizegb             1
-#server_disk_sizegb_opt         2
-#server_disk_sizegb_tmp         3
-#server_disk_sizegb_var         4
-#server_disk_sizegb_swap        5
-
-    #F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_sizegb':'$VMDISK1SIZEGB','server_disk_sizegb_opt':'$VMDISK2SIZEGB','server_disk_sizegb_tmp':'$VMDISK3SIZEGB','server_disk_sizegb_var':'$VMDISK4SIZEGB','server_disk_sizegb_swap':'$VMDISK5SIZEGB'}"
-
     F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE'}"
     DEPERR=$?
 
@@ -4842,25 +4834,10 @@ F_GOOGLECP_DEPLOY(){
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
-        VMDISKCNT=0
-        while [ $VMDISKCNT -ne $VMDISK ];do
-            VMDISKCNT=$((VMDISKCNT +1))
-            
-            # dynamic variable names..
-            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-            VMDISKFS="VMDISK${VMDISKCNT}FS"
-            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-   
-            F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
-            ERR=$?
-            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
-            
-       done
+        # format all specified disks
+        F_FORMATDISK $TMPHWPROFILE
+        LERR=$?
+        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
     else
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
@@ -4868,9 +4845,8 @@ F_GOOGLECP_DEPLOY(){
     F_LOG $FUNCNAME ended
 }
 
-
 ## @fn F_PROXMOX_DEPLOY()
-## @brief Deploys the Proxmox VM
+## @brief Deploys a system to Proxmox VE
 ## @param1 required: source file containing the hw config
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
@@ -4908,38 +4884,58 @@ F_PROXMOX_DEPLOY(){
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
-
-        #TODO: move to func:
-
-        VMDISKCNT=0
-        while [ $VMDISKCNT -ne $VMDISK ];do
-            VMDISKCNT=$((VMDISKCNT +1))
-            
-            # dynamic variable names..
-            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-            VMDISKFS="VMDISK${VMDISKCNT}FS"
-            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-  
-            if [ -z "$VMDISKLVMLV" ];then
-                F_LOG "$FUNCNAME" "Will configure without LVM.."
-                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
-            else
-                F_LOG "$FUNCNAME" "Will configure with LVM.."
-                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
-            fi
-            ERR=$?
-            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
-            
-       done
-    else
+        # format all specified disks
+        F_FORMATDISK $TMPHWPROFILE
+        LERR=$?
+        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
+   else
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
 
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_FORMATDISK()
+## @brief Formats a new added disk of a system
+## @param1 required: source file containing the hw config
+## @exception Fail: when disk is formatted already
+## @details Will format all disks specified in the given PORS hardware config
+## Formatting a new single disk to an existing system must ensure that param1 is
+## containing just the new disk
+F_FORMATDISK(){
+    F_LOG $FUNCNAME started
+
+    # make all user defined settings available here
+    source $TMPHWPROFILE
+
+    # allow empty domain
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
+
+    VMDISKCNT=0
+    while [ $VMDISKCNT -ne $VMDISK ];do
+        VMDISKCNT=$((VMDISKCNT +1))
+            
+        # dynamic variable names..
+        VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+        VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+        VMDISKFS="VMDISK${VMDISKCNT}FS"
+        VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+        VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+        VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+        VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+        VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+  
+        if [ -z "$VMDISKLVMLV" ];then
+            F_LOG "$FUNCNAME" "Will configure without LVM.."
+            F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
+        else
+            F_LOG "$FUNCNAME" "Will configure with LVM.."
+            F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+        fi
+        ERR=$?
+        [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR    
+    done
+ 
     F_LOG $FUNCNAME ended
 }
 
@@ -4947,7 +4943,9 @@ F_PROXMOX_DEPLOY(){
 ## @brief Add a new disk to a system
 ## @param1 required: source file containing the hw config
 ## @exception TODO
-## @details TODO
+## @details Will add all disks specified in the given PORS hardware config
+## Adding a new single disk to an existing system must ensure that param1 is
+## containing just the new disk
 F_ADDDISK(){
     F_LOG $FUNCNAME started
 
