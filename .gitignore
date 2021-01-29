@@ -9,3 +9,4 @@ ae_deploy_apps.yml
 gen_hosts.yml
 *.pyc
 test.yml
+generated_create_instance.yml

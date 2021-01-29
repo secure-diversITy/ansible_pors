@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-15"
+VERSIONNUM="4.0-17"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -199,7 +199,7 @@ declare LOG=${LOGDIR}/$(date +%F_%H-%M)_${BIN}.log
 ## @brief How many log files are allowed before rotate starts
 ## @showinitializer
 [ -z "$MAXLOG" ] && \
-declare MAXLOG=10
+declare MAXLOG=3
 
 ## @var AEUSRHOSTFILE
 ## @brief the user choosen hostfile will be written into this file
@@ -480,13 +480,7 @@ declare PBGCPGETIDS="${PBDIRGOOGLECP}/gcp_get_ids.yml"
 ## @brief Deploy GCP instance(s)
 ## @details Deploy a Google Cloud Platform (GCP) instance (including configuration)
 ## @showinitializer
-declare PBGCPDEPLOY="${PBDIRGOOGLECP}/gcp_deploy_vm.yml"
-
-## @var PBGCPNEWDISK
-## @brief Add disk to an existing GCP instance
-## @details Add a disk to an existing instance (without formatting etc)
-## @showinitializer
-declare PBGCPNEWDISK="${PBDIRGOOGLECP}/gcp_add_disk.yml"
+declare PBGCPDEPLOY="${PBDIRGOOGLECP}/gcp_deploy_instance.yml"
 
 ## @var PBSYSDISKFORMAT
 ## @brief Formats a disk
@@ -643,15 +637,17 @@ F_LOG(){
 ## @details Rotates the PORS log
 F_LOGROTATE(){
     ROTATE=no
+
     CURLOGCNT=$(find $LOGDIR -type f | wc -l)
-    if [ "$CURLOGCNT" -gt $MAXLOG ];then
-        OLDESTLOG=$(find $LOGDIR -type f -printf '%T+ %p\n' | sort | head -n 1)
-        rm -vf $OLDESTLOG
+    while [ "$CURLOGCNT" -gt $MAXLOG ];do
         ROTATE=yes
-    fi
+        CURLOGCNT=$(find $LOGDIR -type f | wc -l)
+        OLDESTLOG=$(find $LOGDIR -type f -printf '%T+ %p\n' | sort | head -n 1)
+        rm $OLDESTLOG 
+    done
 
     echo "Starting new log - $(date +%Y-%m-%d_%T) - version: $VERSION" > $LOG
-    F_LOG $FUNCNAME "log rotate: $ROTATE"
+    F_LOG $FUNCNAME "log has been rotated: $ROTATE"
 }
 
 ## @fn F_RMVAULTPW()
@@ -4503,10 +4499,11 @@ F_DEPLOYVM(){
 F_STARTVMDEP(){ 
     F_LOG $FUNCNAME started
 
-    unset SROLE VENDOR
+    unset SROLE VENDOR VMHOST VMSDOMAIN VMCPU VMRAM_GB VMIP VMNETMASK VMGW VMDNS1 VMDNS2 VM_PROVIDER
 
     FINISHED=0
     ABORTED=0
+    IACKEEP=0
 
     PROVIDERDIR="$1"
 
@@ -4587,7 +4584,7 @@ F_STARTVMDEP(){
         VM_PROVIDER=$(echo $NDIAOUT | cut -d "|" -f10 | tr -d " ")
 
         # prepare IaC config
-        VMHOSTWDATE="${VMHOST}_$(date +%Y%m%d-%H%M)"
+        VMHOSTWDATE="${VMHOST}_$(date +%Y%m%d-%H%M%S)"
         TMPHWPROFILE=$IACDIR/pors_hardware-config_${VMHOSTWDATE}.config
         [ "$HWPROFILE" != "Empty" ] && touch $TMPHWPROFILE
         cp ${HWCONFIG}${HWPROFILE}.config $TMPHWPROFILE
@@ -4611,7 +4608,7 @@ F_STARTVMDEP(){
                                 "Datacenter" 3 1 "$VM_VSPHERE_DC" 3 20 70 60  \
                                 "Network Name" 4 1 "$VM_VSPHERE_NETNAME" 4 20 70 60  \
                                 3>&1 1>&2 2>&3)
-                    PROVERR=$?
+                    VMERR=$?
                     # normalize the output so it can be parsed correctly
                     NDIAOUT=$(echo -e "$PROVOUT" | tr "\n" "|")
                     VM_VSPHERE_ESX=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")              
@@ -4625,6 +4622,7 @@ F_STARTVMDEP(){
                     echo "VM_VSPHERE_NETNAME=$VM_VSPHERE_NETNAME" >> $TMPHWPROFILE
                 ;;
                 proxmox|pve)
+		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
                     # collect available Nodes
                     F_A2BIN $HOSTFILE $PBPVEGETNODES "Collecting Proxmox Nodes.."
                     VM_PVE_NODES=$(cat ${PORS_TEMPDIR}/pve_nodes.lst | tr '\n' ',' | sed 's/,$//g')
@@ -4633,7 +4631,7 @@ F_STARTVMDEP(){
                                 "PVE Datacenter/Node" 1 1 "$VM_PROXMOX_NODE" 1 30 27 28 0 \
                                 "(available nodes: $VM_PVE_NODES)" 2 1 " " 2 50 0 0 2 \
                                 3>&1 1>&2 2>&3)
-                    PROVERR=$?
+                    VMERR=$?
                     # normalize the output so it can be parsed correctly
                     NDIAOUT=$(echo -e "$PROVOUT" | tr "\n" "|")
                     VM_PROXMOX_NODE=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")
@@ -4642,8 +4640,10 @@ F_STARTVMDEP(){
                 ;;
                 googlecp|gcp)
                     # collect ansible config
+		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
                     F_A2BIN $HOSTFILE $PBGCPGETIDS "Parsing ansible config ..." >> $LOG
                     VM_GOOGLECP_IDS=$(cat ${PORS_TEMPDIR}/googlecp.ids | tr '\n' ',' | sed 's/,$//g')
+                    [ -z "$VM_GOOGLECP_MROLE" ] && VM_GOOGLECP_MROLE=$SERVER_ROLE
 
                     PROVOUT=$(F_DIALOG --mixedform "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
                                 "GCP project id:" 1 1 "$VM_GOOGLECP_ID" 1 30 27 28 0 \
@@ -4651,7 +4651,7 @@ F_STARTVMDEP(){
                                 "Machine Type:" 3 1 "$VM_GOOGLECP_MTYPE" 3 30 27 28 0 \
                                 "Metadata Role:" 4 1 "$VM_GOOGLECP_MROLE" 4 30 27 28 0 \
                                 3>&1 1>&2 2>&3)
-                    PROVERR=$?
+                    VMERR=$?
                     # normalize the output so it can be parsed correctly
                     NDIAOUT=$(echo -e "$PROVOUT" | tr "\n" "|")
                     VM_GOOGLECP_ID=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")
@@ -4661,21 +4661,17 @@ F_STARTVMDEP(){
                     echo "VM_GOOGLECP_ID=$VM_GOOGLECP_ID" >> $TMPHWPROFILE
                     echo "VM_GOOGLECP_MTYPE=$VM_GOOGLECP_MTYPE" >> $TMPHWPROFILE
                     echo "VM_GOOGLECP_MROLE=$VM_GOOGLECP_MROLE" >> $TMPHWPROFILE
-#server_disk_sizegb_opt
-#server_disk_sizegb_swap
-#server_disk_sizegb_tmp
-#server_disk_sizegb_var
                 ;;
-                *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
+                *) F_DIAERR 4 "ERROR no valid VM provider selected! Check documentation." && VMERR=4 ;;
             esac
  
-            [ $PROVERR -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && ABORTED=1 && FINISHED=1 && return 99
+            [ $VMERR -ne 0 ] && F_LOG $FUNCNAME "ERROR: VMERR=$VMERR" && ABORTED=1 && FINISHED=1 && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 99
             F_LOG $FUNCNAME "diaout:\n$DIAOUT"
         fi
 
         # add as many disk(s) as needed
         if [ $VMERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
-            sed -i "s/SERVER_ROLE=.*/SERVER_ROLE=${VMHOSTWDATE}/g" $TMPHWPROFILE
+            sed -i "s/^SERVER_ROLE=.*/SERVER_ROLE=${VMHOSTWDATE}/g" $TMPHWPROFILE
             echo "SERVER_ROLE_BASE=$HWPROFILE" >> $TMPHWPROFILE
             echo "VMHOST=$VMHOST" >> $TMPHWPROFILE
             echo "VMCPU=$VMCPU" >> $TMPHWPROFILE
@@ -4714,7 +4710,7 @@ F_STARTVMDEP(){
                             "LVM LV name" 7 1 "${!VMDISKLVMLV}" 7 42 40 40 \
                             "Mount options" 8 1 "${!VMDISKOPTS}" 8 42 40 100 \
                             3>&1 1>&2 2>&3)
-                [ $? -ne 0 ] && F_LOG $FUNCNAME "ABORTED BY USER IN DISK DIALOG" && return 99
+                [ $? -ne 0 ] && F_LOG $FUNCNAME "ABORTED BY USER IN DISK DIALOG" && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 99
 
                 # normalize the output so it can be parsed correctly
                 NDIAOUT=$(echo -e "$DIAOUT" | tr "\n" "|")
@@ -4780,7 +4776,14 @@ F_STARTVMDEP(){
                     *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
             esac
             F_ERRLOG $VMERR "Deploying $VMHOST" $LOG
-            [ $VMERR -ne 0 ] && F_LOG $FUNCNAME "deleting IaC file due to a previous error" && rm $TMPHWPROFILE
+            [ -f "$TMPHWPROFILE" ] && F_DIALOG --yesno "\nDo you want to save the hardware profile for\n\n    $VMHOST\n\nas an IaC (Infrastructure as Code) profile?\n\nWhen you select 'yes' you can re-deploy with the same settings when choosing the 'IaC' folder next time." 16 100
+            if [ $? -eq 1 ];then 
+                rm -vf $TMPHWPROFILE >> $LOG 2>&1
+            else
+                IACKEEP=1
+            fi
+        else
+            [ $? -eq 1 ] && rm -vf $TMPHWPROFILE >> $LOG 2>&1
         fi
     done
 
@@ -4791,6 +4794,7 @@ F_STARTVMDEP(){
         F_SYSUPGRADE "${VMHOST}.${VMSDOMAIN}"
         F_DIAERR $? "Upgrading System"
     fi
+    [ $VMERR -ne 0 ] && [ "$IACKEEP" -ne 1 ] && F_LOG $FUNCNAME "deleting IaC file due to a previous error/abort" && rm $TMPHWPROFILE
     
     # close function when aborted
     [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "closing func due to abort state" && return 3
@@ -4816,12 +4820,45 @@ F_GOOGLECP_DEPLOY(){
     if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP\n    Machine Type:"$'\t\t'"$VM_GOOGLECP_MTYPE\n    Metadata Role:"$'\t\t'"$VM_GOOGLECP_MROLE\nDNS servers:"$'\t'"$VMDNS1, $VMDNS2\n\nDo you want to continue?\n" 30 80
+    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision an instance with the following details:\n\n    GCP Project:"$'\t'"\Zb$VM_GOOGLECP_ID\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP\n    Machine Type:"$'\t'"$VM_GOOGLECP_MTYPE\n    Metadata Role:"$'\t'"$VM_GOOGLECP_MROLE\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
-    [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+    [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 4
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
+    # GCP MUST have vmdisk1 as root device and that is handled different so should not be in DISK_LIST at all
+    VMDISKCNT=1
+    unset DISK_LIST
+
+    while [ $VMDISKCNT -ne $VMDISK ];do
+        VMDISKCNT=$((VMDISKCNT +1))
+
+        # dynamic variable names..
+        VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+        VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+        VMDISKFS="VMDISK${VMDISKCNT}FS"
+        VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+        VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+        VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+        VMDISKEXTRANAME="VMDISK${VMDISKCNT}EXTRANAME"
+        VMDISKDEVAUTODEL="VMDISK${VMDISKCNT}DEVAUTODEL"
+        VMDISKDEVBOOT="VMDISK${VMDISKCNT}DEVBOOT"
+
+        # gen disk name from mnt point
+        VMDISKNAME=$(echo "${!VMDISKMNTP}" | sed 's/.*\///g')
+        [ -z "$VMDISKNAME" ] && VMDISKNAME=$(echo "${!VMDISKFS}" | sed 's/.*\///g')
+        [ "$VMDISKFS" == "swap" ] && VMDISKNAME=swap
+        
+        # build the list we parsing with ansible (jinja)
+        if [ -z "${DISK_LIST['all']}" ];then
+            DISK_LIST['all']+="[${VMHOST},${VMDISKNAME},${!VMDISKSIZEGB},${!VMDISKTYPE},${!VMDISKEXTRANAME},${!VMDISKDEVAUTODEL},${!VMDISKDEVBOOT}]"
+        else
+            DISK_LIST['all']+=",[${VMHOST},${VMDISKNAME},${!VMDISKSIZEGB},${!VMDISKTYPE},${!VMDISKEXTRANAME},${!VMDISKDEVAUTODEL},${!VMDISKDEVBOOT}]"
+        fi
+    done
+    DISK_LIST_FLAT="${DISK_LIST['all']}"
+    F_LOG $FUNCNAME "DISK_LIST:\n${DISK_LIST['all']}"
+
+    #F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
 
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -4829,13 +4866,8 @@ F_GOOGLECP_DEPLOY(){
     [ $DEPERR -ne 0 ] && return 99
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
-        # add as many disk(s) as needed
-        F_ADDDISK $TMPHWPROFILE 1
-        LERR=$?
-        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
-
         # format all specified disks
-        F_FORMATDISK $TMPHWPROFILE 1
+        F_FORMATDISK $TMPHWPROFILE
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
     else
@@ -4901,8 +4933,8 @@ F_PROXMOX_DEPLOY(){
 ## @param2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
 ## @exception Fail: when disk is formatted already
 ## @details Will format all disks specified in the given PORS hardware config
-## Formatting a new single disk to an existing system must ensure that param1 is
-## containing just the new disk
+## Formatting new disk(s) in an existing system must ensure that param1 is
+## containing just the new disk(s) or that VMDISKFS=skip is set for any existing one
 F_FORMATDISK(){
     F_LOG $FUNCNAME started
     unset VMDISKCNT
@@ -4918,6 +4950,7 @@ F_FORMATDISK(){
     [ -z "$VMDISKCNT" ] && VMDISKCNT=0
     while [ $VMDISKCNT -ne $VMDISK ];do
         VMDISKCNT=$((VMDISKCNT +1))
+        F_LOG $FUNCNAME ".. parsing disk $VMDISKCNT"
             
         # dynamic variable names..
         VMDISKDEV="VMDISK${VMDISKCNT}DEV"
@@ -4928,8 +4961,11 @@ F_FORMATDISK(){
         VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
         VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
         VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-  
-        if [ -z "$VMDISKLVMLV" ];then
+ 
+        # first check if we should skip this disk
+        [ "${!VMDISKFS}" == "skip" ] && F_LOG "$FUNCNAME" "Will NOT format ${!VMDISKDEV} because 'skip' parameter has been set (VMDISKFS=${!VMDISKFS})" && continue
+
+        if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
             F_LOG "$FUNCNAME" "Will configure without LVM.."
             F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
         else
@@ -4970,9 +5006,7 @@ F_ADDDISK(){
     # set specific variables based on which provider is used
     case $VM_PROVIDER in
         googlecp|gcp)
-            PROVIDERVARS="'project_name':'$VM_GOOGLECP_ID','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE'"
-            PROVPB=$PBGCPNEWDISK
-        ;;
+            F_LOG $FUNCNAME "ERROR: >$VM_PROVIDER< does not support adding disks to an existing instance (yet?)" ; return 3  ;;
         proxmox|pve)
             PROVIDERVARS="'px_var':'$VM_PROXMOX_NODE'"
             PROVPB=$PBPVENEWDISK

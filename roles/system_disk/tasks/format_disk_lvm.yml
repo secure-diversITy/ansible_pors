@@ -5,7 +5,7 @@
     host: '{{ server_hostname }}'
     search_regex: OpenSSH
     delay: 10
-    timeout: 120
+    timeout: 60
   connection: local
 
 - name: partitioning {{ server_disk_dev }}

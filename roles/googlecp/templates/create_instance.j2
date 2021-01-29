@@ -1,0 +1,74 @@
+#######################################################################
+# IMPORTANT
+# ----------
+# This file gets AUTO-GENERATED! Any changes within this file
+# gets lost on the next run as it is part of a jinja template located
+# here: roles/googlecp/templates/create_instance.j2
+#
+# The GCP ansible modules do not offer to attach disks to an already
+# running instance. There is an old module 'gc_pd' but it is
+# superseeded by gcp_compute_instance. The latter does not offer an
+# 'attach-disk' key (as in gcloud SDK) so atm (2021, Jan) there is no
+# way to do this task via the gcp ansible modules.
+######################################################################
+
+- name: create root disk based on a GCP image
+  google.cloud.gcp_compute_disk:
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
+    scopes: "{{ '{{ %s }}' % 'googlecp.project[project_name].scopes' }}"
+    name: "{{ server_shortname }}-root"
+    size_gb: "{{ server_disk_sizegb }}"
+    source_image: "{{ googlecp.project[project_name].source_image }}"
+    type: "{{ server_disk_type }}"
+    state: present
+  register: computed_disk_root
+
+{% for shortname,disk_name,disk_size_gb,disk_type,a,b,c in disks %}
+- name: create {{ disk_name }}
+  google.cloud.gcp_compute_disk:
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
+    scopes: "{{ '{{ %s }}' % 'googlecp.project[project_name].scopes' }}"
+    name: "{{ shortname }}-{{ disk_name }}"
+    size_gb: "{{ disk_size_gb }}"
+    type: "{{ disk_type }}"
+    state: present
+  register: computed_disk_{{ disk_name }}
+
+{% endfor %}
+- name: create instance {{ server_shortname }}
+  google.cloud.gcp_compute_instance:
+    auth_kind: "{{ googlecp.project[project_name].cred_kind }}"
+    service_account_file: "{{ googlecp.project[project_name].cred_file }}"
+    project: "{{ googlecp.project[project_name].id }}"
+    zone: "{{ googlecp.project[project_name].zone }}"
+    scopes: "{{ '{{ %s }}' % 'googlecp.project[project_name].scopes' }}"
+    name: "{{ server_shortname }}"
+    hostname: "{{ server_hostname }}"
+    machine_type: "{{ server_machine_type }}"
+    metadata:
+        service: "{{ googlecp.project[project_name].metadata_service }}"
+        landscape: "{{ googlecp.project[project_name].metadata_landscape }}"
+        role: "{{ server_metadata_role }}"
+    disks:
+        - auto_delete: true
+          device_name: "{{ server_disk_gcpdevname }}"
+          boot: true
+          source: "{{ '{{ %s }}' % 'computed_disk_root' }}"
+{% for a,disk_name,c,d,setname,setpers,setboot in disks %}
+        - auto_delete: {{ setpers | default(true)}}
+          device_name: "{{ setname }}"
+          boot: {{ setboot }}
+          source: "{{ '{{ computed_disk_%s }}' % disk_name }}"
+{% endfor %}
+    network_interfaces:
+        - subnetwork:
+            selfLink: "https://www.googleapis.com/compute/v1/projects/{{ googlecp.project[project_name].id }}/regions/{{ googlecp.project[project_name].region }}/subnetworks/{{ googlecp.project[project_name].subnet }}"
+          network_ip: "{{ server_ip }}"
+    state: present
+  register: instance
