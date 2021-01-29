@@ -51,7 +51,7 @@
 
 ## @var MAXLOG
 ## @brief How many log files are allowed before rotate starts
-#export MAXLOG=10
+#export MAXLOG=3
 
 ## @var EDITBIN
 ## @brief The editor which will be used e.g. when editing system/local files
