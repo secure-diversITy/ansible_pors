@@ -10,8 +10,7 @@ Check the page: [PORS Server Setup](https://github.com/secure-diversITy/ansible_
 
 ## Options / Features
 
-![Main Menu](https://github.com/secure-diversITy/ansible_pors/blob/stable/docs/main.png)
-
+![Main Menu](docs/main.png)
 
 ## Guide
 
