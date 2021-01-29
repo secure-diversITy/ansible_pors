@@ -9,7 +9,7 @@ splunk_outputs_conf:
     defaultGroup: "{{ target_env }}"
     target_group:
       # change to the above defaultGroup - usually your target_env (production,staging,development)
-      production:
+      staging:
         useACK: true
         indexerDiscovery: "{{ target_env }}"
         sslPassword: "{{ vault_tcpout_sslPassword }}"
@@ -17,6 +17,6 @@ splunk_outputs_conf:
         sslRootCAPath: $SPLUNK_HOME/etc/auth/ca.pem
   indexer_discovery:
     # change to the above indexerDiscovery value - usually your target_env (production,staging,development)
-    production:
+    staging:
       pass4SymmKey: "{{ vault_indexerdiscovery_pass4SymmKey }}"
       master_uri: dynamic

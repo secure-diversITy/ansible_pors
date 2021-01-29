@@ -32,18 +32,18 @@ googlecp:
         # while you're free to choose any name it might be a good idea to choose something like:
         # <environment>_<splunksite>_<location>
         # rule of thumb is to split by service account, project id, metadata, region, zone, source image
-        prod_site1_us:
+        staging_site1_us:
             id: <my-project-id>
             cred_kind: serviceaccount
-            cred_file: /home/pors/.gcp.json
+            cred_file: $HOME/.gcp.json
             zone: "us-central1-a"
             region: "us-central1"
             scopes:
                 - https://www.googleapis.com/auth/compute
             source_image: "projects/templates/global/images/sles12-sp4-latest"
             metadata_service: "splunk"
-            metadata_landscape: "production"
-            subnet: "<network-subnet-name-as-defined-in-GCP"
+            metadata_landscape: "staging"
+            subnet: "<network-subnet-name-as-defined-in-GCP>"
 
         #staging_site2_eu:
         #    id: <my-project-id>

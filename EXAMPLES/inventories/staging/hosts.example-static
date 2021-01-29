@@ -2,8 +2,8 @@
 # the environment variable is predefined and only
 # production, staging, development are supported out-of-the-box.
 # check documentation for details or if you want to extend them.
-target_env=production
-#target_env=staging
+#target_env=production
+target_env=staging
 #target_env=development
 
 # this is where PORS runs so do not change this:
