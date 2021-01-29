@@ -63,7 +63,8 @@ VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 # # @details ..
 ##############################################################################################################
 
-# ensure PuttY will not look ugly
+## @var NCURSES_NO_UTF8_ACS
+## @brief ensure PuttY will not look ugly
 export NCURSES_NO_UTF8_ACS=1
 
 ###############################################################################
@@ -805,7 +806,8 @@ F_A2BIN(){
 	return $A2ERR
 }
 
-# main dialog form
+## @fn F_DIALOG()
+## @brief main dialog form with PORS presets
 F_DIALOG(){
     if [ "$RUNMODE" == "interactive" ];then
 	    dialog --no-mouse --title "PORS v$VERSION/$MAXAVERSION (${TARGETENV})" "$@"
@@ -814,7 +816,8 @@ F_DIALOG(){
     fi
 }
 
-# really? you want to read a comment for this function?
+## @fn F_HELP()
+## @brief Usage/Help for PORS
 F_HELP(){
 cat <<_EOHELP
 
@@ -987,7 +990,9 @@ F_RMAPP(){
     F_LOG $FUNCNAME ended
 }
 
-# do you wanna see all or choose
+
+## @fn F_SELECTOR()
+## @brief Menu for selecting all or specific targets
 F_SELECTOR(){
 	echo "$FUNCNAME started" >> $LOG
 	SELECTION=$(F_DIALOG --menu "\nChoose an option:" \
@@ -999,7 +1004,8 @@ F_SELECTOR(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# show current apps deployment
+## @fn F_GOAPPS()
+## @brief show current apps deployment
 F_GOAPPS(){
 	echo "$FUNCNAME started" >> $LOG
 	if [ "$SELECTION" == "ALL" ];then
@@ -1125,7 +1131,9 @@ F_TARGETS(){
 	F_LOG "$FUNCNAME" "finished"
 }
 
-# group_vars dir check and initiate if needed
+
+## @fn F_GVARDIR()
+## @brief group_vars dir check and initiate if needed
 F_GVARDIR(){
 	echo "$FUNCNAME started" >> $LOG
 	INIT=0
@@ -1168,7 +1176,8 @@ EOF_DEPL
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# deploy system/local configs
+## @fn F_DEPLSYSC()
+## @brief deploy system/local configs
 F_DEPLSYSC(){
 	echo "$FUNCNAME started" >> $LOG
 	F_HOSTFILE
@@ -1222,7 +1231,8 @@ F_DEPLSYSC(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# let the user choose to either catch existing conf from another host or locally
+## @fn F_SSHORNOT()
+## @brief let the user choose to either catch existing conf from another host or locally (system/local related)
 F_SSHORNOT(){
 	echo "$FUNCNAME started" >> $LOG
 	unset ANS
@@ -1242,7 +1252,8 @@ F_SSHORNOT(){
 	echo $ANS
 }
 
-# import by ssh from an existing host
+## @fn F_DIMPORT()
+## @brief import by ssh from an existing host (system/local related)
 F_DIMPORT(){
 	echo "$FUNCNAME started" >> $LOG
 	SSHHOST="$1"
@@ -1259,7 +1270,8 @@ F_DIMPORT(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# file browser
+## @fn F_DBROWSE()
+## @brief file browser (system/local related)
 F_DBROWSE(){
 	echo "$FUNCNAME started" >> $LOG
 	unset SDIR
@@ -1335,7 +1347,8 @@ F_EXPANDHOSTS(){
 	F_LOG "$FUNCNAME" finished
 }
 
-# validate a dir if it contains conf files
+## @fn F_VALCONF()
+## @brief validate a dir if it contains conf files (system/local related)
 F_VALCONF(){
 	echo "$FUNCNAME started" >> $LOG
 	find $1 -type f |grep -q "\.conf"
@@ -1345,7 +1358,8 @@ F_VALCONF(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# delete empty conf files
+## @fn F_CLEANCONF()
+## @brief delete empty conf files (system/local related)
 F_CLEANCONF(){
 	echo "$FUNCNAME started" >> $LOG
 	CDIR=$1
@@ -1355,7 +1369,8 @@ F_CLEANCONF(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# dialog box providing errorcde
+## @fn F_DIAERR()
+## @brief dialog box providing errorcode
 F_DIAERR(){
 	echo "$FUNCNAME started with args: $@" >> $LOG
 	ERRC="$1"
@@ -1372,7 +1387,8 @@ F_DIAERR(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# dialog box very similar to F_DIAERR but givin an option to display a given logfile
+## @fn F_ERRLOG()
+## @brief dialog box very similar to F_DIAERR but givin an option to display a given logfile
 F_ERRLOG(){
         echo "$FUNCNAME started" >> $LOG
         ERRC="$1"
@@ -1396,7 +1412,8 @@ F_ERRLOG(){
 
 }
 
-# display a wait box
+## @fn F_WAITBOX()
+## @brief display a wait box (very useful when something is done in the background)
 F_WAITBOX(){
 	# requires 1 arg (message to show)
 	MSG="$1"
@@ -1423,7 +1440,8 @@ F_SETREPODIR(){
     F_LOG $FUNCNAME ended
 }
 
-# enable an app for a host/target
+## @fn F_ENAPP()
+## @brief enable an app for a host/target
 F_ENAPP(){
 	echo "$FUNCNAME started" >> $LOG
 	unset HOSTFILE
@@ -1557,7 +1575,8 @@ F_ENAPP(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# ask user and write settings to local file
+## @fn F_SETUP_GITLAB()
+## @brief ask user and write settings to local file
 F_SETUP_GITLAB(){
 	echo "$FUNCNAME started" >> $LOG
 	# ask for server
@@ -1586,8 +1605,9 @@ F_SETUP_GITLAB(){
 }
 
 
-# get all available gitlab projects for the current user
-# this does not work with other git servers (think of ssh git@git-server info for those supporting this)
+## @fn F_GITLABSRC()
+## @brief get all available gitlab projects for the current user
+## @details this does not work with other git servers (think of ssh git@git-server info for those supporting this)
 F_GITLABSRC(){
 	F_LOG $FUNCNAME started
 	# check of required vars are set
@@ -1632,7 +1652,8 @@ F_GITLABSRC(){
         echo "returncode:$ERRC"
 }
 
-# Just showing a simple message box with some dynamic info
+## @fn F_MSG()
+## @brief Just showing a simple message box with some dynamic info
 F_MSG(){
 	echo "$FUNCNAME started" >> $LOG
 	# required arg: message
@@ -1642,8 +1663,9 @@ F_MSG(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# updating target dirs based on the template dir
-# this ensures consistent tasks for all config folders
+## @fn F_TPLUPDATE()
+## @brief updating target dirs based on the template dir
+## @details ensures consistent & updated tasks for all config folders
 F_TPLUPDATE(){
 	echo "$FUNCNAME started" >> $LOG
 	# required argument: targetgroup/hostname
@@ -1667,8 +1689,9 @@ F_TPLUPDATE(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# updating target dirs based on the APP template dir
-# this ensures consistent tasks for all config folders
+## @fn F_APPTPLUPDATE()
+## @brief updating target dirs based on the APP template dir
+## @details ensures consistent tasks for all config folders
 F_APPTPLUPDATE(){
         echo "$FUNCNAME started" >> $LOG
         # required argument: targetgroup/hostname
@@ -1688,7 +1711,8 @@ F_APPTPLUPDATE(){
         echo "$FUNCNAME finished" >> $LOG
 }
 
-# pull system/local configs for remote server
+## @fn F_PULLSYSC()
+## @brief pull system/local configs for remote server (system/local related)
 F_PULLSYSC(){
 	echo "$FUNCNAME started" >> $LOG
 	ABORTED=0
@@ -1818,7 +1842,8 @@ F_PULLSYSC(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# show hostnames in an expanded target group
+## @fn F_SHOWHOSTS()
+## @brief shows hostnames in an expanded target group
 F_SHOWHOSTS(){
 	F_LOG $FUNCNAME "started"
 	unset OPTIONS HTARGETS HOSTSELEXPANDED host ABORTED DIAOPT
@@ -1841,7 +1866,8 @@ F_SHOWHOSTS(){
 	[ "$ABORTED" -eq 0 ] && echo "$HTARGETS"
 }
 
-# show available environments to the user and let the user select one
+## @fn F_CHOOSEENV()
+## @brief show available target environments to the user and let the user select one
 F_CHOOSEENV(){
 	# returns the choosen environment so call this function like:
 	# ENVCHOICE="$(F_CHOOSEENV)"
@@ -1862,7 +1888,8 @@ F_CHOOSEENV(){
 	echo "$ENVTARGET"
 }
 
-# manage local conf files 
+## @fn F_EDITSYSC()
+## @brief manage local conf files (system/local related)
 F_EDITSYSC(){
 	echo "$FUNCNAME started" >> $LOG
         unset HOSTSELEXPANDED ABORTED SYScDIR HOSTSELECT EDITHOST host
@@ -1944,14 +1971,19 @@ F_EDITSYSC(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-# abort current menu and go back to MAIN dialog
+## @fn F_ABORTMAINMENU()
+## @brief Force-switching to main window - DEPRECATED
+## @details Use return in functions instead!
+## abort the current menu and go back to MAIN dialog
 F_ABORTMAINMENU(){
 	F_LOG "$FUNCNAME" "started with $MAINMENU , params: $@"
 	$MAINMENU
 	F_LOG "$FUNCNAME" ended
 }
 
-# shelper gui
+## @fn F_SHELPER()
+## @brief shelper UI
+## @details Tasks using the shelper utility (incl. cluster-bundle deploy etc)
 F_SHELPER(){
 	F_LOG "$FUNCNAME" started
  	while [ "$MENUDONE" == "0" ]; do
@@ -2317,7 +2349,8 @@ F_SHEXEC(){
     [ $RUNMODE != "batch" ] && F_MENUMAIN
 }
 
-# install/upgrade/use shelper
+## @fn F_SHUPGRADE()
+## @brief install/upgrade/use shelper
 F_SHUPGRADE(){
         echo "$FUNCNAME started" >> $LOG
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup
@@ -2383,7 +2416,8 @@ F_SHUPGRADE(){
         F_ERRLOG "${PIPESTATUS[0]}" "shelper upgrade/install for:\n\n$UPGRADEHOSTST" "$LOG"
 }
 
-# ask for splunk_user and splunk_password vars
+## @fn F_GETAPICREDS()
+## @brief ask for splunk_user and splunk_password vars - DEPRECATED - use VAULT instead
 F_GETAPICREDS(){
 	PLPW=""
 	SPLPWR=fail
@@ -2847,7 +2881,8 @@ F_UPGRADEMENU(){
     F_LOG $FUNCNAME ended
 }
 
-# Upgrade splunk
+## @fn F_UPGRADESPL()
+## @brief Upgrade splunk
 F_UPGRADESPL(){
     F_LOG $FUNCNAME "started with: $@"
 	# Prepare new version?
@@ -5190,7 +5225,8 @@ F_CHECKSSH(){
     F_LOG $FUNCNAME ended
 }
 
-# the main menu window in regular mode
+## @fn F_MENUMAIN()
+## @brief the main menu window of PORS in regular mode
 F_MENUMAIN(){
     F_HOSTFILE
     F_VAULTPW
@@ -5296,7 +5332,8 @@ F_MENUMAIN(){
 	     done
 }
 
-# the main menu window in testing mode
+## @fn F_MENUTESTING()
+## @brief the main menu window of PORS in testing mode
 F_MENUTESTING(){
     F_HOSTFILE
     MENUDONE=0
@@ -5320,7 +5357,8 @@ F_MENUTESTING(){
 
 }
 
-# the main menu window in advanced mode
+## @fn F_MENUADVANCED()
+## @brief the main menu window of PORS in advanced mode
 F_MENUADVANCED(){
 	while [ "$MENUDONE" == "0" ]; do
                 SELECTION=$(F_DIALOG --colors --ok-label "Select Entry" --cancel-label "Exit" \
