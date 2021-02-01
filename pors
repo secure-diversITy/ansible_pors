@@ -4721,6 +4721,7 @@ F_STARTVMDEP(){
             echo "VMDNS2=$VMDNS2" >> $TMPHWPROFILE
             echo "VMSDOMAIN=$VMSDOMAIN" >> $TMPHWPROFILE
             echo "VM_PROVIDER=$VM_PROVIDER" >> $TMPHWPROFILE
+            echo "VMDISK=$VMDISK" >> $TMPHWPROFILE
 
             VMDISKCNT=0
             while [ $VMDISKCNT -ne $VMDISK ];do
