@@ -5071,7 +5071,7 @@ F_FORMATDISK(){
         [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
 
         # FS move needed?
-        if [ "$VMDISKFSMOVE" == "[Tt]rue" ] ;then
+        if [ "${!VMDISKFSMOVE}" == "[Tt]rue" ] ;then
             F_LOG $FUNCNAME "... moving filesystem needed!"
             if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
                 F_LOG "$FUNCNAME" "moving FS (no LVM).."
