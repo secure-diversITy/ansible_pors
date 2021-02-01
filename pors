@@ -4735,6 +4735,7 @@ F_STARTVMDEP(){
                 VMDISKDEVAUTODEL="VMDISK${VMDISKCNT}DEVAUTODEL"
                 VMDISKEXTRANAME="VMDISK${VMDISKCNT}EXTRANAME"
                 VMDISKFS="VMDISK${VMDISKCNT}FS"
+                VMDISKFSMOVE="VMDISK${VMDISKCNT}FSMOVE"
                 VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
                 VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
                 VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
@@ -4751,6 +4752,7 @@ F_STARTVMDEP(){
                             "Boot device" 9 1 "${!VMDISKDEVBOOT}" 9 42 40 40 \
                             "Auto delete" 10 1 "${!VMDISKDEVAUTODEL}" 10 42 40 40 \
                             "Disk extra name" 11 1 "${!VMDISKEXTRANAME}" 11 42 40 40 \
+                            "Copy existing" 12 1 "${!VMDISKEXTRANAME}" 12 42 40 40 \
                             3>&1 1>&2 2>&3)
                 [ $? -ne 0 ] && F_LOG $FUNCNAME "ABORTED BY USER IN DISK DIALOG" && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 99
 
@@ -4768,9 +4770,11 @@ F_STARTVMDEP(){
                 UVMDISKDEVBOOT=$(echo "$NDIAOUT" | cut -d "|" -f 9 | tr -d " ")
                 UVMDISKDEVAUTODEL=$(echo "$NDIAOUT" | cut -d "|" -f 10 | tr -d " ")
                 UVMDISKEXTRANAME=$(echo "$NDIAOUT" | cut -d "|" -f 11 | tr -d " ")
+                UVMDISKFSMOVE=$(echo "$NDIAOUT" | cut -d "|" -f 12 | tr -d " ")
 
                 echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}FS=${UVMDISKFS}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}FSMOVE=${UVMDISKFSMOVE}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}OPTS=\"${UVMDISKOPTS}\"" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}" >> $TMPHWPROFILE
@@ -4786,6 +4790,7 @@ F_STARTVMDEP(){
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}OPTS=${UVMDISKOPTS}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}FS=${UVMDISKFS}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}FSMOVE=${UVMDISKFSMOVE}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}"
