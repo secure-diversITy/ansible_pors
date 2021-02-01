@@ -4903,7 +4903,7 @@ F_GOOGLECP_DEPLOY(){
         # gen disk name from mnt point
         VMDISKNAME=$(echo "${!VMDISKMNTP}" | sed 's/.*\///g')
         [ -z "$VMDISKNAME" ] && VMDISKNAME=$(echo "${!VMDISKFS}" | sed 's/.*\///g')
-        [ "$VMDISKFS" == "swap" ] && VMDISKNAME=swap
+        [ "$VMDISKFS" == "swap" ] && VMDISKNAME=swap && VMDISKMNTP=swap
         
         # build the list we parsing with ansible (jinja)
         if [ -z "${DISK_LIST['all']}" ];then
