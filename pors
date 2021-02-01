@@ -4659,7 +4659,7 @@ F_STARTVMDEP(){
                 proxmox|pve)
 		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
                     # collect available Nodes
-                    F_A2BIN $HOSTFILE $PBPVEGETNODES "Collecting Proxmox Nodes.."
+                    F_A2BIN $HOSTFILE $PBPVEGETNODES "Collecting Proxmox Nodes.." >> $LOG
                     VM_PVE_NODES=$(cat ${PORS_TEMPDIR}/pve_nodes.lst | tr '\n' ',' | sed 's/,$//g')
 
                     PROVOUT=$(F_DIALOG --mixedform "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
@@ -4918,19 +4918,18 @@ F_GOOGLECP_DEPLOY(){
 
     F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to $VM_PROVIDER ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
-
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
-    F_DIAERR $DEPERR "Deploying $VMHOST to $VM_GOOGLECP_ID"
-    [ $DEPERR -ne 0 ] && return 99
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
         # format all specified disks
         F_FORMATDISK $TMPHWPROFILE
-        LERR=$?
-        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
+        DEPERR=$?
+        [ $DEPERR -ne 0 ] && F_ERRLOG $DEPERR "issue occured while formatting disk(s)" $LOG && return $DEPERR
     else
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
+    F_DIAERR $DEPERR "Deploying $VMHOST to $VM_GOOGLECP_ID"
+    [ $DEPERR -ne 0 ] && return 99
 
     F_LOG $FUNCNAME ended
 }
@@ -4996,28 +4995,18 @@ F_PROXMOX_DEPLOY(){
 
     F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
-
-#    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
-#2>&1 >> $LOG
-#    DEPERR=$?
-
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
-    F_DIAERR $DEPERR "Deploying $VMHOST to $VM_PROXMOX_NODE" 
-    [ $DEPERR -ne 0 ] && return 99
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
-        # add as many disk(s) as needed
-#        F_ADDDISK $TMPHWPROFILE 1
-#        LERR=$?
-#        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
-
         # format all specified disks
         F_FORMATDISK $TMPHWPROFILE
-        LERR=$?
-        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
-   else
+        DEPERR=$?
+        [ $DEPERR -ne 0 ] && F_ERRLOG $DEPERR "issue occured while formatting disk(s)" $LOG && return $DEPERR
+    else
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
+    F_DIAERR $DEPERR "Deploying $VMHOST to $VM_PROXMOX_NODE"
+    [ $DEPERR -ne 0 ] && return 99
 
     F_LOG $FUNCNAME ended
 }
@@ -5061,6 +5050,9 @@ F_FORMATDISK(){
         # first check if we should skip this disk
         [ "${!VMDISKFS}" == "skip" ] && F_LOG "$FUNCNAME" "Will NOT format ${!VMDISKDEV} because 'skip' parameter has been set (VMDISKFS=${!VMDISKFS})" && continue
 
+        # special default mount option for SWAP
+        [ "${!VMDISKFS}" == "swap" ] && VMDISKOPTS="sw"
+
         if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
             F_LOG "$FUNCNAME" "Will configure without LVM.."
             F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
@@ -5075,8 +5067,8 @@ F_FORMATDISK(){
         if [ "${!VMDISKFSMOVE}" == "true" ] ;then
             F_LOG $FUNCNAME "... moving filesystem needed!"
             if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
-                F_LOG "$FUNCNAME" "moving FS (no LVM).."
-                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true', 'format_disk':'False'}"
+                F_LOG "$FUNCNAME" "moving FS (no LVM, VMDISKLVMLV=$VMDISKLVMLV).."
+                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true','format_disk':'false','server_disk_fs':'${!VMDISKFS}'}"
             else
                 F_LOG "$FUNCNAME" "moving FS (LVM).."
             fi
@@ -5268,7 +5260,7 @@ F_SYSREBOOT(){
 
     for host in $REBHOSTS;do
         honly=${host/:*}
-        F_DIALOG --scrollbar --yesno "\n\nDo you want to reboot $honly NOW?" 30 50
+        F_DIALOG --scrollbar --yesno "\n\nDo you want to reboot\n\n$honly\n\njust NOW?" 30 50
         if [ $? -eq 0 ];then
             F_A2BIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
         else
