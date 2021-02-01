@@ -20,4 +20,3 @@
 - include_tasks: kvm_poweroff.yml
   when: kvm_poweroff is defined and kvm_poweroff != False
 
-

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-17"
+VERSIONNUM="4.0-18"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -4739,7 +4739,7 @@ F_STARTVMDEP(){
                 VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
                 VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
-                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 40 100 10  \
+                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 40 100 30  \
                             "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
                             "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
                             "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
@@ -4860,6 +4860,7 @@ F_STARTVMDEP(){
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_GOOGLECP_DEPLOY(){ 
     F_LOG $FUNCNAME started
+    unset TMPHWPROFILE
 
     TMPHWPROFILE="$1"
     [ ! -f $TMPHWPROFILE ] && F_ERRLOG 3 "Missing hw config: $TMPHWPROFILE" $LOG && return 3
@@ -4909,7 +4910,7 @@ F_GOOGLECP_DEPLOY(){
     DISK_LIST_FLAT="${DISK_LIST['all']}"
     F_LOG $FUNCNAME "DISK_LIST:\n${DISK_LIST['all']}"
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to GCP ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
+    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to $VM_PROVIDER ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
 
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -4935,6 +4936,7 @@ F_GOOGLECP_DEPLOY(){
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_PROXMOX_DEPLOY(){ 
     F_LOG $FUNCNAME started
+    unset TMPHWPROFILE
 
     TMPHWPROFILE="$1"
     [ ! -f $TMPHWPROFILE ] && F_ERRLOG 3 "Missing hw config: $TMPHWPROFILE" $LOG && return 3
@@ -4951,24 +4953,60 @@ F_PROXMOX_DEPLOY(){
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-    F_LOG $FUNCNAME "Will start provisionining with: $PBPVEDEPLOY -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
 
+    # Proxmox MUST have vmdisk1 as root device and that is handled different so should not be in DISK_LIST at all
+    VMDISKCNT=0
+    unset DISK_LIST
 
-    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
-#2>&1 >> $LOG
+    while [ $VMDISKCNT -ne $VMDISK ];do
+        VMDISKCNT=$((VMDISKCNT +1))
+        F_LOG $FUNCNAME ".. parsing $VMDISKCNT"
+
+        # dynamic variable names..
+        VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+        VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+        VMDISKFS="VMDISK${VMDISKCNT}FS"
+        VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+        VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+        VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+        VMDISKEXTRANAME="VMDISK${VMDISKCNT}EXTRANAME"
+        VMDISKDEVAUTODEL="VMDISK${VMDISKCNT}DEVAUTODEL"
+        VMDISKDEVBOOT="VMDISK${VMDISKCNT}DEVBOOT"
+
+        # gen disk name from mnt point
+        VMDISKNAME=$(echo "${!VMDISKMNTP}" | sed 's/.*\///g')
+        [ -z "$VMDISKNAME" ] && VMDISKNAME=$(echo "${!VMDISKFS}" | sed 's/.*\///g')
+        [ "$VMDISKFS" == "swap" ] && VMDISKNAME=swap
+        
+        # build the list we parsing with ansible (jinja)
+        if [ -z "${DISK_LIST['all']}" ];then
+            DISK_LIST['all']+="[${VMDISKCNT},${!VMDISKSIZEGB},${!VMDISKTYPE}]"
+        else
+            DISK_LIST['all']+=",[${VMDISKCNT},${!VMDISKSIZEGB},${!VMDISKTYPE}]"
+        fi
+    done
+    DISK_LIST_FLAT="${DISK_LIST['all']}"
+    F_LOG $FUNCNAME "DISK_LIST:\n${DISK_LIST['all']}"
+
+    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
+
+#    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER ..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
+#2>&1 >> $LOG
+#    DEPERR=$?
+
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
     F_DIAERR $DEPERR "Deploying $VMHOST to $VM_PROXMOX_NODE" 
     [ $DEPERR -ne 0 ] && return 99
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
         # add as many disk(s) as needed
-        F_ADDDISK $TMPHWPROFILE 1
-        LERR=$?
-        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
+#        F_ADDDISK $TMPHWPROFILE 1
+#        LERR=$?
+#        [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while adding disk(s)" $LOG && return $LERR
 
         # format all specified disks
-        F_FORMATDISK $TMPHWPROFILE 1
+        F_FORMATDISK $TMPHWPROFILE
         LERR=$?
         [ $LERR -ne 0 ] && F_ERRLOG $LERR "issue occured while formatting disk(s)" $LOG && return $LERR
    else
@@ -5007,6 +5045,7 @@ F_FORMATDISK(){
         VMDISKDEV="VMDISK${VMDISKCNT}DEV"
         VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
         VMDISKFS="VMDISK${VMDISKCNT}FS"
+        VMDISKFSMOVE="VMDISK${VMDISKCNT}FSMOVE"
         VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
         VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
         VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
@@ -5024,7 +5063,20 @@ F_FORMATDISK(){
             F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
         fi
         ERR=$?
-        [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR    
+        [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
+
+        # FS move needed?
+        if [ "$VMDISKFSMOVE" == "[Tt]rue" ] ;then
+            F_LOG $FUNCNAME "... moving filesystem needed!"
+            if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
+                F_LOG "$FUNCNAME" "moving FS (no LVM).."
+                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true', 'format_disk':'False'}"
+            else
+                F_LOG "$FUNCNAME" "moving FS (LVM).."
+            fi
+            ERR=$?
+            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
+        fi
     done
  
     F_LOG $FUNCNAME ended

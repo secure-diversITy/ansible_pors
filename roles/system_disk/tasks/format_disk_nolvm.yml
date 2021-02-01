@@ -16,7 +16,7 @@
     number: 1
     label: gpt
     state: present
-  when: server_scnd_disk is defined and server_disk_dev is defined 
+  when: server_disk_dev is defined 
 
 - name: format {{ server_disk_dev }} with {{ server_disk_fs }}
   remote_user: "{{ pors_ssh_user }}"
@@ -24,7 +24,7 @@
   filesystem:
     fstype: "{{ server_disk_fs }}"
     dev: "{{ server_disk_dev }}1"
-  when: server_scnd_disk is defined and server_disk_dev is defined
+  when: server_disk_dev is defined
 
 - name: add {{ server_disk_mountpoint }} to fstab
   remote_user: "{{ pors_ssh_user }}"
@@ -37,7 +37,7 @@
     passno: 0
     backup: yes
     state: present
-  when: server_scnd_disk is defined and server_disk_dev is defined
+  when: server_disk_dev is defined
 
 - name: create mountpoint {{ server_disk_mountpoint }} 
   remote_user: "{{ pors_ssh_user }}"
@@ -46,7 +46,7 @@
     path: "{{ server_disk_mountpoint }}"
     mode: '0755'
     state: directory
-  when: server_scnd_disk is defined and server_disk_dev is defined
+  when: server_disk_dev is defined
 
 #- name: mount {{ server_disk_mountpoint }} 
 #  remote_user: "{{ pors_ssh_user }}"

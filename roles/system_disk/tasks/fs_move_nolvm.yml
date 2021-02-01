@@ -1,0 +1,18 @@
+---
+- name: Create temp mount {{ server_tmp_mnt }}
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  file:
+    path: "{{ server_tmp_mnt }}"
+    state: directory
+
+- name: Move content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  copy:
+    src: "{{ server_disk_mountpoint }}/"
+    dest: "{{ server_tmp_mnt }}"
+    remote_src: yes
+    mode: preserve
+    directory_mode: preserve
+

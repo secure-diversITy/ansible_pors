@@ -9,4 +9,7 @@
   when: format_disk_lvm is undefined and format_disk != False
 
 - include_tasks: create_swap_nolvm.yml
-  when: server_lvm_lv is undefined and server_disk_fs == "swap"
+  when: server_lvm_lv is undefined and format_disk != False and server_disk_fs == "swap"
+
+- include_tasks: fs_move_nolvm.yml
+  when: server_fs_move is defined and server_lvm_lv is undefined and server_fs_move == "true"
