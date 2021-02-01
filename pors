@@ -4731,15 +4731,15 @@ F_STARTVMDEP(){
                 VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
                 VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
                 VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-                VMDISKBOOTDEV="VMDISK${VMDISKCNT}BOOTDEV"
-                VMDISKAUTODEL="VMDISK${VMDISKCNT}AUTODEL"
+                VMDISKDEVBOOT="VMDISK${VMDISKCNT}DEVBOOT"
+                VMDISKDEVAUTODEL="VMDISK${VMDISKCNT}DEVAUTODEL"
                 VMDISKEXTRANAME="VMDISK${VMDISKCNT}EXTRANAME"
                 VMDISKFS="VMDISK${VMDISKCNT}FS"
                 VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
                 VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
                 VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
-                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
+                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 40 100 10  \
                             "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
                             "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
                             "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
@@ -4748,8 +4748,8 @@ F_STARTVMDEP(){
                             "LVM VG name" 6 1 "${!VMDISKLVMVG}" 6 42 40 40 \
                             "LVM LV name" 7 1 "${!VMDISKLVMLV}" 7 42 40 40 \
                             "Mount options" 8 1 "${!VMDISKOPTS}" 8 42 40 100 \
-                            "Boot device?" 9 1 "${!VMDISKBOOTDEV}" 9 42 40 40 \
-                            "Auto delete?" 10 1 "${!VMDISKAUTODEL}" 10 42 40 40 \
+                            "Boot device?" 9 1 "${!VMDISKDEVBOOT}" 9 42 40 40 \
+                            "Auto delete?" 10 1 "${!VMDISKDEVAUTODEL}" 10 42 40 40 \
                             "Disk extra name" 11 1 "${!VMDISKEXTRANAME}" 11 42 40 40 \
                             3>&1 1>&2 2>&3)
                 [ $? -ne 0 ] && F_LOG $FUNCNAME "ABORTED BY USER IN DISK DIALOG" && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 99
@@ -4774,8 +4774,8 @@ F_STARTVMDEP(){
                 echo "VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}OPTS=\"${UVMDISKOPTS}\"" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}DEV=${UVMDISKDEV}" >> $TMPHWPROFILE
-                echo "VMDISK${VMDISKCNT}BOOTDEV=${UVMDISKBOOTDEV}" >> $TMPHWPROFILE
-                echo "VMDISK${VMDISKCNT}AUTODEL=${UVMDISKAUTODEL}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}DEVBOOT=${UVMDISKDEVBOOT}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}DEVAUTODEL=${UVMDISKDEVAUTODEL}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}EXTRANAME=${UVMDISKEXTRANAME}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}" >> $TMPHWPROFILE
