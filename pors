@@ -4765,8 +4765,8 @@ F_STARTVMDEP(){
                 UVMDISKLVMVG=$(echo "$NDIAOUT" | cut -d "|" -f 6 | tr -d " ")
                 UVMDISKLVMLV=$(echo "$NDIAOUT" | cut -d "|" -f 7 | tr -d " ")
                 UVMDISKOPTS=$(echo "$NDIAOUT" | cut -d "|" -f 8 | tr -d " ")
-                UVMDISKBOOTDEV=$(echo "$NDIAOUT" | cut -d "|" -f 9 | tr -d " ")
-                UVMDISKAUTODEL=$(echo "$NDIAOUT" | cut -d "|" -f 10 | tr -d " ")
+                UVMDISKDEVBOOT=$(echo "$NDIAOUT" | cut -d "|" -f 9 | tr -d " ")
+                UVMDISKDEVAUTODEL=$(echo "$NDIAOUT" | cut -d "|" -f 10 | tr -d " ")
                 UVMDISKEXTRANAME=$(echo "$NDIAOUT" | cut -d "|" -f 11 | tr -d " ")
 
                 echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
@@ -4789,6 +4789,9 @@ F_STARTVMDEP(){
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEVBOOT=${UVMDISKDEVBOOT}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEVAUTODEL=${UVMDISKDEVAUTODEL}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}EXTRANAME=${UVMDISKEXTRANAME}"
  
                 F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
             done
