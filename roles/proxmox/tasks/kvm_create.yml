@@ -13,3 +13,7 @@
 #########################################################################
 
 - include_tasks: "{{ base_install_dir }}/roles/proxmox/tasks/generated_create_vm.yml"
+
+- name: give PVE enough time to write the config
+  pause:
+    seconds: 5
