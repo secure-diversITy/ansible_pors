@@ -1,5 +1,8 @@
 ---
 - name: Wait for SSH coming up
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ pors_user }}"
   wait_for:
     port: 22
     host: '{{ server_hostname }}'
@@ -8,9 +11,12 @@
     timeout: 60
   connection: local
 
+- meta: clear_facts
+
+- name: Get facts for {{ server_hostname }}
+  setup:
+
 - name: partitioning {{ server_disk_dev }}
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   parted: 
     device: "{{ server_disk_dev }}" 
     number: 1
@@ -19,20 +25,16 @@
   when: server_disk_dev is defined 
 
 - name: format {{ server_disk_dev }} with {{ server_disk_fs }}
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   filesystem:
     fstype: "{{ server_disk_fs }}"
     dev: "{{ server_disk_dev }}1"
   when: server_disk_dev is defined
 
 - name: add {{ server_disk_mountpoint }} to fstab
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   mount:
     src: "{{ server_disk_dev }}1"
     path: "{{ server_disk_mountpoint }}"
-    opts: "{{ server_disk_mountopts | default('defaults')}}"
+    opts: "{{ server_disk_mountopts | default('defaults', true)}}"
     fstype: "{{ server_disk_fs }}"
     passno: 0
     backup: yes
@@ -40,8 +42,6 @@
   when: server_disk_dev is defined
 
 - name: create mountpoint {{ server_disk_mountpoint }} 
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   file:
     path: "{{ server_disk_mountpoint }}"
     mode: '0755'
@@ -49,9 +49,6 @@
   when: server_disk_dev is defined
 
 #- name: mount {{ server_disk_mountpoint }} 
-#  remote_user: "{{ pors_ssh_user }}"
-#  become: yes
-#  become_user: root
 #  mount: 
 #    path: "{{ server_disk_mountpoint }}"
 #    state: mounted

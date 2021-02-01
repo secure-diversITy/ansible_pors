@@ -1,7 +1,5 @@
 ---
 - name: Partitioning {{ server_disk_dev }}
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   parted:
     device: "{{ server_disk_dev }}"
     number: 1
@@ -10,14 +8,10 @@
   when: server_disk_dev is defined
 
 - name: Make {{ server_disk_dev }} a swap device
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   shell: "mkswap {{ server_disk_dev }}1"
   when: server_disk_dev is defined
 
 - name: add {{ server_disk_dev }} to fstab
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   mount:
     src: "{{ server_disk_dev }}1"
     path: none
@@ -29,6 +23,4 @@
   when: server_disk_dev is defined
 
 - name: Enable the new swap space
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
   shell: swapon -a
