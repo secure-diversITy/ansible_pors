@@ -3,13 +3,13 @@
   run_once: True
 
 - include_tasks: format_disk_lvm.yml
-  when: format_disk_lvm is defined and format_disk != False
+  when: format_disk_lvm is defined and format_disk != "false"
 
 - include_tasks: format_disk_nolvm.yml
-  when: format_disk_lvm is undefined and format_disk != False
+  when: format_disk_lvm is undefined and format_disk != "false"
 
 - include_tasks: create_swap_nolvm.yml
-  when: server_lvm_lv is undefined and format_disk != False and server_disk_fs == "swap"
+  when: server_lvm_lv is undefined and format_disk != "false" and server_disk_fs == "swap"
 
-- include_tasks: fs_move_nolvm.yml
-  when: server_fs_move is defined and server_lvm_lv is undefined and server_fs_move == "true"
+- include_tasks: fs_move.yml
+  when: server_fs_move is defined and server_fs_move == "true"
