@@ -9,6 +9,7 @@
         - wget
         - unzip
         - make
+        - xfsprogs
     state: present
 
 - name: Install user-defined packages
