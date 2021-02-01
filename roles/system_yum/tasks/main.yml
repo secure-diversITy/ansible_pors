@@ -1,7 +1,7 @@
 ---
 - include: update.yml
   when: 
-    - system_yum.upgrade_system is defined and system_yum.upgrade_system == True
+    - splunk_with_system_upgrade is defined and splunk_with_system_upgrade == True
     - ansible_facts['os_family'] == "RedHat"
 
 - include: add_elrepo.yml

@@ -1,14 +1,14 @@
 ---
 - include: update.yml
-  when: system_yum.upgrade_system is defined and system_yum.upgrade_system == true
+  when: splunk_with_system_upgrade is defined and splunk_with_system_upgrade == True
 
 - name: Enable kernel as default on boot
   shell: "grub2-set-default {{ system_yum.elrepo.kernel.setboot }}"
   when:
-    - ('ansible_distribution == "CentOS" or ansible_distribution == "Red Hat Enterprise Linux"')
+    - ansible_facts['os_family'] == "RedHat"
     - system_yum.elrepo.kernel.setboot is defined
 
 - name: generate new grub conf
   shell: grub2-mkconfig -o /boot/grub2/grub.cfg
   when:
-    - system_yum.elrepo.kernel.setboot is defined
+    - system_yum.elrepo.kernel.gengrub

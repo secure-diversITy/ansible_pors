@@ -4,19 +4,20 @@
 #####################################################################################################################
 
 system_yum:
-  upgrade_system: true
   elrepo:
-    enabled: true
+    enabled: false
     # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail (they expect strings) !!!!
     
     # enable (yes) or disable (no) this repo
     main: "no"
     kernel:
         # enable (yes) or disable (no) this repo
-        setup: "yes"
+        setup: "no"
         # the kernel package name to install
         name: "kernel-lt"
         # RHEL/CentOS: use grub to set kernel on next boot (0 or any other id number)
         setboot: "0"
+        # generate a grub config based on the above
+        gengrub: False
     # enable (yes) or disable (no) this repo
     extras: "no"
