@@ -1,3 +1,5 @@
 ---
 - include: copy_enterprise_license_keys.yml
+  when: lm_push_license is defined and lm_push_license == True
+
 #- include: distribute_distsearch_trustedkey.yml 
