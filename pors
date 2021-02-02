@@ -2448,7 +2448,7 @@ F_GETAPICREDS(){
 F_LISTSPLREPO() { 
     F_LOG $FUNCNAME started
     REPODIR="$(F_SETREPODIR)"
-    find ${REPODIR}/packages -maxdepth 1 -type f -name splunk*rpm -or -name splunk*deb -or -name splunk*tgz | tac | sed 's#.*/##g'
+    find ${REPODIR}/packages -maxdepth 1 -type f -name splunk*tgz | tac | sed 's#.*/##g'
     F_LOG $FUNCNAME ended
 }
 
@@ -2502,7 +2502,7 @@ F_DLSPLUNK() {
 F_GETSTAGEDSPL(){ 
     F_LOG $FUNCNAME started
     # extract repo dir for apps
-    STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+')"
+    STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+(\.\d+)?')"
  
     if [ ! -z "$STAGEDVER" ];then
         echo "$STAGEDVER"
@@ -2524,9 +2524,11 @@ F_STAGESPL(){
     
     if [ -z "$AUTOVER" ];then
         # get the local avail versions
-        OPTIONS=($(for i in $(F_LISTSPLREPO | grep -P -o "splunk-(\d+\.\d+\.\d+)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
+        OPTIONS=($(for i in $(F_LISTSPLREPO | grep -P -o "splunk-(\d+\.\d+\.\d+(\.\d+)?)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
 
-	    F_LOG $FUNCNAME "splunk packages found in local repo:\n$(F_LISTSPLREPO)"
+	F_LOG $FUNCNAME "splunk packages found in local repo:\n$(F_LISTSPLREPO)"
+
+        F_LOG $FUNCNAME "OPTIONS:\n$OPTIONS"
 
         SELECTION=$(F_DIALOG --colors --ok-label "Stage" --radiolist "\nThe following shows your local repository for splunk Enterprise packages\n\nCurrently active/staged splunk version:\n\n \Zb\Zu${STAGEDSPLVER}\ZB\ZU\n\nTo stage another version simply select (space bar) and choose select.\n\n" \
                 40 80 40 \
