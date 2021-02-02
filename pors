@@ -5336,6 +5336,7 @@ F_MENUMAIN(){
 			#UpgradeCluster "Upgrade a splunk> cluster (SH / IX)" \
 
 		if [ $? -ne 0 ]; then
+                    clear
 		    echo -e "$0 closed on user request.. see you next time ;)\n"
                     F_LOG MAIN "$0 closed on user request"
                     return 4
