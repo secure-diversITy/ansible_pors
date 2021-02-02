@@ -37,12 +37,17 @@ splunk_installation:
   # default no-prompt/silence args for starting splunk non-interactive
   splunk_args_noninteractive: "--answer-yes --accept-license --no-prompt"
 
+  # when installing splunk you might want to auto-add the local key
+  # to all indexer peernodes. this way you can search on the peernodes
+  # without the need to add them in the UI.
+  # Possible values: True | False
+  deploy_key_to_peers: True
+
 # name of the tuned profile (used as directory name, branch identifier, local repo filename, ...)
 tuned_name: "splunk"
 
 splunk_optimize:
     initd: True
-    selinux: disabled
     tuned: True
 
     #################################################################################################

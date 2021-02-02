@@ -1,3 +1,5 @@
 ---
 #- include_tasks: "{{ base_install_dir }}/roles/splunk_sites/tasks/get_peernode_sites.yml"
+
 - include: distribute_distsearch_trustedkey.yml
+  when: deploy_key_to_peers is defined and deploy_key_to_peers == True

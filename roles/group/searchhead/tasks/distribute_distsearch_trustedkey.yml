@@ -8,7 +8,9 @@
     owner: "{{ splunk_install_user }}"
     src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ inventory_hostname }}/"
     dest: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/{{ inventory_hostname }}"
-  when: item not in inventory_hostname 
+  when:
+    - item not in inventory_hostname
+    - deploy_key_to_peers is defined and deploy_key_to_peers == True
   delegate_to: "{{ item }}"
   loop: "{{ query('inventory_hostnames', parsed_groups) }}"
   loop_control:
