@@ -2446,6 +2446,8 @@ F_LISTSPLREPO() {
 ## @details Takes an URL parses the relevant parts out of it and downloads splunk to the local repo
 F_DLSPLUNK() { 
     F_LOG $FUNCNAME started
+    unset VERINFO
+
     while [ -z "$VERINFO" ];do
         VERINFO=$(F_DIALOG --colors --inputbox 'This will download splunk based on just the version number & the hash value.\nGuide to get version and hash:\n\n1) open https://www.splunk.com/page/previous_releases#x86_64linux\n   (select the URL and use your terminal copy-hotkey)\n2) find the wanted version but do not click on it\n3) identify the version and hash from the package name\n\nExample:\nsplunk-\Zb7.0.1-2b5b15c4ee89\ZB-Linux-x86_64.tgz\n\nResult: \n7.0.1 = version, 2b5b15c4ee89 = hash\n\nType or paste in the version & hash ONLY.\nThe format must be exactly like this: 7.0.1-2b5b15c4ee89 (X.x.x-hash):\n' 30 100 2>&1 >>/dev/tty || echo 1)
         F_LOG $FUNCNAME "input was: $VERINFO"
