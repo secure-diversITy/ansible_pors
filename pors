@@ -527,7 +527,7 @@ declare PBCREATEUSER="${PBDIRSYSTEM}/ae_create_useracc.yml"
 ## @var PBDEPLOYKEY
 ## @brief Playbook for deploying a splunk pub key
 ## @showinitializer
-declare PBDEPLOYKEY="${PBDIRSYSTEM}/deploy_splunk_pubpem.yml"
+declare PBDEPLOYKEY="${PBDIRSPLUNK}/deploy_splunk_pubpem.yml"
 
 ## @var DEFSPLAPIADMIN
 ## @brief default splunk API (target:8089) admin account
@@ -1203,7 +1203,7 @@ F_DEPLSYSC(){
 		  else
 		     # TODO: optimize playbook exec to just exec on group instead of for each host
 			unset HOSTSELEXPANDED
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" | grep -v EMPTY |cut -d : -f 1)
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" clean | grep -v EMPTY |cut -d : -f 1)
 			# host 1,2,3,... of shcmember
 			for hex in $HOSTSELEXPANDED;do
 			     F_LOG $FUNCNAME "processing host >$hex<"
@@ -1313,12 +1313,17 @@ F_LOCSRC(){
 ## @brief create an expanded list of hostnames
 ## @param 1 target group name
 ## @param 2 optional: expandfile (file where the hosts will be written)
+## @param 3 optional: requires param2. force a clean file write (removes any prev hosts)
 ## @return space delimited list with the expanded list of hostnames
 ## @details expands a target group to a list of hostnames/ips defined in the users host file
 F_EXPANDHOSTS(){
-	F_LOG "$FUNCNAME" "started with these arguments: $@"
-	unset RET TGFILE
-	TGROUP=$1
+	F_LOG "$FUNCNAME" "started with these arguments: $1,$2,$3"
+	unset RET TGFILE TGROUP CLEAN
+
+	TGROUP="$1"
+        CLEAN="$3"
+        [ "$CLEAN" == "clean" ] && CLEANVAR="clean_tmp='yes'"
+
 	source "$AEUSRHOSTFILE"
 
 	if [ -f "$HOSTFILE" ];then
@@ -1328,7 +1333,7 @@ F_EXPANDHOSTS(){
 	    # get all hosts via playbook (will expand groups in groups etc)
             [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
 	    F_LOG $FUNCNAME "$ABIN -i $HOSTFILE $PBGETTARGETS -e target=$TGROUP expandfile=$TGFILE"
-	    $ABIN -i $HOSTFILE $PBGETTARGETS -e "target=$TGROUP expandfile=$TGFILE clean_tmp='yes'" 2>&1 | sort >> $LOG
+	    $ABIN -i $HOSTFILE $PBGETTARGETS -e "target=$TGROUP expandfile=$TGFILE $CLEANVAR" 2>&1 | sort >> $LOG
             F_RMVAULTPW
 
 	    # parse the resulted FILE and massage its content
@@ -1413,10 +1418,27 @@ F_ERRLOG(){
 
 ## @fn F_WAITBOX()
 ## @brief display a wait box (very useful when something is done in the background)
+## @details allows a 1-line (!) message where the wait box width gets sized dynamically based on the text length
 F_WAITBOX(){
-	# requires 1 arg (message to show)
+        unset MSG
 	MSG="$1"
-	F_DIALOG --infobox "\n$MSG" 5 80
+        MINLENGTH=$(F_MSGLEN "PORS v$VERSION/$MAXAVERSION (${TARGETENV})")
+        MSGLENGTH=$(F_MSGLEN "$MSG")
+        [ "$MSGLENGTH" -lt "$MINLENGTH" ] && MSGLENGTH=$MINLENGTH
+	F_DIALOG --infobox "\n$MSG" 5 $MSGLENGTH
+}
+
+## @fn F_MSGLEN()
+## @brief specify the length of a message
+## @return Message length
+## @param1 required: the message length
+F_MSGLEN(){
+    F_LOG $FUNCNAME "started with $1"
+    MSG="$1"
+    MSGLENGTH=$((${#MSG} + 6))
+    F_LOG $FUNCNAME "calculated a message length of: $MSGLENGTH"
+    echo $MSGLENGTH
+    F_LOG $FUNCNAME ended
 }
 
 ## @fn F_SETREPODIR()
@@ -1738,7 +1760,7 @@ F_PULLSYSC(){
 		echo ABORTED
 	else
 		if [ -z "$AUTO" ];then
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION")
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" clean)
 			[ "$HOSTSELEXPANDED" == "ERROR" ]&& echo "FATAL: problem with expanding hosts for $HOSTSELECTION" && F_EXIT
 			[ "$HOSTSELEXPANDED" == "EMPTY" ]&& F_LOG $FUNCNAME "Warning $HOSTSELECTION is empty?!"
 		else
@@ -1916,7 +1938,7 @@ F_EDITSYSC(){
 			#TODO: ask if the user want to edit/open a path or manage previously pulled conf files
 			# e.g. to say for the shc group do not manage authorize.conf
 
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" |cut -d : -f1)
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" clean |cut -d : -f1)
 			EDITHOST="$(F_SHOWHOSTS radiolist "$HOSTSELEXPANDED")"
 			[ $? -eq 1 ] && HABORTED=1 && break
 
@@ -2061,7 +2083,7 @@ F_CALCTGROUP(){
                 [ ! -z "${GRPSTATE[$hostlist]}" ] && F_LOG $FUNCNAME "$hostlist already added, skipping.." && continue
                 F_LOG "$FUNCNAME" "expanding $hostlist"
 
-                NEWENT=$(F_EXPANDHOSTS $hostlist "$CALCGRPF" | egrep -v "(EMPTY|$hostlist)")
+                NEWENT=$(F_EXPANDHOSTS $hostlist "$CALCGRPF" clean | egrep -v "(EMPTY|$hostlist)")
 		if [ -z "${HOSTLIST['expanded']}" ];then
 		    HOSTLIST['expanded']+="$NEWENT"
 		else
@@ -2191,7 +2213,7 @@ F_SPLACT(){
 
         [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
         for i in $HOSTSELECTION;do
-            F_EXPANDHOSTS $i "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
+            F_EXPANDHOSTS $i "$ITMPGRP" clean 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
         done
 
         # make a flat and unique list without groups
@@ -2728,7 +2750,7 @@ F_INSTALLLOGSTREAM(){
         ABORTED=0
         F_DIALOG --infobox "\nCollecting hostnames ..." 5 80
 
-        SHOSTS="$(F_EXPANDHOSTS logstream_worker)"
+        SHOSTS="$(F_EXPANDHOSTS logstream_worker clean)"
         [ "$SHOSTS" == ABORTED ] && return 4
 
         while [ -z "$HOSTSELECT" ];do
@@ -2966,7 +2988,7 @@ F_GUIDEDUPGRADE(){
     if [ -z "$UHOSTS" ];then
         F_DIALOG --infobox "\nCollecting hostnames ..." 5 80
 
-        SHOSTS="$(F_EXPANDHOSTS all |grep -v localhost)"
+        SHOSTS="$(F_EXPANDHOSTS all clean |grep -v localhost)"
         [ "$SHOSTS" == ABORTED ] && return 4
 
         STAGEDSPLVER=$(F_GETSTAGEDSPL)
@@ -3357,7 +3379,8 @@ F_DEPLOYKEY(){
     fi
     
     F_A2BIN "$HOSTFILE" "$PBDEPLOYKEY" "\Za\Z1Key deployment running ...\Z\n" "-e {'target_group':'$DESTGRP'} --limit $SRCNAME"
-    F_ERRLOG "${PIPESTATUS[0]}" "Deploying key of: $SRCNAME" "$LOG"
+    LERR="${PIPESTATUS[0]}"
+    [ $LERR -ne 0 ] && F_ERRLOG "$LERR" "Deploying key of: $SRCNAME" "$LOG" && return $LERR
 
     F_LOG $FUNCNAME ended
 } 
@@ -3377,7 +3400,7 @@ F_ADDDEP(){
     > $ITMPGRP
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS="$(F_EXPANDHOSTS deployer $ITMPGRP | sed 's/.*deployer//g')"
+    SHOSTS="$(F_EXPANDHOSTS deployer $ITMPGRP clean | sed 's/.*deployer//g')"
     [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
 
@@ -3441,7 +3464,7 @@ F_ADDLM(){
     > $ITMPGRP
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS="$(F_EXPANDHOSTS licensemaster $ITMPGRP | sed 's/.*licensemaster//g')"
+    SHOSTS=$(F_EXPANDHOSTS licensemaster "$ITMPGRP" clean)
     [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
 
@@ -3450,11 +3473,9 @@ F_ADDLM(){
     [ $? -ne 0 ] && return $?
 
     SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
-
     [ "$SHOSTS" == ABORTED ] && return 4
-    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
 
-    if  [ -z "$HOSTSELECTION" ] || [ -z $SHOSTST ];then
+    if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
     else
@@ -3485,12 +3506,13 @@ F_ADDLM(){
 
     # doit
     F_A2BIN "$ITMPGRP" "$PBCONFLM" "\Za\Z1Configure ...\Z\n" "--limit pors_lm"
-    F_ERRLOG "$?" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG"
-    #F_ERRLOG "${PIPESTATUS[0]}" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG"
+    LERR=$?
+    [ $LERR -ne 0 ] && F_ERRLOG "$LERR" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG" && return $LERR
 
     # FIXME: might be not needed anymore: deploy pub key for dist search
-    #PEERS=$(F_EXPANDHOSTS peernode $ITMPGRP | sed 's/site._.*//g')
-    #for p in $PEERS;do F_DEPLOYKEY $SHOSTST $p ; done
+    PEERS=$(F_EXPANDHOSTS peernode $ITMPGRP clean | sed 's/site._.*//g')
+    for p in $PEERS;do F_DEPLOYKEY ${SHOSTST/:*/} ${p/:*/} ; done
+    F_ERRLOG "$?" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG"
 
     unset LISTTYPE
     F_LOG $FUNCNAME ended
@@ -3510,7 +3532,7 @@ F_ADDMN(){
     > $ITMPGRP
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS="$(F_EXPANDHOSTS masternode $ITMPGRP | sed 's/masternode//g')"
+    SHOSTS="$(F_EXPANDHOSTS masternode $ITMPGRP clean | sed 's/masternode//g')"
     [ "$SHOSTS" == ABORTED ] && return 4
 
     OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
@@ -3518,10 +3540,7 @@ F_ADDMN(){
 
     SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
 
-    [ "$SHOSTS" == ABORTED ] && return 4
-    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
-
-    if  [ -z "$HOSTSELECTION" ] || [ -z $SHOSTST ];then
+    if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
     else
@@ -3606,7 +3625,7 @@ F_ADDMC(){
     fi
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS=$(F_EXPANDHOSTS ${TG} $ITMPGRP | sed "s/$TG//g")
+    SHOSTS=$(F_EXPANDHOSTS ${TG} $ITMPGRP clean | sed "s/$TG//g")
     while [ -z "$HOSTSELECTION" ];do
         OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
         HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
@@ -3748,7 +3767,7 @@ F_ADDDS(){
     fi
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS=$(F_EXPANDHOSTS ${TG} $ITMPGRP | sed "s/$TG//g")
+    SHOSTS=$(F_EXPANDHOSTS ${TG} $ITMPGRP clean | sed "s/$TG//g")
     while [ -z "$HOSTSELECTION" ];do
         OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
         HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
@@ -3810,7 +3829,7 @@ F_ADDSHCMEMBER(){
     
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
    
-    SHOSTS="$(F_EXPANDHOSTS ${SITESEL}_shcmember $ITMPGRP | sed 's/site._.*//g')"
+    SHOSTS="$(F_EXPANDHOSTS ${SITESEL}_shcmember $ITMPGRP clean | sed 's/site._.*//g')"
     [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
  
@@ -3877,7 +3896,7 @@ F_ADDPEER(){
         > $ITMPGRP
 
         [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-        SHOSTS="$(F_EXPANDHOSTS peernode $ITMPGRP | sed 's/site._.*//g')"
+        SHOSTS="$(F_EXPANDHOSTS peernode $ITMPGRP clean | sed 's/site._.*//g')"
         [ "$SHOSTS" == ABORTED ] && return 4
 
         OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
@@ -3959,17 +3978,18 @@ F_ADDSH(){
     if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # we need the MN and LM in any case:
-    LMHOST=$(F_SELHOST licensemaster)
-    MNHOST=$(F_SELHOST masternode)
-    PNHOST=$(F_SELHOST peernode)
-    echo -e '\n[peernode]' >> $ITMPGRP
-    for h in $PNHOST ;do
-        echo "$h" >> $ITMPGRP
-    done
-    echo -e '\n[masternode]' >> $ITMPGRP
-    echo "$MNHOST" >> $ITMPGRP
-    echo -e '\n[licensemaster]' >> $ITMPGRP
-    echo "$LMHOST" >> $ITMPGRP
+    F_EXPANDHOSTS masternode "$ITMPGRP" clean 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
+    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
+    F_EXPANDHOSTS peernode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP 
+
+    #echo -e '\n[peernode]' >> $ITMPGRP
+    #for h in $PNHOST ;do
+    #    echo "$h" >> $ITMPGRP
+    #done
+    #echo -e '\n[masternode]' >> $ITMPGRP
+    #echo "$MNHOST" >> $ITMPGRP
+    #echo -e '\n[licensemaster]' >> $ITMPGRP
+    #echo "$LMHOST" >> $ITMPGRP
 
     F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
@@ -4004,26 +4024,22 @@ F_ADDHF(){
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas Heavy Forwarder(s). Are you sure?" 30 100
     [ $? -ne 0 ] && return $?
 
+    F_WAITBOX "... preparing configuration files"
+
     # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
     ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
 
     echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
-    echo '[heavyforwarder]' >> $ITMPGRP
+    # we need the MN and LM in any case:
+    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
+    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
+    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+    F_EXPANDHOSTS peernode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
+    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+    echo -e '\n[heavyforwarder]' >> $ITMPGRP
     for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
     if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    # we need the MN and LM in any case:
-    LMHOST=$(F_SELHOST licensemaster)
-    MNHOST=$(F_SELHOST masternode)
-    PNHOST=$(F_SELHOST peernode)
-    echo -e '\n[peernode]' >> $ITMPGRP
-    for h in $PNHOST ;do
-        echo "$h" >> $ITMPGRP
-    done
-    echo -e '\n[masternode]' >> $ITMPGRP
-    echo "$MNHOST" >> $ITMPGRP
-    echo -e '\n[licensemaster]' >> $ITMPGRP
-    echo "$LMHOST" >> $ITMPGRP
 
     F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 

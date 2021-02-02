@@ -1,5 +1,4 @@
 ---
-
 # HINT: The "hosts" value here is a dynamic group name used in PORS
 # and so not necessarily the exact group name within your hosts file!
 
@@ -16,23 +15,4 @@
     - conf/server
     - group/licensemaster
 
-- name: Deploy keys
-  hosts: licensemaster
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
-  become_user: "{{ splunk_install_user }}"
-
-  vars:
-    target: "peernode"
-
-  roles:
-    - splunk_sites
-    - group/searchhead
-
-  vars:
-    splunk_restart: True
-
-  # flush notify handlers to activate the splunk config
-  post_tasks:
-    - meta: flush_handlers
 
