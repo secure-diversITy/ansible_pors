@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-18"
+VERSIONNUM="4.0-20"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1052,7 +1052,7 @@ F_HOSTFILE(){
 		while [ -z "$SHOSTFILE" ];do
 			OPTIONS=($(for i in $(find -L $AINVENTORY/$TARGETENV -maxdepth 1 -type f -name "hosts*" |grep -v template);do echo ${i##*/} file;done))
 			SHOSTFILE=$(F_DIALOG --menu "Select a hosts file:" 22 76 16 "${OPTIONS[@]}" manually "type in a path" 2>&1 >/dev/tty)
-			[ $? -ne 0 ] && HOSTFILE="ABORTED" && F_ABORTMAINMENU 
+			[ $? -ne 0 ] && HOSTFILE="ABORTED" && return 4
 		done
 		if [ "$SHOSTFILE" == "manually" ];then
 			SHOSTFILE=$(F_DIALOG --inputbox 'Type in your hosts filename' 20 100 $DEFHOSTFILE 2>&1 >/dev/tty)
@@ -1858,7 +1858,7 @@ F_SHOWHOSTS(){
         while [ -z "$HTARGETS" ];do
 	      ABORTED=0
               HTARGETS=$(F_DIALOG --${DIAOPT} "\nThe following are members of the choosen target group(s)\n<$HOSTSELECTION>\n\nMake your selection:" 30 80 50 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-              [ $? -eq 1 ] && ABORTED=1 && break
+              [ $? -ne 0 ] && return 4
 	      F_LOG $FUNCNAME "HTARGETS (while): >$HTARGETS<"
         done
 	F_LOG $FUNCNAME "HTARGETS (end): $HTARGETS"
@@ -1972,16 +1972,6 @@ F_EDITSYSC(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-## @fn F_ABORTMAINMENU()
-## @brief Force-switching to main window - DEPRECATED
-## @details Use return in functions instead!
-## abort the current menu and go back to MAIN dialog
-F_ABORTMAINMENU(){
-	F_LOG "$FUNCNAME" "started with $MAINMENU , params: $@"
-	$MAINMENU
-	F_LOG "$FUNCNAME" ended
-}
-
 ## @fn F_SHELPER()
 ## @brief shelper UI
 ## @details Tasks using the shelper utility (incl. cluster-bundle deploy etc)
@@ -2045,8 +2035,7 @@ F_CALCTGROUP(){
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS checklist)
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
-                        ABORTED=1 && break
-			[ $? -ne 0 ] && F_ABORTMAINMENU
+			[ $? -ne 0 ] && return 4
                 else
                         if [ -z "$HOSTSELECTION" ];then
                                 [ $RUNMODE != "batch" ] && F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
@@ -2057,7 +2046,7 @@ F_CALCTGROUP(){
                         fi
                 fi
         done
-	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+	[ $ABORTED -eq 1 ] && return 4
 
 	# ask for specific hosts or target group?
 	unset HOSTLIST['expanded'] GRPSTATE
@@ -2085,10 +2074,10 @@ F_CALCTGROUP(){
         if [ $RUNMODE != "batch" ];then
 	    while [ -z "$EDITHOST" ];do
 	        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
-                [ $? -ne 0 ] && F_ABORTMAINMENU
+                [ $? -ne 0 ] && return $?
 		if [ -z "$EDITHOST" ];then
 			F_DIALOG --yesno "No selection made! Retry?" 10 40
-			[ $? -ne 0 ] && F_ABORTMAINMENU
+			[ $? -ne 0 ] && return $?
 		fi
 	    done
         else
@@ -2104,7 +2093,7 @@ F_CALCTGROUP(){
 	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
 
 	F_LOG "$FUNCNAME" "Will do action on: <$CALCEDHOSTS>"
-	[ $? -ne 0 ] && F_ABORTMAINMENU
+	[ $? -ne 0 ] && return $?
 
 	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
 	echo '['$TMPGRP']' > ${CALCGRPF}
@@ -2164,7 +2153,7 @@ F_SPLACT(){
 		echo "$FUNCNAME: err was $ERR" >> $LOG
 		if [ $ERR -ne 0 ];then
 			F_LOG "$FUNCNAME" "ABORTED due to err $ERR"
-			F_ABORTMAINMENU
+			return $ERR
 		fi
 	done
 
@@ -2172,7 +2161,7 @@ F_SPLACT(){
             while [ -z "$ACUST" ];do
                 [ -z "$ACUST" ] && [ ! -z "$ECUST" ] && ACUST="$ECUST"
                 ACUST=$(F_DIALOG --inputbox '\n\nType your custom splunk arguments.\ne.g. "btool --debug server list"' 20 100 "" 2>&1 >/dev/tty)
-                [ $? -ne 0 ] && F_ABORTMAINMENU
+                [ $? -ne 0 ] && return $?
             done
             #ECUST=$(echo "$ACUST" | sed 's/ /SPACE/g')
             ECUST="$ACUST"
@@ -2183,9 +2172,9 @@ F_SPLACT(){
 
         while [ -z "$HOSTSELECT" ];do
             HOSTSELECTION=$(F_TARGETS checklist)
+            [ $? -ne 0 ] && return $?
             if [ "$HOSTSELECTION" == "ABORTED" ];then
                 ABORTED=1 && break
-                [ $? -ne 0 ] && F_ABORTMAINMENU
             else
                 if [ -z "$HOSTSELECTION" ];then
                     F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
@@ -2195,7 +2184,7 @@ F_SPLACT(){
                 fi
             fi
         done
-        [ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+        [ $ABORTED -eq 1 ] && return 4
 
         ACTGRP=aedosomething
         FINISHED=0
@@ -2280,7 +2269,7 @@ F_SHEXEC(){
 			unset SHCUST
 			while [ -z "$SHCUST" ];do
                 	  SHCUST=$(F_DIALOG --inputbox '\n\nType your custom reload arguments (space separated).\ne.g. "apps panels transforms searches"' 20 100 "" 2>&1 >/dev/tty)
-                	  [ $? -ne 0 ] && F_ABORTMAINMENU
+                	  [ $? -ne 0 ] && return $?
         		done
 			SHEXE="reload_custom"
 			#SHCUST=$(echo $SHCUSTRAW | sed 's/ /SPACE/g')
@@ -2358,9 +2347,9 @@ F_SHUPGRADE(){
         F_HOSTFILE
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS checklist)
+                [ $? -ne 0 ] && return $?
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
                         ABORTED=1 && break
-			[ $? -ne 0 ] && F_ABORTMAINMENU
                 else
                         if [ -z "$HOSTSELECTION" ];then
                                 F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
@@ -2370,7 +2359,7 @@ F_SHUPGRADE(){
                         fi
                 fi
         done
-	[ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+	[ $ABORTED -eq 1 ] && return 4
 
 	PLPW=""
 	SPLPWR=fail
@@ -2391,7 +2380,7 @@ F_SHUPGRADE(){
 	        EDITHOST=$(F_SHOWHOSTS checklist "${HOSTLIST['expanded']}")
 		if [ -z "$EDITHOST" ];then
 			F_DIALOG --yesno "No selection made! Retry?" 10 40
-			[ $? -ne 0 ] && F_ABORTMAINMENU
+			[ $? -ne 0 ] && return $?
 		fi
 	done
 
@@ -2402,7 +2391,7 @@ F_SHUPGRADE(){
 
 	F_LOG "$FUNCNAME" "Will upgrade/install shelper on: <$UPGRADEHOSTS>"
 	F_DIALOG --scrollbar --yesno "Will upgrade/install shelper on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
-	[ $? -ne 0 ] && F_ABORTMAINMENU
+	[ $? -ne 0 ] && return $?
 
 	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
 	UTMPGRP=${AINVENTORY}/${TARGETENV}/shelperhosts
@@ -2427,12 +2416,12 @@ F_GETAPICREDS(){
 		[ -z "$PREUSR" ] && PREUSR=$DEFSPLAPIADMIN
 
 		SPLUSR=$(F_DIALOG --inputbox '\n\nADMIN username for splunk API\n(only required for Indexer peer nodes - leave empty otherwise)' 20 100 $PREUSR 2>&1 >/dev/tty)
-		[ $? -ne 0 ] && F_ABORTMAINMENU
+		[ $? -ne 0 ] && return $?
 		PREUSR=$SPLUSR
 		SPLPW=$(F_DIALOG --passwordbox '\n\nADMIN password for splunk API\n(supports only these special chars for sure: -,_,%,@)\nYOU WILL SEE NOTHING WHILE TYPING!' 20 100 2>&1 >/dev/tty)
-		[ $? -ne 0 ] && F_ABORTMAINMENU
+		[ $? -ne 0 ] && return $?
 		SPLPWR=$(F_DIALOG --passwordbox '\n\nTo verify the ADMIN password for splunk API write it again' 20 100 2>&1 >/dev/tty)
-		[ $? -ne 0 ] && F_ABORTMAINMENU
+		[ $? -ne 0 ] && return $?
 		[ "$SPLPW" != "$SPLPWR" ] && F_DIAERR "3" "ERROR: Passwords doesn't match!"
 	done
 
@@ -2609,7 +2598,7 @@ F_UPGRADESPLC(){
 ## @brief Show and choose host(s)
 ## @param 1 specify a target group directly (non interactive - will just output ALL(!) the host(s) of a group)
 ## @details Parsing the inventory, offering all groups found, parsing groups including childs, remove dups, offer host list and let the user choose
-## @exception on abort: F_ABORTMAINMENU, on failure: error dialog
+## @exception on abort: return 4, on failure: error dialog
 F_SELHOST(){
         F_LOG $FUNCNAME started
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup TGRP PREFILTER
@@ -2633,7 +2622,7 @@ F_SELHOST(){
                 else
                         if [ -z "$HOSTSELECTION" ];then
 				F_LOG $FUNCNAME "No selection made / HOSTSELECTION empty!"
-                                F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+#                                F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
                         else
                                 HOSTSELECT=1
                                 ABORTED=0
@@ -2667,10 +2656,11 @@ F_SELHOST(){
 		if [ -z "$TGRP" ];then
 			  while [ -z "$EDITHOST" ];do
 			        EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
+                                [ $? -eq 4 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 				if [ -z "$EDITHOST" ];then
 					F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
 					F_DIALOG --yesno "No selection made! Retry?" 10 40
-					[ $? -ne 0 ] && F_ABORTMAINMENU
+					[ $? -ne 0 ] && return $?
 				fi
 			  done
 		else
@@ -2684,12 +2674,13 @@ F_SELHOST(){
 
 ## @fn F_INSTALLSPL()
 ## @brief Install splunk on ansible prepared servers
-## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
+## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
         F_LOG $FUNCNAME started
 	# this installs pure splunk (i.e. without any configuration)
 	
         SHOSTS="$(F_SELHOST)"
+        [ $? -eq 4 ] && return 4
         [ "$SHOSTS" == ABORTED ] && return 4
         SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
 
@@ -2702,7 +2693,7 @@ F_INSTALLSPL(){
 	
 	F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
 	F_DIALOG --scrollbar --yesno "Will install Splunk on these hosts:\n\n$SHOSTST\n\nAre you sure?" 30 100
-	[ $? -ne 0 ] && F_ABORTMAINMENU
+	[ $? -ne 0 ] && return $?
 
 	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
 	ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
@@ -2710,7 +2701,7 @@ F_INSTALLSPL(){
         echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
 	echo '[tmpgrp]' >> $ITMPGRP
 	for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
-	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
 	F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
@@ -2728,7 +2719,7 @@ F_INSTALLSPL(){
 
 ## @fn F_INSTALLLOGSTREAM()
 ## @brief Install cribl logstream on ansible prepared servers
-## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
+## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLLOGSTREAM(){
         F_LOG $FUNCNAME started
         unset HOSTSELECT
@@ -2755,7 +2746,7 @@ F_INSTALLLOGSTREAM(){
                 fi
             fi
         done
-        [ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+        [ $ABORTED -eq 1 ] && return 4
 
         SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
 
@@ -2769,7 +2760,7 @@ F_INSTALLLOGSTREAM(){
 
         F_LOG "$FUNCNAME" "Will install cribl logstream on <$HOSTSELECTION>"
         F_DIALOG --scrollbar --yesno "Will install cribl logstream on these hosts:\n\n$SHOSTST\n\nAre you sure?" 30 100
-        [ $? -ne 0 ] && F_ABORTMAINMENU
+        [ $? -ne 0 ] && return $?
 
         # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
         ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
@@ -2777,7 +2768,7 @@ F_INSTALLLOGSTREAM(){
         echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
         echo '[logstream_worker]' >> $ITMPGRP
         for h in $HOSTSELECTION;do echo "$h" >> $ITMPGRP; done
-        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
         CRIBLMN=$(F_SELHOST logstream_mn)
         echo -e '\n[logstream_mn]' >> $ITMPGRP
@@ -2820,7 +2811,7 @@ F_ADDSYSUSER(){
 
     if [ -z $_HOST ]||[ -z $_USER ]||[ -z "$_GRP" ]||[ -z "$_PASS" ];then
         F_LOG $FUNCNAME "HOST, USER, GRP or PASS missing: $_HOST, $_USER, $_GRP, $_PASS"
-        F_ABORTMAINMENU
+        return 3
     fi
 
     F_A2BIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
@@ -2853,7 +2844,7 @@ F_UPGRADEMENU(){
     if [ "$?" != "0" ]; then
               MENUDONE=1
               F_LOG $FUNCNAME "aborted by user"
-              F_ABORTMAINMENU
+              return 4
     else
         case "$SELECTION" in
             Download)
@@ -2877,7 +2868,7 @@ F_UPGRADEMENU(){
                 F_UPGRADEMENU
             ;;
             *)
-                F_ABORTMAINMENU
+                return 3
             ;;
         esac
     fi
@@ -2928,7 +2919,7 @@ F_UPGRADESPL(){
     if [ -z "$AUTOMODE" ];then
             F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts IN PARALLEL(!!):\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
 	    if [ $? -ne 0 ];then
-                F_ABORTMAINMENU
+                return $?
             else
 	        # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
 	        UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
@@ -2940,7 +2931,7 @@ F_UPGRADESPL(){
 	        for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
 	        if [ $? -ne 0 ];then
                     F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
-                    F_ABORTMAINMENU
+                    return 3
                 else
     	            F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 	            # upgrade
@@ -2961,7 +2952,7 @@ F_UPGRADESPL(){
 
 ## @fn F_GUIDEDUPGRADE()
 ## @brief Guided upgrade of several splunk servers and clusters
-## @exception on abort: F_ABORTMAINMENU, on failure: F_ERRLOG dialog
+## @exception on abort: return 4, on failure: F_ERRLOG dialog
 ## @details Prepare your very own upgrade order 
 F_GUIDEDUPGRADE(){
     F_LOG $FUNCNAME started
@@ -2995,7 +2986,7 @@ F_GUIDEDUPGRADE(){
                 fi
             fi
         done
-        [ $ABORTED -eq 1 ] && F_ABORTMAINMENU
+        [ $ABORTED -eq 1 ] && return 4
     else
         HOSTSELECTION="$UHOSTS"
         ABORTED=0
@@ -3038,7 +3029,7 @@ F_GUIDEDUPGRADE(){
                3>&1 1>&2 2>&3 )
     if [ $? -ne 0 ];then
         F_LOG $FUNCNAME "aborted on user request"
-        F_ABORTMAINMENU
+        return 4
     fi
     SORTED=$(for num in $UPGORDER;do \
                 F_LOG $FUNCNAME "prehostsel: $HOSTSELECTION"; \
@@ -3054,7 +3045,7 @@ F_GUIDEDUPGRADE(){
 
     F_DIALOG --colors --scrollbar --yesno "Will upgrade Splunk to \Zb\Zuv${STAGEDSPLVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
     if [ $? -ne 0 ];then
-        F_ABORTMAINMENU
+        return $?
     else	
         for utg in $SORTED;do
             F_UPGRADESPL "${utg/*:/}"
@@ -3089,7 +3080,7 @@ F_DEPLOYMENU(){
     if [ "$?" != "0" ]; then
               MENUDONE=1
               F_LOG $FUNCNAME "aborted by user"
-              F_ABORTMAINMENU
+              return 4
     else
         case "$SELECTION" in
             Choose)
@@ -3103,7 +3094,7 @@ F_DEPLOYMENU(){
                 F_DEPLOYMENU
             ;;
             *)
-                F_ABORTMAINMENU
+                return 3
             ;;
         esac
     fi
@@ -3243,11 +3234,11 @@ F_CLUSTER(){
         if [ "$?" != "0" ]; then
               MENUDONE=1
               F_LOG $FUNCNAME "aborted by user"
-              F_ABORTMAINMENU
+              return 4
         else
                 case "$SELECTION" in
                         *)
-                        F_ABORTMAINMENU
+                        return 3
                         ;;
 		esac
 	fi
@@ -3277,7 +3268,7 @@ F_VMMENU(){
         if [ "$?" != "0" ]; then
               MENUDONE=1
               F_LOG $FUNCNAME "aborted by user"
-              F_ABORTMAINMENU
+              return 4
         else
                 case "$SELECTION" in
                         VM-Deploy)
@@ -3290,7 +3281,7 @@ F_VMMENU(){
                         F_FSDISK
                         ;;
                         *)
-                        F_ABORTMAINMENU
+                        return 4
                         ;;
                 esac
         fi
@@ -3326,7 +3317,7 @@ F_CONFMENU(){
         if [ "$?" != "0" ]; then
               MENUDONE=1
               F_LOG $FUNCNAME "aborted by user"
-              F_ABORTMAINMENU
+              return 4
         else
                 case "$SELECTION" in
                         SearchHead)        F_ADDSH ;;
@@ -3338,7 +3329,7 @@ F_CONFMENU(){
                         Deployer)          F_ADDDEP ;;
                         DeploymentServer)  F_ADDDS ;;
                         SHCmember)         F_ADDSHCMEMBER ;;
-                        *) F_ABORTMAINMENU ;;
+                        *) return 3;;
                 esac
         fi
     F_LOG $FUNCNAME ended
@@ -3385,10 +3376,12 @@ F_ADDDEP(){
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
     SHOSTS="$(F_EXPANDHOSTS deployer $ITMPGRP | sed 's/.*deployer//g')"
+    [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
 
     OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
     HOSTSELECTION=$(F_DIALOG --${LISTTYPE} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+    [ $? -ne 0 ] && return $?
 
     SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
 
@@ -3407,7 +3400,7 @@ F_ADDDEP(){
 
     echo '[deployer]' >> $ITMPGRP
     for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # we need LM and MN in any case:
     echo -e "\n" >> $ITMPGRP
@@ -3416,7 +3409,7 @@ F_ADDDEP(){
 
     F_LOG "$FUNCNAME" "Will configure deployer on <$SHOSTS>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas SHC Deployer. Are you sure?" 30 100
-    [ $? -ne 0 ] && F_ABORTMAINMENU
+    [ $? -ne 0 ] && return $?
 
     F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
@@ -3447,10 +3440,12 @@ F_ADDLM(){
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
     SHOSTS="$(F_EXPANDHOSTS licensemaster $ITMPGRP | sed 's/.*licensemaster//g')"
+    [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
 
     OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
     HOSTSELECTION=$(F_DIALOG --${LISTTYPE} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+    [ $? -ne 0 ] && return $?
 
     SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
 
@@ -3469,7 +3464,7 @@ F_ADDLM(){
 
     echo '[pors_lm]' >> $ITMPGRP
     for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # we need the MN in any case:
     echo -e "\n" >> $ITMPGRP
@@ -3477,7 +3472,7 @@ F_ADDLM(){
 
     F_LOG "$FUNCNAME" "Will configure LicenseMaster on <$SHOSTS>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas license master. Are you sure?" 30 100
-    [ $? -ne 0 ] && F_ABORTMAINMENU
+    [ $? -ne 0 ] && return $?
 
     F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
@@ -3536,7 +3531,7 @@ F_ADDMN(){
 
     echo '[pors_masternode]' >> $ITMPGRP
     for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # we need the LM in any case:
     echo -e "\n" >> $ITMPGRP
@@ -3544,7 +3539,7 @@ F_ADDMN(){
 
     F_LOG "$FUNCNAME" "Will configure indexer MasterNode on <$SHOSTS>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas indexer masternode. Are you sure?" 30 100
-    [ $? -ne 0 ] && F_ABORTMAINMENU
+    [ $? -ne 0 ] && return $?
 
     F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
@@ -3772,7 +3767,7 @@ F_ADDDS(){
 
     echo -e '\n[deploymentserver]' >> $ITMPGRP
     for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # target environment must be set always
     echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
@@ -3809,14 +3804,17 @@ F_ADDSHCMEMBER(){
     ASITES=$(F_GETSITES)
     OPTIONS=($(for i in $ASITES;do echo "${i} use_space-bar_to_select off"; done))
     SITESEL=$(F_DIALOG --radiolist "Please choose a site you want to configure.\n\nNOTE: It is not possible to configure multiple sites in one run." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+    [ $? -ne 0 ] && return $?
     
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
    
     SHOSTS="$(F_EXPANDHOSTS ${SITESEL}_shcmember $ITMPGRP | sed 's/site._.*//g')"
-    #[ "$SHOSTS" == ABORTED ] && return 4
+    [ $? -ne 0 ] && return $?
+    [ "$SHOSTS" == ABORTED ] && return 4
  
     OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
     HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection.\n\nNOTE: It is not possible to configure multiple sites in one run so you will see here $SITESEL hosts only." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+    [ $? -ne 0 ] && return $?
     
     SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g')
     
@@ -3839,7 +3837,7 @@ F_ADDSHCMEMBER(){
 
     echo -e '\n[shcmember]' >> $ITMPGRP
     for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3 ;fi
     
     # target environment must be set always
     echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
@@ -3850,7 +3848,7 @@ F_ADDSHCMEMBER(){
     
     F_LOG "$FUNCNAME" "Will configure shc member on <$HOSTSELECTION>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas SHC member. Are you sure?" 30 100
-    [ $? -ne 0 ] && F_ABORTMAINMENU
+    [ $? -ne 0 ] && return $?
     
     F_LOG $FUNCNAME "Temporary generated group:\n$(cat $ITMPGRP)"
     
@@ -3882,6 +3880,7 @@ F_ADDPEER(){
 
         OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
         HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+        [ $? -ne 0 ] && return $?
 
         SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
 
@@ -3894,7 +3893,7 @@ F_ADDPEER(){
 
         echo -e '\n[peernode]' >> $ITMPGRP
         for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
         # target environment must be set always
         echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
@@ -3912,7 +3911,7 @@ F_ADDPEER(){
 
         F_LOG "$FUNCNAME" "Will configure indexer peernode on <$HOSTSELECTION>"
         F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas indexer peernode(s). Are you sure?" 30 100
-        [ $? -ne 0 ] && F_ABORTMAINMENU
+        [ $? -ne 0 ] && return $?
 
         F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
@@ -3934,6 +3933,7 @@ F_ADDSH(){
     unset SHOSTS SHOSTST
 
     SHOSTS="$(F_SELHOST)"
+    [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
     SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
 
@@ -3946,7 +3946,7 @@ F_ADDSH(){
 
     F_LOG "$FUNCNAME" "Will configure <$SHOSTS> as a SearchHead"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas SearchHead(s). Are you sure?" 30 100
-    [ $? -ne 0 ] && F_ABORTMAINMENU
+    [ $? -ne 0 ] && return $?
 
     # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
     ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
@@ -3954,7 +3954,7 @@ F_ADDSH(){
     echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
     echo '[searchhead]' >> $ITMPGRP
     for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # we need the MN and LM in any case:
     LMHOST=$(F_SELHOST licensemaster)
@@ -3987,6 +3987,7 @@ F_ADDHF(){
     unset SHOSTS SHOSTST
 
     SHOSTS="$(F_SELHOST)"
+    [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
     SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
 
@@ -3999,7 +4000,7 @@ F_ADDHF(){
 
     F_LOG "$FUNCNAME" "Will configure <$SHOSTS> as a Heavy Forwarder"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas Heavy Forwarder(s). Are you sure?" 30 100
-    [ $? -ne 0 ] && F_ABORTMAINMENU
+    [ $? -ne 0 ] && return $?
 
     # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
     ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
@@ -4007,7 +4008,7 @@ F_ADDHF(){
     echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
     echo '[heavyforwarder]' >> $ITMPGRP
     for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; F_ABORTMAINMENU;fi
+    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
     # we need the MN and LM in any case:
     LMHOST=$(F_SELHOST licensemaster)
@@ -4146,8 +4147,8 @@ F_VSPHERE_VCGETINFO(){
     F_LOG $FUNCNAME "LISTSAVAIL ended with $LISTSAVAIL"
 
     if [ $LISTSAVAIL -ne 1 ];then
-        F_ERRLOG "9" "Error collecting ESX information!" "$LOG"
-        F_ABORTMAINMENU
+        F_ERRLOG "3" "Error collecting ESX information!" "$LOG"
+        return 3
     fi
 
     # Target ESX
@@ -4256,9 +4257,9 @@ F_VSPHERE_DEPLOY(){
     F_LOG "$FUNCNAME" "$VCENTER,$VMHOST,$VMCPU,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VCHOST,$VCDC,$VCDS,$VCNET,$VMGUESTOS,$VMDISK,$VMDISKTYPE,$VMDISKSIZEGB,$VMDISKOPTS,$VMDISKDEV"
 
     if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM_MB" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" -o -z "$VMSDOMAIN" -o -z "$VCHOST" -o -z "$VCDC" -o -z "$VCDS" -o -z "$VCNET" ];then
-        F_DIAERR 9 "A required field is missing! ABORTED."
+        F_DIAERR 3 "A required field is missing! ABORTED."
         F_LOG $FUNCNAME "ERROR: A required field is missing!"
-        F_ABORTMAINMENU
+        return 3
     else            
         ABORTED=0
     fi
@@ -4666,8 +4667,8 @@ F_STARTVMDEP(){
                     VM_PVE_NODES=$(cat ${PORS_TEMPDIR}/pve_nodes.lst | tr '\n' ',' | sed 's/,$//g')
 
                     PROVOUT=$(F_DIALOG --mixedform "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
-                                "PVE Datacenter/Node" 1 1 "$VM_PROXMOX_NODE" 1 30 27 28 0 \
-                                "(available nodes: $VM_PVE_NODES)" 2 1 " " 2 50 0 0 2 \
+                                "Proxmox PORS ID" 1 1 "$VM_PROXMOX_NODE" 1 30 27 28 0 \
+                                "(available IDs: $VM_PVE_NODES)" 2 1 " " 2 50 0 0 2 \
                                 3>&1 1>&2 2>&3)
                     VMERR=$?
                     # normalize the output so it can be parsed correctly
@@ -4956,7 +4957,7 @@ F_PROXMOX_DEPLOY(){
     if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    Proxmox Node:"$'\t'"\Zb$VM_PROXMOX_NODE\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
+    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    Proxmox ID:"$'\t'"\Zb$VM_PROXMOX_NODE\ZB\n\n    Hostname:"$'\t\t'"${VMHOSTF}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
@@ -5079,7 +5080,7 @@ F_FORMATDISK(){
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
         fi
     done
- 
+    F_SYSREBOOT "$VMHOST"
     F_LOG $FUNCNAME ended
 }
 
@@ -5236,7 +5237,6 @@ F_SYSUPGRADE(){
     done
     FORERR=$?
     if [ $FORERR -eq 0 ];then
-        F_DIALOG --scrollbar --yesno "\n\nThis server requires a reboot!\n\nDo you want to initiate a reboot now?\n(additional confirmation on next screen)" 30 50
         if [ $? -eq 0 ];then
             F_LOG $FUNCNAME "System Upgrade(s) installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
             F_SYSREBOOT "$SELHOSTS"
@@ -5263,7 +5263,7 @@ F_SYSREBOOT(){
 
     for host in $REBHOSTS;do
         honly=${host/:*}
-        F_DIALOG --scrollbar --yesno "\n\nDo you want to reboot\n\n$honly\n\njust NOW?" 30 50
+        F_DIALOG --scrollbar --yesno "\n\nThe server $host requires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
         if [ $? -eq 0 ];then
             F_A2BIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
         else
@@ -5335,67 +5335,84 @@ F_MENUMAIN(){
 
 			#UpgradeCluster "Upgrade a splunk> cluster (SH / IX)" \
 
-		if [ "$?" != "0" ]; then
-		    MENUDONE=1
-		    echo "$0: finished."
-		    F_EXIT
+		if [ $? -ne 0 ]; then
+		    echo -e "$0 closed on user request.. see you next time ;)\n"
+                    F_LOG MAIN "$0 closed on user request"
+                    return 4
 		fi
 		case "$SELECTION" in
 			New-app)
+                        F_LOG $FUNCNAME "F_TBD ended with $?"
 			;;
 			Link-app)
 			F_ENAPP
+                        F_LOG $FUNCNAME "F_ENAPP ended with $?"
 			;;
 			Deploy-apps)
 			F_DEPLOYMENU
+                        F_LOG $FUNCNAME "F_DEPLOYMENU ended with $?"
 			;;
 			Remove-app)
 			F_RMAPP
+                        F_LOG $FUNCNAME "F_RMAPP ended with $?"
 			;;
 			Show-apps)
 			SELECTION=$(F_SELECTOR)
 			F_GOAPPS
+                        F_LOG $FUNCNAME "F_GOAPPS ended with $?"
 			;;
 			Edit-SYSC)
 			F_EDITSYSC
+                        F_LOG $FUNCNAME "F_EDITSYSC ended with $?"
 			;;
 			Pull-SYSC)
 			F_PULLSYSC
+                        F_LOG $FUNCNAME "F_PULLSYSC ended with $?"
 			;;
 			Deploy-SYSC)
 			#SELECTION=$(F_SELECTOR)
 			F_DEPLSYSC "$(F_SELECTOR)"
+                        F_LOG $FUNCNAME "F_DEPLSYSC ended with $?"
 			;;
 			Upgrade)
 			F_UPGRADEMENU
+                        F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
 			;;
 			splunkd)
 			F_SPLACT
+                        F_LOG $FUNCNAME "F_SPLACT ended with $?"
 			;;
 			shelper)
 			F_SHELPER
-                        F_ABORTMAINMENU F_SHELPER
+                        F_LOG $FUNCNAME "F_SHELPER ended with $?"
 			;;
 			gitlab)
 			F_SETUP_GITLAB
+                        F_LOG $FUNCNAME "F_SETUP_GITLAB ended with $?"
 			;;
 			'Install (splunk)')
 			F_INSTALLSPL
+                        F_LOG $FUNCNAME "F_INSTALLSPL ended with $?"
 			;;
 			'Install (cribl)')
 			F_INSTALLLOGSTREAM
+                        F_LOG $FUNCNAME "F_INSTALLLOGSTREAM ended with $?"
 			;;
 			Cluster)
 			F_CLUSTER
+                        F_LOG $FUNCNAME "F_CLUSTER ended with $?"
 			;;
                         VM-Deploy)
                         F_DEPLOYVM
+                        F_LOG $FUNCNAME "F_DEPLOYVM ended with $?"
                         ;;
                         Configure)
                         F_CONFMENU
+                        F_LOG $FUNCNAME "F_CONFMENU ended with $?"
                         ;;
                         VM-Management)
                         F_VMMENU
+                        F_LOG $FUNCNAME "F_VMMENU ended with $?"
                         ;;
 		esac
 	     done
@@ -5678,8 +5695,13 @@ else
     ## @showinitializer
     declare PORS_TEMPDIR=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
 
-    [ -z "$MAINMENU" ]&& MAINMENU=F_MENUMAIN
-    $MAINMENU
+    END=0
+    while [ $END -eq 0 ];do
+        [ -z "$MAINMENU" ]&& MAINMENU=F_MENUMAIN
+        $MAINMENU
+        END=$?
+        [ $END -eq 4 ] && F_LOG MAIN ".. goodbye!"
+    done
 fi
 
 F_EXIT
