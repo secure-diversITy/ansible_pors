@@ -46,7 +46,7 @@
 
 - include: optimize_selinux.yml
   when: 
-    - splunk_optimize.selinux is defined
+    - system.selinux is defined
 
 - include: set_perms.yml
 

@@ -12,22 +12,28 @@ tokenauth:
     gituser: ""
     gitpassword: ""
 
-# additional packages to be installed during the splunk install
-#packages:
-#    - make
-#    - tig
+system:
+    # Configures SELinux. Possible values: enabled | disabled
+    selinux: disabled
 
-# a (possibly shared or simply a second) user account which exists 
-# besides the regular ansible remote ssh user {{ pors_ssh_user }}
-# PORS will create that account and also configure authorized_keys if:
-# /opt/pors_repo/authorized_keys_{{ shared_service_account }}
-# exists.
-#shared_service_account:
+    # should PORS run a system upgrade after VM deploy and during
+    # the splunk upgrade process? Possible values: True | False
+    upgrade_os: False
 
-# should PORS run a system upgrade when a splunk upgrade is initiated?
-# if you choose True a linux system upgrade will be run first, then
-# the actual splunk upgrade
-splunk_with_system_upgrade: True
+    # a (possibly shared or simply a second) user account which exists 
+    # besides the regular ansible remote ssh user {{ pors_ssh_user }}
+    # PORS will create that account and also configure authorized_keys
+    # if /opt/pors_repo/authorized_keys_{{ shared_service_account }}
+    # exists.
+    #shared_service_account:
+
+    # additional OS packages to be installed during
+    # - VM deploy
+    # - splunk install + upgrade
+    # 1 pkg per line
+    #packages:
+        #- make
+        #- ..
 
 # NTP settings
 ntp_enabled: true

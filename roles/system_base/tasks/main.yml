@@ -1,2 +1,5 @@
 ---
 - include_tasks: software.yml
+
+- include_tasks: ../../system_optimize/tasks/optimize_selinux.yml
+  when: system.selinux is defined

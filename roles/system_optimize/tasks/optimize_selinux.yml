@@ -5,5 +5,5 @@
 
 - name: Set SELinux mode (if installed)
   selinux: 
-      state: "{{ splunk_optimize.selinux }}"
+      state: "{{ system.selinux }}"
   when: selstate.rc == 0
