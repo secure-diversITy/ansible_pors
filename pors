@@ -5251,9 +5251,10 @@ F_SYSUPGRADE(){
     for uhost in $(echo "$SELHOSTS" |tr " " "\n" | cut -d ":" -f 1);do
         # check ssh first
         F_CHECKSSH "$uhost"
-        F_A2BIN $HOSTFILE $PBSYSUPGRADE "Upgrading $uhost ..." "--limit $uhost" || break
+        F_A2BIN $HOSTFILE $PBSYSUPGRADE "Upgrading $uhost ..." "--limit $uhost"
+        FORERR=$?
+        [ $FORERR -ne 0 ] && break
     done
-    FORERR=$?
     if [ $FORERR -eq 0 ];then
         if [ $? -eq 0 ];then
             F_LOG $FUNCNAME "System Upgrade(s) installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
@@ -5265,7 +5266,7 @@ F_SYSUPGRADE(){
     else
         LASTERR=$FORERR
     fi
-    F_LOG $FUNCNAME ended with $LASTERR
+    F_LOG $FUNCNAME "ended with $LASTERR"
     return $LASTERR
 }
 
@@ -5289,7 +5290,7 @@ F_SYSREBOOT(){
         fi
     done
     FORERR=$?
-    F_LOG $FUNCNAME ended with $FORERR
+    F_LOG $FUNCNAME "ended with $FORERR"
     return $FORERR
 }
 
