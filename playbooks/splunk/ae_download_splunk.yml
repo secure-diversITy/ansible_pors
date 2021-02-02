@@ -5,25 +5,12 @@
 
   - name: Check/Create repo dir
     file:
-        path: "{{ splunk_repository.repository_root }}/packages"
+        path: "{{ repo_base }}/common/packages"
         state: directory
-
-
-
-  - name: Download Splunk rpm packages
-    get_url: url="{{ item.value.url }}"
-             dest={{ splunk_repository.repository_root }}/packages 
-             owner={{ splunk_repository.repository_owner }} 
-             group={{ splunk_repository.repository_group }} 
-             mode=644
-    with_dict: "{{ splunk_packages.linux_64_rpm }}"
-    when: splunk_installation.package_format == "rpm" and
-          splunk_packages.linux_64_rpm is defined
-          
 
   - name: Download Splunk tgz packages
     get_url: url="{{ item.value.url }}"
-             dest={{ splunk_repository.repository_root }}/packages
+             dest={{ repo_base }}/common/packages
              owner={{ splunk_repository.repository_owner }}
              group={{ splunk_repository.repository_group }}
              mode=644

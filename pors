@@ -1427,15 +1427,17 @@ F_WAITBOX(){
 F_SETREPODIR(){  
     F_LOG $FUNCNAME started
     # local repository definition configuration file for tgz's  
-    REPODEF=$AINVENTORY/$TARGETENV/group_vars/all/splunk_repository
+    REPODEF=$AINVENTORY/$TARGETENV/group_vars/all/splunk_repository.yml
 
     # extract repo dir for apps
-    REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")"
+    REPODIR="$(grep ^repo_base $REPODEF|cut -d ":" -f 2|tr -d " ")"
 
     # return only the repo dir when its a valid directory
     if [ -d "$REPODIR" ];then
-        echo "$REPODIR"
+        echo "$REPODIR/common"
     fi
+    [ ! -d $REPODIR/common ] && mkdir -p $REPODIR/common
+
     F_LOG $FUNCNAME "repo dir: $REPODIR"
     F_LOG $FUNCNAME ended
 }
