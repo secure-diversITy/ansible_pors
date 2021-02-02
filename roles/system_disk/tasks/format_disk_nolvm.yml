@@ -30,13 +30,13 @@
     dev: "{{ server_disk_dev }}1"
   when: server_disk_dev is defined
 
-- name: add {{ server_disk_mountpoint }} to fstab
+- name: add {{ server_disk_dev }} to fstab
   mount:
     src: "{{ server_disk_dev }}1"
     path: "{{ server_disk_mountpoint }}"
     opts: "{{ server_disk_mountopts | default('defaults', true)}}"
     fstype: "{{ server_disk_fs }}"
-    passno: 0
+    passno: "0"
     backup: yes
     state: present
   when: server_disk_dev is defined
@@ -46,7 +46,7 @@
     path: "{{ server_disk_mountpoint }}"
     mode: '0755'
     state: directory
-  when: server_disk_dev is defined
+  when: server_disk_dev is defined and server_disk_mountpoint != "none"
 
 #- name: mount {{ server_disk_mountpoint }} 
 #  mount: 
