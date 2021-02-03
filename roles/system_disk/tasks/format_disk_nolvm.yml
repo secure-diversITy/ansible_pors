@@ -13,12 +13,12 @@
 
 - meta: clear_facts
 
+- name: FIXME: give GCP enough time to implement its keys
+  pause:
+    seconds: 10
+
 - name: Get facts for {{ server_hostname }}
   setup:
-  register: fact_result
-  until: fact_result.rc == 0
-  retries: 6
-  delay: 10
 
 - name: partitioning {{ server_disk_dev }}
   parted: 
