@@ -13,7 +13,7 @@
 
 - meta: clear_facts
 
-- name: FIXME: give GCP enough time to implement its keys
+- name: "FIXME - give GCP enough time to implement its keys"
   pause:
     seconds: 10
 
