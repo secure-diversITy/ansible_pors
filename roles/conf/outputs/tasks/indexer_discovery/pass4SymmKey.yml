@@ -15,8 +15,8 @@
             option=pass4SymmKey
             value={{ item.value.pass4SymmKey }}
             state=present
+  when: splunk_outputs_conf.indexer_discovery[item.key].pass4SymmKey is defined
   with_dict: "{{ splunk_outputs_conf.indexer_discovery }}"
-  when: '"splunk_outputs_conf.indexer_discovery.item.key.pass4SymmKey" is defined'
   notify: splunk restart
 
 - name: "Configure outputs.conf [indexer_discovery] - pass4SymmKey state=absent (default)"
@@ -24,6 +24,8 @@
             section=indexer_discovery:{{ item.key }}
             option=pass4SymmKey
             state=absent
+  when:
+    - splunk_outputs_conf.indexer_discovery[item.key] is defined
+    - splunk_outputs_conf.indexer_discovery[item.key].pass4SymmKey is undefined 
   with_dict: "{{ splunk_outputs_conf.indexer_discovery }}"
-  when: '"splunk_outputs_conf.indexer_discovery.item.key.pass4SymmKey" is undefined'
   notify: splunk restart

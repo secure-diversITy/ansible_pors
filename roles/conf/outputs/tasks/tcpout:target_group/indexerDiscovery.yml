@@ -16,7 +16,7 @@
     option: indexerDiscovery
     value: "{{ item.value.indexerDiscovery }}"
     state: present
-  when: '"splunk_outputs_conf.tcpout.target_group.item.key.indexerDiscovery" is defined'
+  when: splunk_outputs_conf.tcpout.target_group is defined and splunk_outputs_conf.tcpout.target_group[item.key].indexerDiscovery is defined
   loop: "{{ splunk_outputs_conf.tcpout.target_group | dict2items }}"
   notify: splunk restart
 
@@ -26,6 +26,6 @@
     section: "tcpout:{{ item.key }}"
     option: indexerDiscovery
     state: absent
-  when: '"splunk_outputs_conf.tcpout.target_group.item.key.indexerDiscovery" is undefined'
+  when: splunk_outputs_conf.tcpout.target_group[item.key] is defined and splunk_outputs_conf.tcpout.target_group[item.key].indexerDiscovery is undefined
   with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
   notify: splunk restart

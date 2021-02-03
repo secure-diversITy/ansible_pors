@@ -9,12 +9,14 @@
 
 # rootCA
 - name: "Configure server.conf [sslConfig] - sslRootCAPath state=present"
-  ini_file: dest={{ splunk_conf_path }}/server.conf
-            section=sslConfig
-            option=sslRootCAPath
-            value="{{ splunk_server_conf.sslConfig.sslRootCAPath }}"
-            state=present
-  when: splunk_server_conf.sslConfig.sslRootCAPath is defined
+  ini_file:
+    dest: "{{ splunk_conf_path }}/server.conf"
+    section: sslConfig
+    option: sslRootCAPath
+    value: "{{ splunk_server_conf.sslConfig.sslRootCAPath }}"
+    state: present
+  when:
+    - splunk_server_conf.sslConfig.sslRootCAPath is defined
   notify: splunk restart
 
 - name: "Configure server.conf [sslConfig] - sslRootCAPath state=present"
@@ -23,5 +25,7 @@
             option=sslRootCAPath
             value="{{ splunk_server_conf.sslConfig.sslRootCAPath }}"
             state=absent
-  when: splunk_server_conf.sslConfig.sslRootCAPath is undefined
+  when:
+    - splunk_server_conf.sslConfig is defined
+    - splunk_server_conf.sslConfig.sslRootCAPath is undefined
   notify: splunk restart

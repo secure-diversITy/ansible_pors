@@ -15,10 +15,11 @@
             option=master_uri
             value="https://{{ groups['masternode'][0] }}:8089"
             state=present
-  with_dict: "{{ splunk_outputs_conf.indexer_discovery }}"
   when:
-        - splunk_outputs_conf.indexer_discovery.{{ item.key }}.master_uri is defined
-        - splunk_outputs_conf.indexer_discovery.{{ item.key }}.master_uri == "dynamic"
+    - splunk_outputs_conf.indexer_discovery[item.key] is defined
+    - splunk_outputs_conf.indexer_discovery[item.key].master_uri is defined
+    - splunk_outputs_conf.indexer_discovery[item.key] == "dynamic"
+  with_dict: "{{ splunk_outputs_conf.indexer_discovery }}"
   notify: splunk restart
 
 - name: "Configure outputs.conf [indexer_discovery] - master_uri state=present (static)"
@@ -27,9 +28,11 @@
             option=master_uri
             value={{ item.value.master_uri }}
             state=present
+  when:
+    - splunk_outputs_conf.indexer_discovery[item.key] is defined
+    - splunk_outputs_conf.indexer_discovery[item.key].master_uri is defined
+    - splunk_outputs_conf.indexer_discovery[item.key] != "dynamic"
   with_dict: "{{ splunk_outputs_conf.indexer_discovery }}"
-  when: splunk_outputs_conf.indexer_discovery.{{ item.key }}.master_uri is defined and
-        splunk_outputs_conf.indexer_discovery.{{ item.key }}.master_uri != "dynamic"
   notify: splunk restart
 
 - name: "Configure outputs.conf [indexer_discovery] - master_uri state=absent (default)"
@@ -37,6 +40,8 @@
             section=indexer_discovery:{{ item.key }}
             option=master_uri
             state=absent
+  when:
+    - splunk_outputs_conf.indexer_discovery[item.key] is defined
+    - splunk_outputs_conf.indexer_discovery[item.key].master_uri is undefined
   with_dict: "{{ splunk_outputs_conf.indexer_discovery }}"
-  when: splunk_outputs_conf.indexer_discovery.{{ item.key }}.master_uri is undefined
   notify: splunk restart

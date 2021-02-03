@@ -1,11 +1,5 @@
 ---
 - include: touch.yml
-#- include: distributedSearch/disabled.yml
+  when: splunk_distsearch_conf is defined
 
 - include_tasks: distributedSearch/server.yml
-
-#  when: "site{{site_val}}" is defined
-#  loop: "{{ range(1, site_val) | list }}"
-#  vars:
-#    site_val: 3
-

@@ -1,5 +1,7 @@
 ---
 - include: touch.yml
+  when: splunk_web_conf is defined
+
 - include: settings/caCertPath.yml
 - include: settings/enableSplunkWebSSL.yml
 - include: settings/httpport.yml

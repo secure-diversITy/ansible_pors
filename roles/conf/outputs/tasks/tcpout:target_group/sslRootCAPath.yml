@@ -15,8 +15,8 @@
             option=sslRootCAPath
             value={{ item.value.sslRootCAPath }}
             state=present
+  when: splunk_outputs_conf.tcpout.target_group[item.key].sslRootCAPath is defined
   with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
-  when: '"splunk_outputs_conf.tcpout.target_group.item.key.sslRootCAPath" is defined'
   notify: splunk restart
 
 - name: "Configure outputs.conf [tcpout:<tcpout:target_group>] - sslRootCAPath state=absent (default)"
@@ -24,6 +24,8 @@
             section=tcpout:{{ item.key }}
             option=sslRootCAPath
             state=absent
+  when:
+    - splunk_outputs_conf.tcpout.target_group[item.key] is defined
+    - splunk_outputs_conf.tcpout.target_group[item.key].sslRootCAPath" is undefined
   with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
-  when: '"splunk_outputs_conf.tcpout.target_group.item.key.sslRootCAPath" is undefined'
   notify: splunk restart

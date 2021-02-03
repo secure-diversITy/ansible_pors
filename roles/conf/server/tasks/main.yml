@@ -1,5 +1,7 @@
 ---
 - include: touch.yml
+  when: splunk_server_conf is defined
+
 - include: clustering/available_sites.yml
 - include: clustering/cluster_label.yml
 - include: clustering/master_uri.yml

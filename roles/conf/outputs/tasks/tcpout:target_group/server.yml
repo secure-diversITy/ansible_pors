@@ -16,7 +16,10 @@
     option: server
     value: "{{ item.value.server | join(',') }}"
     state: present
-  when: '"splunk_outputs_conf.tcpout.target_group.item.key.indexerDiscovery" is undefined'
+  when:
+    - splunk_outputs_conf.tcpout.target_group is defined
+    - splunk_outputs_conf.tcpout.target_group[item.key].server is defined
+    - splunk_outputs_conf.tcpout.target_group[item.key].indexerDiscovery is undefined
   loop: "{{ splunk_outputs_conf.tcpout.target_group | dict2items }}"
   notify: splunk restart
  
@@ -26,6 +29,9 @@
     section: "tcpout:{{ item.key }}"
     option: server
     state: absent
-  when: '"splunk_outputs_conf.tcpout.target_group.item.key.server" is undefined'
+  when:
+    - splunk_outputs_conf.tcpout.target_group[item.key] is defined
+    - splunk_outputs_conf.tcpout.target_group[item.key].indexerDiscovery is defined or
+      splunk_outputs_conf.tcpout.target_group[item.key].server is undefined
   loop: "{{ splunk_outputs_conf.tcpout.target_group | dict2items }}"
   notify: splunk restart
