@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-20"
+VERSIONNUM="4.0-21"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -994,14 +994,14 @@ F_RMAPP(){
 ## @fn F_SELECTOR()
 ## @brief Menu for selecting all or specific targets
 F_SELECTOR(){
-	echo "$FUNCNAME started" >> $LOG
+	F_LOG "$FUNCNAME"  started
 	SELECTION=$(F_DIALOG --menu "\nChoose an option:" \
-			15 76 14 \
+			15 100 14 \
 			Choose "" \
 			ALL "" \
 			3>&1 1>&2 2>&3)
 	echo "$SELECTION"
-	echo "$FUNCNAME finished" >> $LOG
+	F_LOG "$FUNCNAME" ended
 }
 
 ## @fn F_GOAPPS()
@@ -1287,10 +1287,10 @@ F_DBROWSE(){
 ## @param 1 (required) Target group
 ## @return choosen local hosted files
 F_LOCSRC(){
-	F_LOG $FUNCNAME "started with $@"
-	unset SDIR OPTIONS
+    F_LOG $FUNCNAME "started with $1"
+    unset SDIR OPTIONS
     TG="$1"
-	[ ! -d "$REPODIR" ]&& echo "Cannot determine repo dir <$REPODIR>!! ABORTED" && F_EXIT
+    [ ! -d "$REPODIR" ]&& F_LOG $FUNCNAME "Cannot determine repo dir <$REPODIR>!! ABORTED" && return 3
 
     # ensure only apps that are not already linked will be shown
     LINKEDAPPS=$(F_LISTAPPS "$TG" | grep ansible-hosted| cut -d ":" -f 2-3)
@@ -1300,13 +1300,13 @@ F_LOCSRC(){
 
     F_LOG $FUNCNAME "linked: $LINKEDAPPS\n\navail: ${AVAILAPPNAMES}\n\nunlinked: $UNLINKEDAPPS"
 
-	OPTIONS=($(for tgz in $UNLINKEDAPPS;do echo "${tgz/*:}" "${tgz/:*}" off; done | sort))
-	SDIR=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 40 100 40 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-        if [ $? -ne 0 ];then
-            SDIR=999
-        fi
-        echo "$SDIR"
-	F_LOG $FUNCNAME ended
+    OPTIONS=($(for tgz in $UNLINKEDAPPS;do echo "${tgz/*:}" "${tgz/:*}" off; done | sort))
+    SDIR=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 40 100 40 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+    if [ $? -ne 0 ]||[ -z "$SDIR" ];then
+        SDIR=EMPTY
+    fi
+    echo "$SDIR"
+    F_LOG $FUNCNAME ended
 }
 
 ## @fn F_EXPANDHOSTS()
@@ -1452,12 +1452,13 @@ F_SETREPODIR(){
 
     # extract repo dir for apps
     REPODIR="$(grep ^repo_base $REPODEF|cut -d ":" -f 2|tr -d " ")"
+    REPODIRS="${REPODIR}/${TARGETENV}/apps/splunk ${REPODIR}/${TARGETENV}/apps/other"
+    for d in $REPODIRS;do [ ! -d "$d" ] && mkdir -p $d;done
 
     # return only the repo dir when its a valid directory
     if [ -d "$REPODIR" ];then
-        echo "$REPODIR/common"
+        echo "$REPODIR"
     fi
-    [ ! -d $REPODIR/common ] && mkdir -p $REPODIR/common
 
     F_LOG $FUNCNAME "repo dir: $REPODIR"
     F_LOG $FUNCNAME ended
@@ -1477,7 +1478,8 @@ F_ENAPP(){
 	# extract repo dir for apps
 	#REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")/apps"
 
-    REPODIR="$(F_SETREPODIR)/apps"
+        REPODIR="$(F_SETREPODIR)/${TARGETENV}/apps"
+        [ ! -d "$REPODIR" ] && mkdir -p $REPODIR && F_LOG $FUNCNAME "REPODIR: $REPODIR has been created"
 
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS radiolist)
@@ -1507,12 +1509,13 @@ F_ENAPP(){
 			unset SELAPPS
 			# TODO: select apps then choose hosts
 			SELAPPS=$(F_LOCSRC "$HOSTSELECTION")
-		    if [ -z "$SELAPPS" ];then
-                F_DIALOG --msgbox "\n\nAll local available apps are linked to $HOSTSELECTION already ..." 15 76
-            else
+                        [ $? -ne 0 ] && F_ERRLOG 3 "issue occured while parsing local apps" $LOG  && return 3
+		        if [ -z "$SELAPPS" ]||[ "$SELAPPS" == "EMPTY" ];then
+                            F_DIALOG --msgbox "\n\nEither\n$REPODIR\nis empty or all local available apps are linked to $HOSTSELECTION already ..." 15 76
+                        else
 			    # atm we have to use group otherwise we have to switch group_vars to targetgroup/host/ as well	
-                	#SELHOSTS=$(F_SHOWHOSTS "checklist" "$HOSTSELEXPANDED")
-	               	#HOSTSELEXPANDED="$(F_EXPANDHOSTS "$HOSTSELECTION")"
+                	    #SELHOSTS=$(F_SHOWHOSTS "checklist" "$HOSTSELEXPANDED")
+	               	    #HOSTSELEXPANDED="$(F_EXPANDHOSTS "$HOSTSELECTION")"
 			    # enable app for each target group
 			    for tapp in $SELAPPS;do
 				    F_WAITBOX "... linking $tapp ..."
@@ -1528,8 +1531,8 @@ F_ENAPP(){
 				    fi
 				    for tgroup in $HOSTSELECTION;do
 					    F_GVARDIR $tgroup
-					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''\":\n" >>$LOG
-					    $ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch=''" >> $LOG 2>&1
+					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR\":\n" >>$LOG
+					    $ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR" >> $LOG 2>&1
 					    [ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				    done
 			    done
@@ -2457,8 +2460,8 @@ F_GETAPICREDS(){
 ## @details Lists available splunk versions in the local repository
 F_LISTSPLREPO() { 
     F_LOG $FUNCNAME started
-    REPODIR="$(F_SETREPODIR)"
-    find ${REPODIR}/packages -maxdepth 1 -type f -name splunk*tgz | tac | sed 's#.*/##g'
+    REPODIR="$(F_SETREPODIR)/common/packages"
+    find ${REPODIR} -maxdepth 1 -type f -name splunk*tgz | tac | sed 's#.*/##g'
     F_LOG $FUNCNAME ended
 }
 
@@ -3198,8 +3201,8 @@ F_DEPLOYAPP(){
             # CLEAN previous deploy app playbook
             [ -f $AINVENTORY/$TARGETENV/$PBDEPLAPP ] && rm $AINVENTORY/$TARGETENV/$PBDEPLAPP && F_LOG "$FUNCNAME" "Deleted previous temp playbook"
 
-            F_LOG $FUNCNAME "will exec: $A2BIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
-            F_A2BIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE}"
+#            F_LOG $FUNCNAME "will exec: $A2BIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
+            F_A2BIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE,'data_dir':'$DATADIR'}"
 		
             DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 1-2 | egrep "($SUBSETAPPS)" | sed 's/^/\\n - /g')
             [ -z "$DEPAPPS" ] && F_LOG $FUNCNAME "ERROR: No app found for deployment" && return 99
@@ -3392,7 +3395,7 @@ F_DEPLOYKEY(){
 ## @details ..
 F_ADDDEP(){
     F_LOG $FUNCNAME started
-    unset SHOSTS SHOSTST HOSTSELECTION
+    unset SHOSTS SHOSTST HOSTSELECTION LIMITLIST
     export LISTTYPE=radiolist
 
     # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
@@ -3408,43 +3411,30 @@ F_ADDDEP(){
     HOSTSELECTION=$(F_DIALOG --${LISTTYPE} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
     [ $? -ne 0 ] && return $?
 
-    SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
-
+    SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g' | cut -d ':' -f 1)"
     [ "$SHOSTS" == ABORTED ] && return 4
-    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
 
     if  [ -z "$HOSTSELECTION" ] || [ -z $SHOSTST ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
     else
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
-
-    # target env must be set always
-    echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-
-    echo '[deployer]' >> $ITMPGRP
-    for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    # we need LM and MN in any case:
-    echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
 
     F_LOG "$FUNCNAME" "Will configure deployer on <$SHOSTS>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas SHC Deployer. Are you sure?" 30 100
     [ $? -ne 0 ] && return $?
 
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFDEP --limit deployer"
-
     # check ssh first
     F_CHECKSSH "$SHOSTST" "$ITMPGRP"
 
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFDEP" "\Za\Z1Configure ...\Z\n" "--limit deployer"
+    F_A2BIN "$HOSTFILE" "$PBCONFDEP" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration SHC Deployer on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3456,7 +3446,7 @@ F_ADDDEP(){
 ## @details ..
 F_ADDLM(){
     F_LOG $FUNCNAME started
-    unset SHOSTS SHOSTST HOSTSELECTION
+    unset SHOSTS SHOSTST HOSTSELECTION LIMITLIST
     export LISTTYPE=radiolist
 
     # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
@@ -3472,47 +3462,38 @@ F_ADDLM(){
     HOSTSELECTION=$(F_DIALOG --${LISTTYPE} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
     [ $? -ne 0 ] && return $?
 
-    SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
+    SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g'| cut -d ':' -f 1)"
     [ "$SHOSTS" == ABORTED ] && return 4
 
     if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
     else
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
-
-    # target env must be set always
-    echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-
-    echo '[pors_lm]' >> $ITMPGRP
-    for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    # we need the MN in any case:
-    echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
 
     F_LOG "$FUNCNAME" "Will configure LicenseMaster on <$SHOSTS>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas license master. Are you sure?" 30 100
     [ $? -ne 0 ] && return $?
 
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit pors_lm"
-
     # check ssh first
     F_CHECKSSH "$SHOSTST" "$ITMPGRP"
 
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFLM" "\Za\Z1Configure ...\Z\n" "--limit pors_lm"
+    F_A2BIN "$HOSTFILE" "$PBCONFLM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     LERR=$?
-    [ $LERR -ne 0 ] && F_ERRLOG "$LERR" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG" && return $LERR
+    #[ $LERR -ne 0 ] && 
+    F_ERRLOG "$LERR" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG" && return $LERR
 
     # FIXME: might be not needed anymore: deploy pub key for dist search
-    PEERS=$(F_EXPANDHOSTS peernode $ITMPGRP clean | sed 's/site._.*//g')
-    for p in $PEERS;do F_DEPLOYKEY ${SHOSTST/:*/} ${p/:*/} ; done
-    F_ERRLOG "$?" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG"
+#    PEERS=$(F_EXPANDHOSTS peernode $ITMPGRP clean | sed 's/site._.*//g')
+#    for p in $PEERS;do F_DEPLOYKEY ${SHOSTST/:*/} ${p/:*/} ; done
+    #F_ERRLOG "$LERR" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG"
 
     unset LISTTYPE
     F_LOG $FUNCNAME ended
@@ -3524,7 +3505,7 @@ F_ADDLM(){
 ## @details ..
 F_ADDMN(){ 
     F_LOG $FUNCNAME started
-    unset SHOSTS SHOSTST HOSTSELECTION
+    unset SHOSTS SHOSTST HOSTSELECTION LIMITLIST
     export LISTTYPE=radiolist
 
     # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
@@ -3538,39 +3519,29 @@ F_ADDMN(){
     OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
     HOSTSELECTION=$(F_DIALOG --${LISTTYPE} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
 
-    SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
+    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g' | cut -d ':' -f 1)
 
     if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
     else
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
-
-    # target env must be set always
-    echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-
-    echo '[pors_masternode]' >> $ITMPGRP
-    for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    # we need the LM in any case:
-    echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
 
     F_LOG "$FUNCNAME" "Will configure indexer MasterNode on <$SHOSTS>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas indexer masternode. Are you sure?" 30 100
     [ $? -ne 0 ] && return $?
 
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit pors_masternode"
-
     # check ssh first
     F_CHECKSSH "$SHOSTST" "$ITMPGRP"
 
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFMN" "\Za\Z1Configure ...\Z\n" "--limit pors_masternode"
+    F_A2BIN "$HOSTFILE" "$PBCONFMN" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer MasterNode on:\n\n$SHOSTST" "$LOG"
 
     # FIXME: deploy pub key for dist search (useless here? IDX are likely not setup yet
@@ -3602,7 +3573,7 @@ F_GETSITES(){
 ## @details ..
 F_ADDMC(){
     F_LOG $FUNCNAME started
-    unset SITESEL HOSTSELECTION OPTIONS SHOSTS SHOSTST ASITES SITEMON
+    unset SITESEL HOSTSELECTION OPTIONS SHOSTS SHOSTST ASITES SITEMON LIMITLIST
 
     WHAT=monitoringconsole
 
@@ -3633,7 +3604,7 @@ F_ADDMC(){
         [ $HERR -eq 0 ] && [ ! -z "$HOSTSELECTION" ] && continue
         [ $HERR -eq 1 ] && F_LOG "$FUNCNAME" "Aborted by user" && return 4
     done
-    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g')
+    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g' | cut -d ':' -f 1)
 
     if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"; F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
@@ -3656,57 +3627,23 @@ F_ADDMC(){
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\n... preparing all requirements" 5 35
 
-    > ${ITMPGRP}_dep
-    > ${ITMPGRP}_peers
-    > ${ITMPGRP}_shcm
-    > ${ITMPGRP}_hf
-
-    for site in $SITEMON;do
-        # site aware deployer
-        F_EXPANDHOSTS ${SITEMON}_deployer "${ITMPGRP}_dep" 1> /dev/null 2>>$LOG
-        cat ${ITMPGRP}_dep | sed "s/${SITEMON}_deployer/deployer/g" >> $ITMPGRP
-
-        # site aware peernodes
-        F_EXPANDHOSTS ${SITEMON}_peernode "${ITMPGRP}_peers" 1> /dev/null 2>>$LOG
-        cat ${ITMPGRP}_peers | sed "s/${SITEMON}_peernode/peernode/g" >> $ITMPGRP
-
-        # site aware shc members
-        F_EXPANDHOSTS ${SITEMON}_shcmember "${ITMPGRP}_shcm" 1> /dev/null 2>>$LOG
-        cat ${ITMPGRP}_shcm | sed "s/${SITEMON}_shcmember/shcmember/g" >> $ITMPGRP
-
-        # site aware heavyforwarders
-        F_EXPANDHOSTS ${SITEMON}_heavyforwarder "${ITMPGRP}_hf" 1> /dev/null 2>>$LOG
-        cat ${ITMPGRP}_hf | sed "s/${SITEMON}_heavyforwarder/heavyforwarder/g" >> $ITMPGRP
-    done
-
-    F_EXPANDHOSTS deploymentserver "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS heavyforwarder "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS activeinput "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS httpeventcollector "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-
-    # target environment must be set always
-    echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-
-    # we need the MN and LM in any case:
-    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-
-    F_LOG $FUNCNAME "Temporary generated group:\n$(cat $ITMPGRP)"
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFMC --limit $WHAT"
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFMC" "\Za\Z1Configure ...\Z\n" "--limit $WHAT"
+    F_A2BIN "$HOSTFILE" "$PBCONFMC" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     CONERR=$?
     [ $CONERR -ne 0 ] && F_LOG "$FUNCNAME" "aborted due to an error on configure playbook ($CONERR)" && F_ERRLOG $CONERR "issue during configuration" $LOG && return $CONERR
     F_LOG $FUNCNAME "Finished configuration successfully.."
 
     # Add to monitoring
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFMC --limit $WHAT"
     GRPS="deployer peernode shcmember heavyforwarder deploymentserver heavyforwarder activeinput httpeventcollector masternode licensemaster"
     DERR=0
+#FIXME: use all + negative $LIMITLIST ?
     for t in $GRPS;do
         F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBDEPLMONKEY 'Deploying MC key ...' -e {'target':'$t'} --limit $WHAT"
-        F_A2BIN "$ITMPGRP" "$PBDEPLMONKEY" "\Za\Z1Deploying MC key ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+#        F_A2BIN "$ITMPGRP" "$PBDEPLMONKEY" "\Za\Z1Deploying MC key ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
         [ $? -ne 0 ] && F_LOG $FUNCNAME "Failed to setup monitoring for: $t" && DERR=1 && break
     done
     [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
@@ -3746,7 +3683,7 @@ F_ADDMC(){
 ## @details ..
 F_ADDDS(){
     F_LOG $FUNCNAME started
-    unset SITESEL HOSTSELECTION OPTIONS SHOSTS SHOSTST ASITES
+    unset SITESEL HOSTSELECTION OPTIONS SHOSTS SHOSTST ASITES LIMITLIST
 
     # a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
     ITMPGRP="${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts"
@@ -3775,7 +3712,7 @@ F_ADDDS(){
         [ $HERR -eq 0 ] && [ ! -z "$HOSTSELECTION" ] && continue
         [ $HERR -eq 1 ] && F_LOG "$FUNCNAME" "Aborted by user" && return 4
     done
-    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g')
+    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g' | cut -d ':' -f 1)
 
     if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"; F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
@@ -3786,26 +3723,16 @@ F_ADDDS(){
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby.. (setting up some magic)" 5 45
 
-    echo -e '\n[deploymentserver]' >> $ITMPGRP
-    for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    # target environment must be set always
-    echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-
-    # we need the MN and LM in any case:
-    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-
     F_LOG "$FUNCNAME" "Will configure deploymentserver on <$HOSTSELECTION>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas Deploymentserver. Are you sure?" 30 100
     [ $? -ne 0 ] && F_LOG "$FUNCNAME" "Aborted by user" && return 4
 
-    F_LOG $FUNCNAME "Temporary generated group:\n$(cat $ITMPGRP)"
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFDS --limit deploymentserver"
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFDS" "\Za\Z1Configure ...\Z\n" "--limit deploymentserver"
+    F_A2BIN "$HOSTFILE" "$PBCONFDS" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration as Deploymentserver on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3817,6 +3744,7 @@ F_ADDDS(){
 ## @details ..
 F_ADDSHCMEMBER(){
     F_LOG $FUNCNAME started
+    unset SHOSTS SHOSTST HOSTSELECTION ASITES SITESEL LIMITLIST
 
     # a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
     ITMPGRP="${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts"
@@ -3837,46 +3765,28 @@ F_ADDSHCMEMBER(){
     HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection.\n\nNOTE: It is not possible to configure multiple sites in one run so you will see here $SITESEL hosts only." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
     [ $? -ne 0 ] && return $?
     
-    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g')
+    SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g' | cut -d ':' -f 1)
     
     if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
             F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
     else
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby.. (setting up some magic)" 5 45
 
-    # site aware deployer
-    F_EXPANDHOSTS ${SITESEL}_deployer "${ITMPGRP}_dep" 1> /dev/null 2>>$LOG
-    cat ${ITMPGRP}_dep | sed "s/${SITESEL}_deployer/deployer/g" >> $ITMPGRP
-
-    # site aware peernodes
-    F_EXPANDHOSTS ${SITESEL}_peernode "${ITMPGRP}_peers" 1> /dev/null 2>>$LOG
-    cat ${ITMPGRP}_peers | sed "s/${SITESEL}_peernode/peernode/g" >> $ITMPGRP
-
-    echo -e '\n[shcmember]' >> $ITMPGRP
-    for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3 ;fi
-    
-    # target environment must be set always
-    echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-    
-    # we need the MN and LM in any case:
-    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    
     F_LOG "$FUNCNAME" "Will configure shc member on <$HOSTSELECTION>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas SHC member. Are you sure?" 30 100
     [ $? -ne 0 ] && return $?
     
-    F_LOG $FUNCNAME "Temporary generated group:\n$(cat $ITMPGRP)"
-    
-    F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBCONFSHCM --limit shcmember"
-    
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+  
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit shcmember"
+    F_A2BIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration as SHC member on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3889,7 +3799,7 @@ F_ADDSHCMEMBER(){
 F_ADDPEER(){
         F_LOG $FUNCNAME started
 
-	unset SHOSTS SHOSTST HOSTSELECTION ITMPGRP
+	unset SHOSTS SHOSTST HOSTSELECTION ITMPGRP LIMITLIST
 
         # a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
         ITMPGRP="${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts"
@@ -3903,43 +3813,26 @@ F_ADDPEER(){
         HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
         [ $? -ne 0 ] && return $?
 
-        SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
+        SHOSTST=$(echo "$HOSTSELECTION" | sed 's/ /\n/g' | cut -d ':' -f 1)
 
         if  [ -z "$HOSTSELECTION" ] || [ -z "$SHOSTST" ];then
                 F_LOG $FUNCNAME "SHOSTS ($HOSTSELECTION) or SHOSTST ($SHOSTST) empty"
                 F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
         else
                 F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
         fi
-
-        echo -e '\n[peernode]' >> $ITMPGRP
-        for h in $SHOSTST;do echo "$h" >> $ITMPGRP; done
-        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-        # target environment must be set always
-        echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" >> $ITMPGRP
-
-        # we need the MN and LM in any case:
-        F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-        F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-
-        #LMHOST=$(F_SELHOST licensemaster)
-        #MNHOST=$(F_SELHOST masternode)
-        #echo -e '\n[masternode]' >> $ITMPGRP
-        #echo "$MNHOST" >> $ITMPGRP
-        #echo -e '\n[licensemaster]' >> $ITMPGRP
-        #echo "$LMHOST" >> $ITMPGRP
 
         F_LOG "$FUNCNAME" "Will configure indexer peernode on <$HOSTSELECTION>"
         F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas indexer peernode(s). Are you sure?" 30 100
         [ $? -ne 0 ] && return $?
 
-        F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
-        F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
         # doit
-        F_A2BIN "$ITMPGRP" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit peernode"
+        F_A2BIN "$HOSTFILE" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
         F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer peernode on:\n\n$SHOSTST" "$LOG"
 
         F_LOG $FUNCNAME ended	
@@ -3951,16 +3844,18 @@ F_ADDPEER(){
 ## @details ..
 F_ADDSH(){ 
     F_LOG $FUNCNAME started
-    unset SHOSTS SHOSTST
+    unset SHOSTS SHOSTST HOSTSELECTION ITMPGRP LIMITLIST
 
+    LISTTYPE=checklist
     SHOSTS="$(F_SELHOST)"
     [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
-    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+    SHOSTST=$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)
 
     if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
             F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
     else
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
@@ -3971,30 +3866,14 @@ F_ADDSH(){
 
     # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
     ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+    > $ITMPGRP
 
-    echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
-    echo '[searchhead]' >> $ITMPGRP
-    for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    # we need the MN and LM in any case:
-    F_EXPANDHOSTS masternode "$ITMPGRP" clean 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_EXPANDHOSTS peernode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP 
-
-    #echo -e '\n[peernode]' >> $ITMPGRP
-    #for h in $PNHOST ;do
-    #    echo "$h" >> $ITMPGRP
-    #done
-    #echo -e '\n[masternode]' >> $ITMPGRP
-    #echo "$MNHOST" >> $ITMPGRP
-    #echo -e '\n[licensemaster]' >> $ITMPGRP
-    #echo "$LMHOST" >> $ITMPGRP
-
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFSH" "\Za\Z1Configure ...\Z\n" "--limit searchhead"
+    F_A2BIN "$HOSTFILE" "$PBCONFSH" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as SearchHead on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -4006,16 +3885,17 @@ F_ADDSH(){
 ## @details ..
 F_ADDHF(){ 
     F_LOG $FUNCNAME started
-    unset SHOSTS SHOSTST
+    unset SHOSTS SHOSTST LIMITLIST
 
     SHOSTS="$(F_SELHOST)"
     [ $? -ne 0 ] && return $?
     [ "$SHOSTS" == ABORTED ] && return 4
-    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+    SHOSTST="$(echo "${SHOSTS}" | sed 's/ /\n/g' | cut -d ':' -f 1)"
 
     if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ];then
             F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
             F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+            return 3
     else
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
@@ -4026,25 +3906,12 @@ F_ADDHF(){
 
     F_WAITBOX "... preparing configuration files"
 
-    # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
-    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
-
-    echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
-    # we need the MN and LM in any case:
-    F_EXPANDHOSTS masternode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-    F_EXPANDHOSTS licensemaster "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-    F_EXPANDHOSTS peernode "$ITMPGRP" 1> /dev/null 2>>$LOG && echo -e "\n" >> $ITMPGRP
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-    echo -e '\n[heavyforwarder]' >> $ITMPGRP
-    for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
-    if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
-
-    F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$ITMPGRP" "$PBCONFHF" "\Za\Z1Configure ...\Z\n" "--limit heavyforwarder"
+    F_A2BIN "$HOSTFILE" "$PBCONFHF" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as Heavy Forwarder on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -4827,14 +4694,16 @@ F_STARTVMDEP(){
         else
             F_LOG $FUNCNAME "No additional disk config needed or a prev error occured"
         fi
+        # allow empty domain
+        if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
         if [ $VMERR -eq 0 ];then
             HSETOK=99
             while [ $HSETOK -ne 0 ];do
-                grep "${VMHOST}.${VMSDOMAIN}" "$HOSTFILE" -q
+                grep "${VMHOSTF}" "$HOSTFILE" -q
                 HSETOK=$?
                 if [ $HSETOK -ne 0 ];then
-                    F_DIALOG --msgbox "\nThe server is not in $HOSTFILE.\nIt must be added now before we can continue.\n\n${VMHOST}.${VMSDOMAIN}\n(mouse to select, ctrl+shift+C to copy)\n\nmust be added to $HOSTFILE before you can continue.\nWhen you press OK $EDITBIN will be used to open it." 16 100
+                    F_DIALOG --msgbox "\nThe server is not in $HOSTFILE.\nIt must be added now before we can continue.\n\n${VMHOSTF}\n(mouse to select, ctrl+shift+C to copy)\n\nmust be added to $HOSTFILE before you can continue.\nWhen you press OK $EDITBIN will be used to open it." 16 100
                     $EDITBIN $HOSTFILE
                 fi
             done
@@ -4868,9 +4737,9 @@ F_STARTVMDEP(){
 
     # install base software not in template, ensure up2date system patches
     if [ $VMERR -eq 0 ];then
-        F_BASEINSTALL "${VMHOST}.${VMSDOMAIN}"
+        F_BASEINSTALL "${VMHOSTF}"
         F_DIAERR $? "Base install"
-        F_SYSUPGRADE "${VMHOST}.${VMSDOMAIN}"
+        F_SYSUPGRADE "${VMHOSTF}"
         F_DIAERR $? "Upgrading System"
     fi
     [ $VMERR -ne 0 ] && [ "$IACKEEP" -ne 1 ] && F_LOG $FUNCNAME "deleting IaC file due to a previous error/abort" && rm $TMPHWPROFILE
@@ -5714,6 +5583,10 @@ else
     ## @details ..
     ## @showinitializer
     declare PORS_TEMPDIR=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
+
+    # pre-setup DATADIR
+    DATADIRS="$DATADIR/custom/roles $DATADIR/custom/playbooks"
+    for d in $DATADIRS;do [ ! -d "$d" ] && mkdir -p $d;done
 
     END=0
     while [ $END -eq 0 ];do
