@@ -1,10 +1,8 @@
 ---
-
 # HINT: The "hosts" value here is a dynamic group name used in PORS
-# and so not necessarily the exact group name within your hosts file!
 
 - name: Configure splunk shcmember
-  hosts: shcmember
+  hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
@@ -24,7 +22,7 @@
     - meta: flush_handlers
 
 - name: Deploy keys (peernode)
-  hosts: shcmember
+  hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
