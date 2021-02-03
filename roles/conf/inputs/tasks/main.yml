@@ -1,4 +1,8 @@
 ---
+- name: Check if conf file exists
+  stat: path={{ splunk_conf_path }}/inputs.conf
+  register: inputs_conf
+
 - include: splunktcp/port.yml
 - include: splunktcp-ssl/port.yml
 - include: SSL/sslPassword.yml

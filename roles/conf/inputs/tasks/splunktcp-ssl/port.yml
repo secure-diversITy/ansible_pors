@@ -20,5 +20,7 @@
   replace: dest="{{ splunk_conf_path }}/inputs.conf"
            regexp='\[splunktcp-ssl://\d+\]\n'
            replace=''
-  when: splunk_inputs_conf.splunktcp_ssl.port is undefined
+  when:
+    - inputs_conf.stat.exists == true
+    - splunk_inputs_conf.splunktcp_ssl.port is undefined
   notify: splunk restart
