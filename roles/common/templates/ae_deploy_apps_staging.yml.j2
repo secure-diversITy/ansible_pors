@@ -1,7 +1,8 @@
 - name: Deploy Apps
-  hosts: "{{ '{{' }} target {{ '}}' }}"
+  hosts: "{{ '{{ target }}' }}"
+  remote_user: "{{ '{{ pors_ssh_user }}' }}"
   become: yes
-  become_user: splunk
+  become_user: "{{ '{{ splunk_install_user }}' }}"
   strategy: free
   
   roles:
