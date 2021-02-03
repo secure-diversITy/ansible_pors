@@ -11,7 +11,7 @@
     fstype: "{{ server_disk_fs }}"
     state: mounted
 
-- name: Move content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}
+- name: Copy content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}
   synchronize:
     src: "{{ server_disk_mountpoint }}/"
     dest: "{{ server_tmp_mnt }}"
