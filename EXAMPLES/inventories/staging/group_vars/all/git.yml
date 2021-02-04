@@ -9,7 +9,7 @@
 #git_server:
 
 # define a type for that git server
-# Possible values: gitlab | github | generic
+# Possible values: gitlab | github
 #git_server_type:
 
 # some repositories requires authentication even for
