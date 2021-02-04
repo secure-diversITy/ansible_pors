@@ -6,10 +6,10 @@
   become_user: root
 
   tasks:
-    - name: Set hostname to {{ server_hostname }}
+    - name: Set hostname to {{ server_shortname }}
       hostname:
-        name: "{{ server_hostname }}"
+        name: "{{ server_shortname }}"
 
     - name: Verify hostname
-      shell: "echo hostname -f: $(hostname -f); echo hostname -s: $(hostname -s)"
+      shell: "echo hostname: $(hostname); echo hostname -f: $(hostname -f); echo hostname -s: $(hostname -s)"
 
