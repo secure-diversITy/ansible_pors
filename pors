@@ -4577,7 +4577,7 @@ F_STARTVMDEP(){
         [ "$HWPROFILE" != "Empty" ] && touch $TMPHWPROFILE
         cp ${HWCONFIG}${HWPROFILE}.config $TMPHWPROFILE
 
-        F_LOG "$FUNCNAME" "VMHOST,VMCPU,VMRAM_GB,,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VM_PROVIDER,VMNETCIDR"
+        F_LOG "$FUNCNAME" "VMHOST,VMCPU,VMRAM_GB,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VM_PROVIDER,VMNETCIDR"
         F_LOG "$FUNCNAME" "$VMHOST,$VMCPU,$VMRAM_GB,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VM_PROVIDER,$VMNETCIDR"
 
         if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM_GB" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" -o -z "$VMNETCIDR" ];then
@@ -4904,6 +4904,7 @@ F_PROXMOX_DEPLOY(){
 
     # make all user defined settings available here
     source $TMPHWPROFILE
+    [ $? -ne 0 ] && F_ERRLOG 3 "issue sourcing the hw config $TMPHWPROFILE" $LOG && return 3
 
     # allow empty domain
     if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
@@ -4913,7 +4914,6 @@ F_PROXMOX_DEPLOY(){
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
-
 
     # Proxmox MUST have vmdisk1 as root device and that is handled different so should not be in DISK_LIST at all
     VMDISKCNT=0
@@ -4953,7 +4953,7 @@ F_PROXMOX_DEPLOY(){
     if [ "$VMIP" == "dhcp" ];then
         VMIPCONF="ip=$VMIP"
     else
-        VMIPCONF="ip=$VMIP/$VMNETMASK,gw=$VMGW"
+        VMIPCONF="ip=${VMIP}/${VMNETCIDR},gw=${VMGW}"
     fi
 
     F_LOG $FUNCNAME "Will use this ip config: $VMIPCONF"
