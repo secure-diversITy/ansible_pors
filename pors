@@ -3283,7 +3283,7 @@ F_VMMENU(){
         SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
                    --menu "\nSelect an option:\n(pro tip: jump to an entry with the highlighted key shortcut)" \
                         20 90 80 \
-                        '' '\Zb\ZuvSphere/ESX operations\ZB\ZU'\
+                        '' '\Zb\ZuVM operations\ZB\ZU'\
                         "" "" \
                         VM-Deploy "Deploy a new blank VM (OS + ansible-ready)" \
                         Add_newDisk "WIP: add a new disk to an existing VM" \
