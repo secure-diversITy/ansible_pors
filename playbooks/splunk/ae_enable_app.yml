@@ -89,7 +89,7 @@
     register: app_roles
 
   - name: (Re)create deploy_apps.yml
-    template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+    template: src=ae_deploy_apps_{{ target_env  }}.yml.j2
               dest={{ inventory_dir }}/ae_deploy_apps.yml
               mode=0640
 
