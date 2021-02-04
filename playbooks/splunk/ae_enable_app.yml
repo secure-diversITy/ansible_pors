@@ -39,7 +39,15 @@
     - include_vars: "{{ inventory_dir }}/group_vars/all/splunk_repository.yml"
     - include_vars: "{{ inventory_dir }}/group_vars/{{ app2group }}/deployment"
 
+    - name: Check if custom template exists
+      stat:
+        path: "{{ custom_data_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2"
+      register: custom_templ
+
   tasks:
+  - debug:
+        var: ansible_search_path
+
   - name: Building full file path if defined
     stat: path={{splunk_repository.repository_root}}/apps{{ app_type | default('')}}/{{ filename }}
     register: fqfilename
@@ -88,8 +96,15 @@
     command: "ls {{ custom_data_dir }}/roles/apps"
     register: app_roles
 
-  - name: (Re)create deploy_apps.yml
-    template: src=ae_deploy_apps_{{ target_env  }}.yml.j2
+  - name: (Re)create deploy_apps.yml (pors)
+    template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
               dest={{ inventory_dir }}/ae_deploy_apps.yml
               mode=0640
+    when: custom_templ.stat.exists != true
+
+  - name: (Re)create deploy_apps.yml (custom)
+    template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+              dest={{ inventory_dir }}/ae_deploy_apps.yml
+              mode=0640
+    when: custom_templ.stat.exists == true
 
