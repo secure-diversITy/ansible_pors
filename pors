@@ -4737,7 +4737,7 @@ F_STARTVMDEP(){
 
     # install base software not in template, ensure up2date system patches
     if [ $VMERR -eq 0 ];then
-        F_BASEINSTALL "${VMHOSTF}"
+        F_BASEINSTALL "${VMHOSTF}" "$TMPHWPROFILE"
         F_DIAERR $? "Base install"
         F_SYSUPGRADE "${VMHOSTF}"
         F_DIAERR $? "Upgrading System"
@@ -5058,15 +5058,17 @@ F_ADDDISK(){
 
 ## @fn F_BASEINSTALL()
 ## @brief Doing/Ensure the base is as we want it
-## @exception ..
+## param1 optional: specific hostname (as in hosts file)
+## param2 optional: (but requires param1 set!) the hardware profile to be sourced
 ## @details This prepares or installs basic stuff we need on every system 
 ## as we are using a barebone template to deploy
 F_BASEINSTALL(){
     F_LOG $FUNCNAME started
     GHOST="$1"
-    unset AUTOMODE PARENTPID
+    unset AUTOMODE PARENTPID TMPHWPROFILE VMHOSTF
     export PARENTPID=$BASHPID
     AUTOMODE="$1"
+    TMPHWPROFILE="$2"
 
     if [ -z "$AUTOMODE" ];then
         SELHOSTS="$(F_SELHOST)"
@@ -5076,7 +5078,12 @@ F_BASEINSTALL(){
             SPLPW="${CREDS/*:}"
     else
         SELHOSTS="$AUTOMODE"
+        [ ! -f $TMPHWPROFILE ] && F_LOG $FUNCNAME "No hw config given or wrong path? $TMPHWPROFILE"
+        # make all user defined settings available here
+        [ -f $TMPHWPROFILE ] && source $TMPHWPROFILE
     fi
+    # allow empty domain
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
     F_LOG $FUNCNAME "selected hosts for upgrade: $SELHOSTS"
 
@@ -5085,7 +5092,11 @@ F_BASEINSTALL(){
     for uhost in $(echo "$SELHOSTS" |tr " " "\n" | cut -d ":" -f 1);do
         # check ssh first
         F_CHECKSSH "$uhost"
-        F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost" || break
+        if [ -f "$TMPHWPROFILE" ];then
+            F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost -e {server_hostname':'$VMHOSTF','server_shortname':'$VMHOST',server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN'}"
+        else
+            F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost"
+        fi
     done
     F_DIAERR $? "Base install on:\n\n$SELHOSTS\n\n"
 

@@ -6,3 +6,9 @@
 
 - include_tasks: set_hostname.yml
   when: system.set_hostname is defined and system.set_hostname == True
+
+- include_tasks: set_dns_domain.yml
+  when: ansible_facts['os_family'] == "Suse"
+
+- include_tasks: set_dns_servers.yml
+  when: ansible_facts['os_family'] == "Suse"

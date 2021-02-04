@@ -1,0 +1,9 @@
+---
+- name: set DNS suffix (SuSE)
+  lineinfile:
+    path: /etc/sysconfig/network/config
+    regexp: '^NETCONFIG_DNS_STATIC_SEARCHLIST=.*'
+    line: 'NETCONFIG_DNS_STATIC_SEARCHLIST="{{ server_domain }}"'
+
+- name: update /etc/resolv.conf
+  shell: 'netconfig update -f'

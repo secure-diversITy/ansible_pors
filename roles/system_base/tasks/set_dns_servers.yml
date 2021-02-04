@@ -1,0 +1,9 @@
+---
+- name: set DNS server list (SuSE)
+  lineinfile:
+    path: /etc/sysconfig/network/config
+    regexp: '^NETCONFIG_DNS_STATIC_SERVERS=.*'
+    line: 'NETCONFIG_DNS_STATIC_SERVERS="{{ server_dns1 }} {{ server_dns2 }}"'
+
+- name: update /etc/resolv.conf
+  shell: 'netconfig update -f'
