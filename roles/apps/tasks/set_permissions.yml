@@ -1,0 +1,8 @@
+---
+# sets proper permissions of the target folder
+
+- name: set permissions on app directory
+  file: path="{{ splunk_installation.splunk_home_path }}/etc/{{ item.key | replace('shcluster_apps', 'shcluster/apps') | replace('_', '-') }}/{{ app_name }}"
+        recurse=yes
+        mode=o=x
+  with_dict: "{{ vars[app_variable] }}"
