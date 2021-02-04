@@ -1,6 +1,6 @@
 ---
 - name: Set hostname
-  hosts: all
+  hosts: "{{ server_hostname }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
