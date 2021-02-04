@@ -11,11 +11,14 @@
     timeout: 60
   connection: local
 
-- meta: clear_facts
+- name: "Check if it is possible to login"
+  shell: "echo test-ssh"
+  register: ssh_login
+  until: ssh_login.rc == 0
+  retries: 10
+  delay: 6
 
-- name: "FIXME - give GCP enough time to implement its keys"
-  pause:
-    seconds: 10
+- meta: clear_facts
 
 - name: Get facts for {{ server_hostname }}
   setup:
