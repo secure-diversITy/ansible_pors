@@ -3,3 +3,6 @@
 
 - include_tasks: ../../system_optimize/tasks/optimize_selinux.yml
   when: system.selinux is defined
+
+- include_tasks: set_hostname.yml
+  when: system.set_hostname is defined and system.set_hostname == True

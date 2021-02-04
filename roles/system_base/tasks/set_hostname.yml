@@ -1,0 +1,4 @@
+---
+- name: Set hostname to {{ server_shortname }}
+  hostname:
+    name: "{{ server_shortname }}"
