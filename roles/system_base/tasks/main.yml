@@ -5,10 +5,18 @@
   when: system.selinux is defined
 
 - include_tasks: set_hostname.yml
-  when: system.set_hostname is defined and system.set_hostname == True
+  when:
+    - system.set_hostname is defined
+    - system.set_hostname == True
+    - server_hostname is defined
+    - server_shortname is defined
 
 - include_tasks: set_dns_domain.yml
-  when: ansible_facts['os_family'] == "Suse"
+  when: ansible_facts['os_family'] == "Suse" and server_domain is defined
 
 - include_tasks: set_dns_servers.yml
-  when: ansible_facts['os_family'] == "Suse"
+  when:
+    - ansible_facts['os_family'] == "Suse"
+    - server_dns1 is defined
+    - server_dns2 is defined
+
