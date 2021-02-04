@@ -5093,7 +5093,7 @@ F_BASEINSTALL(){
         # check ssh first
         F_CHECKSSH "$uhost"
         if [ -f "$TMPHWPROFILE" ];then
-            F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost -e {server_hostname':'$VMHOSTF','server_shortname':'$VMHOST',server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN'}"
+            F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost -e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN'}"
         else
             F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost"
         fi

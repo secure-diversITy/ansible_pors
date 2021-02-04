@@ -10,9 +10,6 @@
       changed_when: false
       ignore_errors: yes
 
-    - name: debug
-      debug: msg="has_entry_in_known_hosts_file = {{ has_entry_in_known_hosts_file }}"
-
     - name: Ignore host key on first run
       when: has_entry_in_known_hosts_file.rc == 1
       set_fact:
@@ -23,4 +20,3 @@
       remote_user: "{{ pors_ssh_user }}"
       command: echo successfully added host key
       when: has_entry_in_known_hosts_file.rc == 1
-    
