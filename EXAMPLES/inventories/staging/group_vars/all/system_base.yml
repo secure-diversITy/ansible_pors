@@ -3,15 +3,6 @@
 # Basic server system configuration
 ##################################################################
 
-# misc
-remote_system:
-    local_gituser: ansible
-
-# token based authentication for accessing git
-tokenauth:
-    gituser: ""
-    gitpassword: ""
-
 system:
     # Configures SELinux. Possible values: enabled | disabled
     selinux: disabled
