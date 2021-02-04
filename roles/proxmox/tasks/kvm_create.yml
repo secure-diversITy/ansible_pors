@@ -1,4 +1,17 @@
 ---
+- name: Check for existing VM
+  community.general.proxmox_kvm:
+    proxmox_default_behavior: compatibility
+    node: "{{ proxmox.node[px_var].name }}"
+    api_user: "{{ proxmox.node[px_var].api_user }}"
+    api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+    api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+    api_host: "{{ proxmox.node[px_var].api_host }}"
+    name: "splunkmc.splunkd.local"
+    state: current
+  register: vm
+  ignore_errors: yes
+
 - name: generate VM {{ server_shortname }} tasks
   template:
     src: create_kvm.j2
@@ -13,6 +26,8 @@
 #########################################################################
 
 - include_tasks: "{{ base_install_dir }}/roles/proxmox/tasks/generated_create_vm.yml"
+  when:
+    - vm.status is undefined
 
 - name: give PVE enough time to write the config
   pause:
