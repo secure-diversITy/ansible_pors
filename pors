@@ -4725,8 +4725,8 @@ F_STARTVMDEP(){
             esac
             F_ERRLOG $VMERR "Deploying $VMHOST" $LOG
             [ -f "$TMPHWPROFILE" ] && F_DIALOG --yesno "\nDo you want to save the hardware profile for\n\n    $VMHOST\n\nas an IaC (Infrastructure as Code) profile?\n\nWhen you select 'yes' you can re-deploy with the same settings when choosing the 'IaC' folder next time." 16 100
-            if [ $? -eq 1 ];then 
-                rm -vf $TMPHWPROFILE >> $LOG 2>&1
+            if [ $? -eq 1 ];then
+                IACKEEP=0 
             else
                 IACKEEP=1
             fi
