@@ -11,6 +11,9 @@ system:
     # the splunk upgrade process? Possible values: True | False
     upgrade_os: False
 
+    # set the hostname explicitly
+    set_hostname: False
+
     # a (possibly shared or simply a second) user account which exists 
     # besides the regular ansible remote ssh user {{ pors_ssh_user }}
     # PORS will create that account and also configure authorized_keys
