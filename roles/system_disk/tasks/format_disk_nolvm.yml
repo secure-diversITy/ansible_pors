@@ -1,28 +1,4 @@
 ---
-- name: Wait for SSH coming up
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
-  become_user: "{{ pors_user }}"
-  wait_for:
-    port: 22
-    host: '{{ server_hostname }}'
-    search_regex: OpenSSH
-    delay: 10
-    timeout: 60
-  connection: local
-
-- name: "Check if it is possible to login"
-  shell: "echo test-ssh"
-  register: ssh_login
-  until: ssh_login.rc == 0
-  retries: 10
-  delay: 6
-
-- meta: clear_facts
-
-- name: Get facts for {{ server_hostname }}
-  setup:
-
 - name: partitioning {{ server_disk_dev }}
   parted: 
     device: "{{ server_disk_dev }}" 

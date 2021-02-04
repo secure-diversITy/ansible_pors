@@ -1,0 +1,9 @@
+---
+- name: "Wait for SSH coming up (timeout: {{ wait_timeout | default(60)}}s)"
+  wait_for_connection:
+    timeout: "{{ wait_timeout | default(60)}}"
+
+- meta: clear_facts
+
+- name: Gather facts for {{ server_hostname }}
+  setup:
