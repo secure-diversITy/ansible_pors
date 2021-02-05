@@ -131,6 +131,17 @@ vault_SSL_password: "password"
 vault_tcpout_sslPassword: "password"
 
 ###################################
+# GIT
+###################################
+
+# The user account for accessing your git server defined in 
+# group_vars/all/git.yml. Only Token based authentcation supported.
+# Read-Only permissions. This account will be used to clone/pull/list
+# the apps of your git server
+vault_git_ro_user: git
+vault_git_ro_token: "abc..."
+
+###################################
 # VMware / vSphere
 ###################################
 
