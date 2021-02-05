@@ -30,9 +30,3 @@
     mode: '0755'
     state: directory
   when: server_disk_dev is defined and server_disk_mountpoint != "none"
-
-#- name: mount {{ server_disk_mountpoint }} 
-#  mount: 
-#    path: "{{ server_disk_mountpoint }}"
-#    state: mounted
-#  when: server_scnd_disk is defined and server_disk_mountpoint is defined
