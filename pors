@@ -5041,7 +5041,7 @@ F_FORMATDISK(){
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
         fi
     done
-    F_SYSREBOOT "$VMHOST"
+    F_SYSREBOOT "$VMHOSTF"
     F_LOG $FUNCNAME ended
 }
 
@@ -5211,7 +5211,7 @@ F_SYSUPGRADE(){
     done
     if [ $FORERR -eq 0 ];then
         if [ $? -eq 0 ];then
-            F_LOG $FUNCNAME "System Upgrade(s) installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
+            F_LOG $FUNCNAME "System packages or upgrade(s) have installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
             F_SYSREBOOT "$SELHOSTS"
             LASTERR=$?
         else
