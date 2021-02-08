@@ -32,7 +32,7 @@
   register: shelper_result
 
 - name: shelper reload_all
-  shell: "timeout -s HUP -k 80s 60s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "timeout -s HUP -k 130s 120s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
 #  no_log: true
   register: shelper_result
 
