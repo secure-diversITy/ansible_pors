@@ -3,7 +3,16 @@
 # Bootstrap shcluster
 #####################################################################################################################
 
+- set_fact:
+    splunk_shc_list: []
+
+- set_fact:
+    splunk_shc_list: "{{ splunk_shc_list }} + ['https://{{ item }}:8089']"
+  loop: "{{ query('inventory_hostnames', '{{ shc_site }}_shcmember') }}"
+  run_once: true
+
 - name: Run bootstrap shcluster-captain
-  command: "{{ splunk_installation.splunk_home_path }}/bin/splunk bootstrap shcluster-captain -servers_list {{ groups['shcmember'] | create_shcluster_mgmt_uri_servers }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk bootstrap shcluster-captain -servers_list {{ splunk_shc_list | join(',') }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
   when: splunk_server_conf.shclustering is defined and splunk_server_conf.shclustering.disabled == "false"
+  no_log: true
   run_once: true

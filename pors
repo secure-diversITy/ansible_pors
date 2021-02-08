@@ -3786,7 +3786,7 @@ F_ADDSHCMEMBER(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
   
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_A2BIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','shc_site':'${SITESEL}'}"
     F_ERRLOG "$?" "configuration as SHC member on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended

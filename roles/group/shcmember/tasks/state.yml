@@ -3,3 +3,4 @@
 - name: "Check if there is a captain already"
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk show shcluster-status -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }} |grep elected_captain"
   register: captain_elected
+  ignore_errors: yes
