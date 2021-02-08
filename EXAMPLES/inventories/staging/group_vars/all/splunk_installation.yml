@@ -71,12 +71,12 @@ splunk_optimize:
     # choose one of the three methods ONLY - not multiple!! ;)
     # if the repo does not require authentication remove the tokenauth stuff
     install_tuned_tgz: no
-    tuned_tgz_url: "https://{{ tokenauth.git_ro_user | urlencode }}:{{ tokenauth.git_ro_token | urlencode }}@{{ git_server }}/tuned_profile/-/archive/vars['tuned_git_branch']/tuned_profile-.tar.gz"
+    #tuned_tgz_url: "https://{{ tokenauth.git_ro_user | urlencode }}:{{ tokenauth.git_ro_token | urlencode }}@{{ git_server }}/tuned_profile/-/archive/vars['tuned_git_branch']/tuned_profile-.tar.gz"
 
     # OPTION C: use a LOCAL TGZ which has been downloaded to the ansible repo
     # choose one of the three methods ONLY - not multiple!! ;)
     install_tuned_ansible: no
-    tuned_ansible_repo: "{{ splunk_repository.repository_root }}/{{ tuned_name }}_tuned.tgz"
+    #tuned_ansible_repo: "{{ splunk_repository.repository_root }}/{{ tuned_name }}_tuned.tgz"
 
     # << END: tuned profile settings
     #################################################################################################
