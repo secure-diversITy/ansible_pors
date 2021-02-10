@@ -1,16 +1,4 @@
 ---
-- include_tasks: software.yml
-
-- include_tasks: ../../system_optimize/tasks/optimize_selinux.yml
-  when: system.selinux is defined
-
-- include_tasks: set_hostname.yml
-  when:
-    - system.set_hostname is defined
-    - system.set_hostname == True
-    - server_hostname is defined
-    - server_shortname is defined
-
 - include_tasks: set_dns_domain.yml
   when: ansible_facts['os_family'] == "Suse" and server_domain is defined
 
@@ -20,3 +8,14 @@
     - server_dns1 is defined
     - server_dns2 is defined
 
+- include_tasks: set_hostname.yml
+  when:
+    - system.set_hostname is defined
+    - system.set_hostname == True
+    - server_hostname is defined
+    - server_shortname is defined
+
+- include_tasks: software.yml
+
+- include_tasks: ../../system_optimize/tasks/optimize_selinux.yml
+  when: system.selinux is defined
