@@ -37,7 +37,7 @@
 
   pre_tasks:
     - include_vars: "{{ inventory_dir }}/group_vars/all/splunk_repository.yml"
-    - include_vars: "{{ inventory_dir }}/group_vars/{{ app2group }}/deployment"
+    - include_vars: "{{ inventory_dir }}/group_vars/{{ app2group }}/deployment.yml"
 
     - name: Check if custom template exists
       stat:

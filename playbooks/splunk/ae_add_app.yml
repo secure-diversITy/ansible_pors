@@ -24,8 +24,8 @@
       default: "master"
 
   pre_tasks:
-    - include_vars: inventories/{{ target_env }}/group_vars/all/splunk_repository
-    - include_vars: inventories/{{ target_env }}/group_vars/{{ app2group }}/deployment
+    - include_vars: inventories/{{ target_env }}/group_vars/all/splunk_repository.yml
+    - include_vars: inventories/{{ target_env }}/group_vars/{{ app2group }}/deployment.yml
 
   tasks:
   - name: Check user input
