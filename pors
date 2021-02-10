@@ -1569,22 +1569,23 @@ F_ENAPP(){
                         # ensure only apps that are not already linked will be shown
                         PREAPPS="${CSELAPPS}"
                         RMAPPS=$(for gh in $(F_LISTAPPS "$HOSTSELECTION" | grep git-hosted | cut -d ":" -f 2);do echo "$gh\n";done)
-                        LAPPS=$(for papp in $PREAPPS;do prea="${papp##*/}"; echo "${prea/\.git/}" ;done)
+                        LAPPS=$(for papp in $PREAPPS;do prea="$(echo ${papp##*/}| cut -d '=' -f 1)"; echo "${prea/\.git/}" ;done)
                         SELAPPS=$(echo -e "${LAPPS}\n${RMAPPS}" | sort |uniq -u)
 
                         F_LOG $FUNCNAME "RMS: $RMAPPS\n\nPREAPPS: ${PREAPPS}\n\nSELAPPS: $SELAPPS\n\nCSELAPPS: $CSELAPPS\n\nLAPPS: $LAPPS"
-                        OPTIONS=($(for gapp in $SELAPPS;do prea="${gapp##*/}"; echo "${prea/\.git/}" "GIT-Project" off; done))
+                        OPTIONS=($(for gapp in $SELAPPS;do prea="$(echo ${gapp##*/} | cut -d '=' -f 1)"; echo "${prea/\.git*/}" "git-repo" off; done))
                         GITAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
                         if [ $? -eq 0 ];then
                             for gapp in $GITAPP;do
-                                app_full=$(echo -e "$CSELAPPS" | egrep "(/${gapp}$|/${gapp}\.git$)")
+                                app_full=$(echo -e "$CSELAPPS" | cut -d "=" -f 1 | egrep "(/${gapp}$|/${gapp}\.git$)")
+                                git_branch=$(echo -e "$CSELAPPS" | egrep "$app_full" | cut -d "=" -f 2)
                                 app_dir=${app_full%/*}
                                 app_namespace=${app_dir##*/}
                                 F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
                                 for tgroup in $HOSTSELECTION;do
                                     F_GVARDIR $tgroup
                                     # TODO: may have an option for choosing branch?!
-                                    F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'master','pors_data_dir':'$DATADIR'}"
+                                    F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'$git_branch','pors_data_dir':'$DATADIR'}"
                                     LASTERR=$?
                                     [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
                                 done
