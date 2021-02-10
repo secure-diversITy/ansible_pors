@@ -5,12 +5,28 @@
 #
 ######################################################
 
-# define the git server FQDN
+# define the git server access.
+# Highly depends on your git server type.
+# checkout the documentation first - it might be not what you expect!
 #git_server:
 
 # define a type for that git server
 # Possible values: gitlab | github
 #git_server_type:
+
+# define the git access type.
+# API access will be done by https always (see above git_server)
+# but PORS will access later any selected app repo based on the
+# following definition (e.g. git clone/pull ...).
+# note: PORS fetches the actual repo location fully automatic
+# so http means either http or https - whatever has been defined
+# on the git_server.
+# If you plan to use ssh here the user defined in
+# remote_system.local_gituser must have its public key allowed in
+# all repos of that github organization. Note: you still need a
+# personal access token for the above git_server
+# Possible values: http | ssh (recommended: http)
+#git_access_type: http
 
 # some repositories requires authentication even for
 # git clone/pull (e.g. private repos). here you define

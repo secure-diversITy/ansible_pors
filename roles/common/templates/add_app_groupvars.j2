@@ -14,6 +14,6 @@
     bundle_dir: {{ splunk_repository.repository_root }}/apps{{ app_type }}
     bundle: {{ filename }}
 {% else %}
-    git_repo: {{ splunk_repository.git_url }}/{{ app_name }}.git
+    git_repo: {{ git_url }}
     git_version: {{ git_branch }}
 {% endif %}

@@ -1,0 +1,66 @@
+---
+- name: "Github: get repo locations"
+  hosts: pors_server
+  connection: local
+
+  vars:
+    git_tmp_repos_file: /tmp/pors/gh.repos
+
+  tasks: 
+    - set_fact:
+        repo_uri: "{{ git_server }}/repos?per_page=100&page"
+
+    - name: Get pagination count
+      uri:
+        url: '{{ repo_uri }}=1'
+        headers:
+            Authorization: "token {{ vault_git_ro_token }}"
+        return_content: no
+      no_log: true
+      register: pages
+
+    - set_fact:
+        page_count: "{{ pages.link | default('next,&page=1,last')| regex_replace('.*next.*&page=([0-9]+).*last.*$','\\1') }}"
+
+#    - debug:
+#        msg: "Detected page_count: {{page_count}}"
+
+    - name: Fetch all repos
+      uri:
+        url: '{{ repo_uri }}={{ item }}'
+        headers:
+            Authorization: "token {{ vault_git_ro_token }}"
+        return_content: yes
+        body_format: json
+      register: gh_out
+      no_log: true
+      loop: "{{ range(1, page_count|int+1)| list }}"
+
+    - name: Clean any previous repo file
+      file:
+        path: "{{ git_tmp_repos_file }}"
+        state: absent
+
+    - set_fact:
+        all_repos: []
+
+    - name: Collect repo locations (http - based)
+      set_fact:
+        all_repos: "{{ all_repos }} + [ '{{ item.clone_url }}' ]"
+      no_log: true
+      when: git_access_type == "http"
+      loop: "{{ gh_out.results | json_query('[*].json[*].{clone_url:clone_url}') | flatten(1) }}"
+
+    - name: Collect repo locations (ssh - based)
+      set_fact:
+        all_repos: "{{ all_repos }} + [ '{{ item.ssh_url }}' ]"
+      no_log: true
+      when: git_access_type == "ssh"
+      loop: "{{ gh_out.results | json_query('[*].json[*].{ssh_url: ssh_url}') | flatten(1) }}"
+
+    - name: "Write repo cache file ({{ git_tmp_repos_file }})"
+      lineinfile:
+        dest: "{{ git_tmp_repos_file }}"
+        line: "{{ all_repos | join(',') }}"
+        state: present
+        create: yes

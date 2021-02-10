@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-25"
+VERSIONNUM="4.0-28"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -420,6 +420,12 @@ declare INSTDEF=splunk_installation.yml
 ## @details Will download a defined splunk release (hard coded type: linux/64bit/tar.gz) directly from splunk
 ## @showinitializer
 declare PBDLSPL=${PBDIRSPLUNK}/ae_download_splunk.yml 
+
+## @var PBGHFETCHREPOS
+## @brief Fetch all known github repos
+## @details Will connect to the defined repo server and fetches all repository locations (http or ssh - as defined)
+## @showinitializer
+declare PBGHFETCHREPOS="${PBDIRSPLUNK}/github_get_repos.yml"
 
 ## @var PBVCINFO
 ## @brief Collecting vCenter information
@@ -893,6 +899,7 @@ _EOHELP
 ## @details This is superseeded by F_LISTAPPS and should not be used anymore
 F_SHOWAPPS(){
 	echo "$FUNCNAME started" >> $LOG
+        clear
 	SEL="$1"
 	[ -z "$SEL" ]&& echo ERROR missing arg for F_SHOWAPPS
 	if [ "$SEL" == "ALL" ];then
@@ -914,11 +921,13 @@ F_SHOWAPPS(){
 F_LISTAPPS(){
         F_LOG $FUNCNAME started
         SEL="$1"
-        [ -z "$SEL" ]&& echo "ERROR:missing arg for $FUNCNAME"
+        [ -z "$SEL" ]&& F_LOG $FUNCNAME "ERROR: missing SEL arg!"
         if [ "$SEL" == "ALL" ];then
-                $SHOWAPPS -batch -env $AINVENTORY/$TARGETENV
+            F_LOG $FUNCNAME "will exec: $SHOWAPPS -batch -env $AINVENTORY/$TARGETENV"
+            $SHOWAPPS -batch -env $AINVENTORY/$TARGETENV
         else
-                $SHOWAPPS -batch -env $AINVENTORY/$TARGETENV "$SEL"
+            F_LOG $FUNCNAME "will exec: $SHOWAPPS -batch -env $AINVENTORY/$TARGETENV $SEL"
+            $SHOWAPPS -batch -env $AINVENTORY/$TARGETENV "$SEL"
         fi
         F_LOG $FUNCNAME "ended with $?"
 }
@@ -1018,11 +1027,14 @@ F_GOAPPS(){
 	else
 		if [ "$SELECTION" == "Choose" ];then
 			OPTIONS=($(for i in $(find $AINVENTORY/$TARGETENV/group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#$AINVENTORY/$TARGETENV/group_vars/##g);do echo $i $i off;done))
-			SELECTION=$(F_DIALOG --checklist "Select options:" 22 76 16 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+			SELECTION=$(F_DIALOG --checklist "Select options:" 35 76 36 "${OPTIONS[@]}" 2>&1 >/dev/tty)
 			if [ -z "$SELECTION" ];then
 			F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30 
 			else
-				F_SHOWAPPS "$SELECTION"
+                            APPLIST=$(for a in $SELECTION;do echo "\n\Zb$a\ZB\n---------------------------------------------------"; F_LISTAPPS "$a";done)
+                            APPLISTPREP=$(for i in $APPLIST;do echo "${i}\n" | sed "s/:/\t\t\t\t/g" ;done)
+                            F_LOG $FUNCNAME "APPLIST:\n$APPLIST\n\nAPPLISTPREP:\n$APPLISTPREP"
+                            F_DIALOG --colors --msgbox "\n\ZbThe following apps are linked to your selected groups:\ZB\n(use PG-UP/-DOWN to scroll if needed)\n$APPLISTPREP" 40 70
 			fi
 		else
 			echo ERROR no selection made 
@@ -1148,7 +1160,7 @@ F_GVARDIR(){
 	[ -z "$TG" ]&& echo "Missing arg for $FUNCNAME!! ABORTED" && F_EXIT
 	if [ -d "$TDIR" ];then
 		echo "$TDIR" exists >> $LOG
-		if [ -f "$TDIR/deployment" ];then 
+		if [ -f "$TDIR/deployment.yml" ];then
 			echo already initialized >> $LOG
 		else
 			INIT=1
@@ -1161,13 +1173,14 @@ F_GVARDIR(){
 		mkdir $TDIR >>/dev/null 2>&1
 		ERRC=0
 		while [ -z "$DEPL" ]&&[ "$ERRC" -eq 0 ];do
-			DEPL=$(F_DIALOG --inputbox "Initializing of <$TDIR> required\nPlease type in where you want to deploy apps for >$TG<.\n\nJust type <apps>, <deployment-apps>,<shcluster/apps>, etc and not the full path:" 15 100 2>&1 >/dev/tty)
+			DEPL=$(F_DIALOG --inputbox "Initializing of <$TDIR> required\nPlease type in where you want to deploy apps for >$TG<.\n\nJust type <apps>, <deployment_apps>,<shcluster_apps>, etc and not the full path:" 15 100 2>&1 >/dev/tty)
 			ERRC=$?
 		done
 		if [ $ERRC -eq 0 ];then
-			echo "will create deployment file with: $DEPL as target dir" >> $LOG
+                    DEPLPARSED=$(echo "${DEPL}" | sed 's:(-/):_:g')
+			echo "will create deployment file with: $DEPL ($DEPLPARSED) as target dir" >> $LOG
 			# creating deployment file:
-			cat >> $TDIR/deployment <<EOF_DEPL
+			cat >> $TDIR/deployment.yml <<EOF_DEPL
 ---
 #####################################################################################################################
 # Configurations for Splunk deployment directory
@@ -1175,7 +1188,7 @@ F_GVARDIR(){
 #####################################################################################################################
 
 deployment:
-    dir: $DEPL
+    dir: $DEPLPARSED
 EOF_DEPL
 		fi
 	fi
@@ -1506,8 +1519,9 @@ F_ENAPP(){
 		# LOCAL or GIT
 		ENSRC=$(F_DIALOG --menu "\nChoose an option:" \
                         15 76 14 \
-                        gitlab "(define an available app within your gitlab server)" \
-                        local "(define and push a local file on this server to a target)" \
+                        github "define an available app within github" \
+                        gitlab "define an available app within gitlab" \
+                        local "define and push a local file on this server to a target" \
                         3>&1 1>&2 2>&3)
 		
 		case $ENSRC in
@@ -1545,8 +1559,44 @@ F_ENAPP(){
 			    F_ERRLOG 0 "Linking apps finished" "$LOG"
             fi
 			;;
+                        github)
+                        unset SELAPPS CSELAPPS OPTIONS PREAPPS RMAPPS LAPPS GITAPP
+                        # get github repos
+                        F_WAITBOX "Please standby until all github locations have been parsed..."
+                        CSELAPPS=$(F_GITHUBSRC | tr ',' '\n')
+                        [ $? -ne 0 ] && F_ERRLOG $? "parsing repos" $LOG && return 3
+
+                        # ensure only apps that are not already linked will be shown
+                        PREAPPS="${CSELAPPS}"
+                        RMAPPS=$(for gh in $(F_LISTAPPS "$HOSTSELECTION" | grep git-hosted | cut -d ":" -f 2);do echo "$gh\n";done)
+                        LAPPS=$(for papp in $PREAPPS;do prea="${papp##*/}"; echo "${prea/\.git/}" ;done)
+                        SELAPPS=$(echo -e "${LAPPS}\n${RMAPPS}" | sort |uniq -u)
+
+                        F_LOG $FUNCNAME "RMS: $RMAPPS\n\nPREAPPS: ${PREAPPS}\n\nSELAPPS: $SELAPPS\n\nCSELAPPS: $CSELAPPS\n\nLAPPS: $LAPPS"
+                        OPTIONS=($(for gapp in $SELAPPS;do prea="${gapp##*/}"; echo "${prea/\.git/}" "GIT-Project" off; done))
+                        GITAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+                        if [ $? -eq 0 ];then
+                            for gapp in $GITAPP;do
+                                app_full=$(echo -e "$CSELAPPS" | egrep "(/${gapp}$|/${gapp}\.git$)")
+                                app_dir=${app_full%/*}
+                                app_namespace=${app_dir##*/}
+                                F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
+                                for tgroup in $HOSTSELECTION;do
+                                    F_GVARDIR $tgroup
+                                    # TODO: may have an option for choosing branch?!
+                                    F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'master','pors_data_dir':'$DATADIR'}"
+                                    LASTERR=$?
+                                    [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
+                                done
+                            done
+                            F_ERRLOG 0 "linking $GITAPP to $tgroup\n\n" "$LOG"
+                        else
+                            F_DIAERR 4 "Aborted by user"
+                        fi
+
+                        ;;
 			gitlab)
-			unset SELAPPS
+			unset SELAPPS CSELAPPS OPTIONS PREAPPS RMAPPS LAPPS GLABAPP
 			# check if settings are done already:
 			if [ -f $GLABSETTINGS ];then
 				. $GLABSETTINGS
@@ -1559,7 +1609,6 @@ F_ENAPP(){
             echo "$CSELAPPS" |grep "returncode:0" >> $LOG
             if [ $? -eq 0 ];then
                     PREAPPS="${CSELAPPS/returncode:0}"
-			        unset OPTIONS
                     # ensure only apps that are not already linked will be shown
                     RMAPPS=$(for gh in $(F_LISTAPPS "$HOSTSELECTION" | grep git-hosted | cut -d ":" -f 2);do echo "$gh\n";done)
                     LAPPS=$(for papp in $PREAPPS;do echo "${papp##*/}" ;done)
@@ -1585,7 +1634,7 @@ F_ENAPP(){
                                         F_GVARDIR $tgroup
 						                # TODO: may have an option for choosing branch?!
 	                                    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
-						                F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master'}"
+						                F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master','pors_data_dir':'$DATADIR'}"
                                         LASTERR=$?
                                         [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
 	                                done
@@ -1682,6 +1731,20 @@ F_GITLABSRC(){
 	fi
 	echo "$FUNCNAME finished" >> $LOG
         echo "returncode:$ERRC"
+}
+
+## @fn F_GITHUBSRC()
+## @brief get all available git repos
+## @details works for github only (self-hosted or github.com)
+F_GITHUBSRC(){
+    F_LOG $FUNCNAME started
+
+    F_A2BIN "$HOSTFILE" "$PBGHFETCHREPOS" "\Za\Z1Collecting repositories...\Z\n" "--limit pors_server -e 'git_tmp_repos_file=/tmp/pors/gh.repos'" >> $LOG 2>&1
+    [ $? -ne 0 ] && F_LOG $FUNCNAME "Error while collecting repos" && return 3
+
+    # output all repo locations to the calling function
+    sort -u /tmp/pors/gh.repos || return $?
+    F_LOG $FUNCNAME ended
 }
 
 ## @fn F_MSG()
@@ -3187,7 +3250,7 @@ F_DEPLOYAPP(){
             if [ $DEPLOYAPPSUBSET == 1 ];then 
                 LNKAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2)
                 F_LOG $FUNCNAME "Linked apps:\n$LNKAPPS"
-                OPTIONS=($(for gapp in $LNKAPPS;do echo ${gapp##*/} "App" off; done))
+                OPTIONS=($(for gapp in $LNKAPPS;do prapp="${gapp##*/}"; echo "${prapp/\.yml/}" "App" off; done))
                 unset APPANS
                 if [ "$RUNMODE" == "interactive" ]&&[ "$FMODE" != "auto" ];then
                     while [ -z "$APPANS" ];do

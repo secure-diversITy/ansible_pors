@@ -9,5 +9,3 @@ splunk_repository:
     repository_root: "{{ repo_base }}/{{ target_env }}"
     repository_owner: "{{ pors_user }}"
     repository_group: "{{ pors_group }}"
-    # the git repository containing all splunk apps you want to manage/deploy
-    git_url: <git@mygitserver.local>:<repo>
