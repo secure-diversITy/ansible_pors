@@ -8,7 +8,7 @@
 
   tasks:
     - set_fact:
-        repo_uri: "{{ git_server }}/v4/groups/{{ gitlab_groupname }}/projects?per_page=33&page"
+        repo_uri: "{{ git_server }}/v4/groups/{{ gitlab_groupname }}/projects?per_page=100&page"
 
     - name: Get pagination count
       uri:
