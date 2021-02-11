@@ -28,6 +28,7 @@
         - systemd-sysvinit
         - python-selinux
         - insserv-compat
+        - python-xml
   when: ansible_facts['os_family'] == "Suse"
 
 - name: RHEL requirements

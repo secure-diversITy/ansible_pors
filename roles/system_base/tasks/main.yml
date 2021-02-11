@@ -15,6 +15,11 @@
     - server_hostname is defined
     - server_shortname is defined
 
+- name: Custom system tasks
+  include_role:
+    name: custom_system
+  when: system.add_custom_tasks is defined and system.add_custom_tasks == True
+
 - include_tasks: software.yml
 
 - include_tasks: ../../system_optimize/tasks/optimize_selinux.yml
