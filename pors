@@ -4910,7 +4910,7 @@ F_STARTVMDEP(){
         F_SYSUPGRADE "${VMHOSTF}"
         F_DIAERR $? "Upgrading System"
     fi
-    if [ $VMERR -ne 0 ] && [ "$IACKEEP" -ne 1 ];then
+    if [ $VMERR -ne 0 ] || [ "$IACKEEP" -ne 1 ];then
         F_LOG $FUNCNAME "deleting IaC file due to a previous error/abort"
         rm $TMPHWPROFILE
     else
