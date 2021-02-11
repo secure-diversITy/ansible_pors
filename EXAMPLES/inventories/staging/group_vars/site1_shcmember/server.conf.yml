@@ -1,5 +1,4 @@
 ---
-
 #####################################################################################################################
 # Configurations for Splunk server.conf
 ####################################################################################################################
@@ -26,7 +25,7 @@ splunk_server_conf:
     mode: member
     artifact_status_fields: user,app,label,max_time
     scheduling_heuristic: round_robin
-    replication_factor: 1
+    replication_factor: 3
     disabled: "false"
   replication_port_ssl:
     port: 9888
