@@ -1332,7 +1332,7 @@ F_LOCSRC(){
 ## @brief create an expanded list of hostnames
 ## @param 1 target group name
 ## @param 2 optional: expandfile (file where the hosts will be written)
-## @param 3 optional: requires param2. force a clean file write (removes any prev hosts)
+## @param 3 optional: requires param2. force a clean file write (removes any prev hosts). Can be specified also as an environment variable: CLEANHOSTFILE=clean
 ## @return space delimited list with the expanded list of hostnames
 ## @details expands a target group to a list of hostnames/ips defined in the users host file
 F_EXPANDHOSTS(){
@@ -1341,13 +1341,17 @@ F_EXPANDHOSTS(){
 
 	TGROUP="$1"
         CLEAN="$3"
-        [ "$CLEAN" == "clean" ] && CLEANVAR="clean_tmp='yes'"
+
+        # check cleaning environment variable
+        [ ! -z "$CLEANHOSTFILE" ] && CLEAN=clean
 
 	source "$AEUSRHOSTFILE"
 
 	if [ -f "$HOSTFILE" ];then
             TGFILE="$2"
 	    [ -z "$TGFILE" ] && TGFILE="$AINVENTORY/$TARGETENV/${FUNCNAME}_${TGROUP}"
+
+            [ "$CLEAN" == "clean" ] && CLEANVAR="clean_tmp='yes'" && F_LOG $FUNCNAME "Will CLEAN $TGFILE because CLEAN = $CLEAN, CLEANHOSTFILE = $CLEANHOSTFILE"
 
 	    # get all hosts via playbook (will expand groups in groups etc)
             [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
@@ -2775,8 +2779,12 @@ F_SELHOST(){
 F_INSTALLSPL(){
         F_LOG $FUNCNAME started
 	# this installs pure splunk (i.e. without any configuration)
+
+        # force cleaning the temp hosts file in F_EXPANDHOSTS()
+        # must be explicitly unset for any subsequent tasks
+        export CLEANHOSTFILE=yes
 	
-        SHOSTS="$(F_SELHOST)"
+        SHOSTS="$(LISTTYPE=checklist F_SELHOST)"
         [ $? -eq 4 ] && return 4
         [ "$SHOSTS" == ABORTED ] && return 4
         SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
@@ -2801,8 +2809,6 @@ F_INSTALLSPL(){
 	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
 
 	F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
- 	F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALL --limit tmpgrp"
 
 	# doit
 	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp " 
