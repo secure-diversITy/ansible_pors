@@ -8,6 +8,10 @@
 # define the git server access.
 # Highly depends on your git server type.
 # checkout the documentation first - it might be not what you expect!
+# e.g.:
+# https://api.github.com/orgs/secure-diversITy
+# https://gitlab.com/api
+# https://gitlab.e.foundation/api
 #git_server:
 
 # define a type for that git server
