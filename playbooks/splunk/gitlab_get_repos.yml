@@ -1,0 +1,66 @@
+---
+- name: "Gitlab: get repo locations"
+  hosts: pors_server
+  connection: local
+
+  vars:
+    git_tmp_repos_file: /tmp/pors/gl.repos
+
+  tasks:
+    - set_fact:
+        repo_uri: "{{ git_server }}/v4/groups/{{ gitlab_groupname }}/projects?per_page=33&page"
+
+    - name: Get pagination count
+      uri:
+        url: '{{ repo_uri }}=1'
+        headers:
+            Authorization: "Bearer {{ vault_git_ro_token }}"
+        return_content: no
+      #no_log: true
+      register: pages
+
+    - debug:
+        msg: "Detected page_count: {{pages.x_total_pages}}"
+
+    - name: Fetch all repos
+      uri:
+        url: '{{ repo_uri }}={{ item }}'
+        headers:
+            Authorization: "Bearer {{ vault_git_ro_token }}"
+        return_content: yes
+        body_format: json
+      register: gh_out
+      no_log: true
+      loop: "{{ range(1, pages.x_total_pages|int+1)| list }}"
+
+#    - debug:
+#        var: gh_out
+
+    - name: Clean any previous repo file
+      file:
+        path: "{{ git_tmp_repos_file }}"
+        state: absent
+
+    - set_fact:
+        all_repos: []
+
+    - name: Collect repo locations (http - based)
+      set_fact:
+        all_repos: "{{ all_repos }} + [ '{{ item.clone_url }}={{ item.default_branch }}' ]"
+      no_log: true
+      when: git_access_type == "http"
+      loop: "{{ gh_out.results | json_query('[*].json[*].{clone_url:http_url_to_repo,default_branch:default_branch}') | flatten(1) }}"
+
+    - name: Collect repo locations (ssh - based)
+      set_fact:
+        all_repos: "{{ all_repos }} + [ '{{ item.ssh_url }}={{ item.default_branch }}' ]"
+      no_log: true
+      when: git_access_type == "ssh"
+      loop: "{{ gh_out.results | json_query('[*].json[*].{ssh_url:ssh_url_to_repo,default_branch:default_branch}') | flatten(1) }}"
+
+    - name: "Write repo cache file ({{ git_tmp_repos_file }})"
+      lineinfile:
+        dest: "{{ git_tmp_repos_file }}"
+        line: "{{ all_repos | join(',') }}"
+        state: present
+        create: yes

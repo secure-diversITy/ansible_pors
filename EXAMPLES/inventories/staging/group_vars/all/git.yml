@@ -14,6 +14,12 @@
 # Possible values: gitlab | github
 #git_server_type:
 
+# gitlab only:
+# specify the group name where all "projects" (aka git repos)
+# are stored.
+# This group name must be URL-encoded, e.g a "/" is represented by %2F
+#gitlab_groupname: "e%2Fos"
+
 # define the git access type.
 # API access will be done by https always (see above git_server)
 # but PORS will access later any selected app repo based on the
