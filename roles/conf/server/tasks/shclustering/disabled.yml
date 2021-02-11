@@ -15,7 +15,7 @@
             state=present
   when:
     - splunk_server_conf.shclustering.disabled is defined
-    - splunk_server_conf.shclustering.disabled != "false"
+    - splunk_server_conf.shclustering.disabled == False
     - splunk_server_conf.shclustering.mode == "member"
   notify: splunk restart
 
@@ -25,5 +25,7 @@
             option=disabled
             state=absent
   when:
-    - splunk_server_conf.shclustering.disabled is undefined or splunk_server_conf.shclustering.disabled == "false" or splunk_server_conf.shclustering.mode != "member"
+    - splunk_server_conf.shclustering.disabled is undefined
+      or splunk_server_conf.shclustering.disabled != False
+      or splunk_server_conf.shclustering.mode != "member"
   notify: splunk restart
