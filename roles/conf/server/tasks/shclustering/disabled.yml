@@ -8,7 +8,7 @@
 #####################################################################################################################
 
 - name: "Configure server.conf [shclustering] - disabled state=present"
- ini_file: dest={{ splunk_conf_path }}/server.conf
+  ini_file: dest={{ splunk_conf_path }}/server.conf
             section=shclustering
             option=disabled
             value={{ splunk_server_conf.shclustering.disabled }}
