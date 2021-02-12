@@ -1326,7 +1326,7 @@ F_LOCSRC(){
     [ ! -d "$REPODIR" ]&& F_LOG $FUNCNAME "Cannot determine repo dir <$REPODIR>!! ABORTED" && return 3
 
     # ensure only apps that are not already linked will be shown
-    LINKEDAPPS=$(F_LISTAPPS "$TG" | grep ansible-hosted| cut -d ":" -f 2-3)
+    LINKEDAPPS=$(F_LISTAPPS "$TG" | grep pors-hosted| cut -d ":" -f 2-3)
     AVAILAPPSFP=$(for tgzf in $(find $REPODIR -type f |egrep "(tar|tgz|spl)");do echo "$tgzf";done)
     AVAILAPPNAMES=$(for tgz in $AVAILAPPSFP;do APPN=$(tar tf "$tgz" 2> /dev/null |head -n1 | cut -d '/' -f1) ; echo "${APPN}:${tgz##*/}" ;done)
     UNLINKEDAPPS=$(echo "$LINKEDAPPS" "$AVAILAPPNAMES" | tr " " "\n" | sort | uniq -u)

@@ -116,7 +116,7 @@ if [ -z "$TARGET" ];then
 	                    if [ $? -eq 0 ];then
                             bundlefile=$(sed -n 's/\s*bundle:\s*\(.*\)/\1/p' $a)
                             [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
-                            [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}:$bundlefile"
+                            [ $MF -eq 1 ] && echo "pors-hosted:${a##*/}:$bundlefile"
                         else
                             egrep -ql 'git_repo' $a
                             if [ $? -eq 0 ];then
@@ -150,7 +150,7 @@ else
                         if [ $? -eq 0 ];then
                             bundlefile=$(sed -n 's/\s*bundle:\s*\(.*\)/\1/p' $a)
                             [ $MF -eq 0 ] && echo "$BLUE${a##*/} (ansible hosted)$ENDC"
-                            [ $MF -eq 1 ] && echo "ansible-hosted:${a##*/}:$bundlefile"
+                            [ $MF -eq 1 ] && echo "pors-hosted:${a##*/}:$bundlefile"
                         else
                             egrep -ql 'git_repo' $a >> /dev/null
                             if [ $? -eq 0 ];then
