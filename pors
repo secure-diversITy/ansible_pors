@@ -2245,10 +2245,11 @@ F_SPLACT(){
 ## @details execute splunk helper commands
 F_SHEXEC(){ 
     F_LOG "$FUNCNAME" started
-    unset ANS
-    unset TMPGRP #TMPGRP=aetmpgrp
-    unset ADDIGRP
-    unset SCNDGRP
+    unset ANS TMPGRP ADDIGRP SCNDGRP LIMITLIST CLEANHOSTFILE
+
+    # force cleaning the temp hosts file in F_EXPANDHOSTS()
+    # must be explicitly unset for any subsequent tasks
+    export CLEANHOSTFILE=yes
 
     if [ $RUNMODE != "batch" ];then
 	while [ -z "$ANS" ];do
@@ -2274,9 +2275,7 @@ F_SHEXEC(){
         F_LOG "$FUNCNAME" "Using cli param $ANS for action type"
     fi
 
-
-
-	case $ANS in 
+    case $ANS in
 		custom-reload)
 			unset SHCUST
 			while [ -z "$SHCUST" ];do
@@ -2289,66 +2288,54 @@ F_SHEXEC(){
 		reload-all) SHEXE="reload_all" ;;
                 DS-reload) SHEXE="reload_deploy_server" ;TMPGRP=deploymentserver ;;
                 MN-apply-cb) SHEXE="apply_cluster_bundle" ; TMPGRP=masternode ;;
-                SHC-apply-cb) SHEXE="apply_shcluster_bundle"; TMPGRP=deployer ; SCNDGRP=shcmember ;;
+                SHC-apply-cb) SHEXE="apply_shcluster_bundle"; TMPGRP=deployer ;;
 		*)	# TODO: do not exit but go to MAIN
 			F_LOG $FUNCNAME "no answer given! aborted!"
 			return 6
 		;;
-	esac
-    [ $RUNMODE == "batch" ] && TMPGRP=$BTARGET
+    esac
+
+    if [ $RUNMODE == "batch" ];then
+        TMPGRP=$BTARGET
+    else
+        if [ "$TMPGRP" == "deployer" ];then
+            ASITES=$(F_GETSITES)
+            OPTIONS=($(for i in $ASITES;do echo "${i} use_space-bar_to_select off"; done))
+            SITESEL=$(F_DIALOG --radiolist "Please choose a site first.\n\nNOTE: It is not possible to exec on multiple sites in one run." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+            [ $? -ne 0 ] && return $?
+            TMPGRP="${SITESEL}_deployer"
+        fi
+    fi
     F_LOG $FUNCNAME "Starting calc with $TMPGRP"
 
-    # calc temp hosts file
-    F_CALCTGROUP shelperhosts $TMPGRP $TMPGRP
+    [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
+    SHOSTS="$(F_EXPANDHOSTS $TMPGRP)"
+    [ "$SHOSTS" == ABORTED ] && return 4
 
-    # some targets require other groups as a dependency in the tmp host file we generated in F_CALCTGROUP
-    if [ ! -z "$SCNDGRP" ];then
-        HOSTSELECTION=$(F_TARGETS checklist $SCNDGRP)
-        unset HOSTLIST['expanded']
-        [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all group members are generated" 5 80
-        for hostlist in $HOSTSELECTION;do
-            if [ -z "${HOSTLIST['expanded']}" ];then
-                HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
-            else
-                HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
-            fi
-        done
-        echo -e '\n['$SCNDGRP']' >> ${AINVENTORY}/${TARGETENV}/shelperhosts
-        echo "${HOSTLIST['expanded']}" >> ${AINVENTORY}/${TARGETENV}/shelperhosts
+    # split ssh port from host
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
+
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr '\n' ':' | sed 's/:$//g')
+    if [ -z "$LIMITLIST" ];then
+        if [ $RUNMODE != "batch" ];then
+            F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+        else
+            F_ECHOLOG $FUNCNAME "ERROR: empty LIMITLIST! ABORTED"
+            return 3
+        fi
     fi
 
-    OLDPP="$PYTHONPATH"
-    F_LOG $FUNCNAME "python path before: $OLDPP"
-    export PYTHONPATH=${A2PATH}/lib
-	export PYTHONUNBUFFERED=1
-    F_LOG $FUNCNAME "python path after: $PYTHONPATH"
+    [ $RUNMODE != "batch" ] && F_DIALOG --colors --yesno "\nWill ${SHEXE}${SHCUST} on\n\n  \Zb$LIMITLIST\ZB\n\nOk?" 20 50
+    [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-    #[ ! -z "$SPLPW" ] && SHEXE="$SHEXE with auth"
-    F_LOG $FUNCNAME "will use >$SHEXE<"
-
-    # TODO: this is obsolete.. we should move on and stop support no-vault installs?!
-    if [ "$ENABLEVAULT" != "yes" ];then
-	CREDS=$(F_GETAPICREDS)
-	SPLUSR="${CREDS/:*}"
-	SPLPW="${CREDS/*:}"
-        ARGS="{'splunk_user':'$SPLUSR','splunk_password':'$SPLPW','shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}"
-        $A2BIN -i "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" --limit $TMPGRP -e "$ARGS" 2>&1 \
-		| tee -a $LOG \
-		| sed -u -r 's/(.*DEPRECATION.*)//Ig' \
-		| F_DIALOG --scrollbar --colors --progressbox "\\Za\\Z1shelper running with $SHEXE $SHCUST on $UPGRADEHOSTS ...\\Z\\n" 1000 1000
-        F_ERRLOG "${PIPESTATUS[0]}" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
-        export PYTHONPATH="$OLDPP"  
-        F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
-    else
-        ARGS="{'shelper_action':'$SHEXE','shelper_custom':'$SHCUST'}"
-        F_LOG $FUNCNAME "Will exec:\n$A2BIN -i ${AINVENTORY}/${TARGETENV}/shelperhosts $PBSHRELOAD --limit $TMPGRP -e $ARGS" 
-        F_A2BIN "${AINVENTORY}/${TARGETENV}/shelperhosts" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $TMPGRP -e $ARGS"
-        AERR=$?
-        [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
-        [ $RUNMODE == "batch" ] && F_LOG "$AERR" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST"
-    fi
-
-    [ $RUNMODE != "batch" ] && F_MENUMAIN
+    ARGS="{'target':'$LIMITLIST','shelper_action':'$SHEXE','shelper_custom':'$SHCUST','shc_site':'$SITESEL'}"
+    F_A2BIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
+    AERR=$?
+    [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
+    [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST"
+#    [ $RUNMODE != "batch" ] && F_MENUMAIN
+    return $AERR
 }
 
 ## @fn F_SHUPGRADE()
