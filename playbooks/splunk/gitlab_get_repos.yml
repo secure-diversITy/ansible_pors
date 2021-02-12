@@ -3,8 +3,11 @@
   hosts: pors_server
   connection: local
 
-  vars:
-    git_tmp_repos_file: /tmp/pors/gl.repos
+  pre_tasks:
+    - name: "Verify git_server_type"
+      fail:
+        msg: "ERROR: git_server_type variable is not set to 'gitlab'"
+      when: git_server_type is undefined or git_server_type != 'gitlab'
 
   tasks:
     - set_fact:
@@ -16,7 +19,7 @@
         headers:
             Authorization: "Bearer {{ vault_git_ro_token }}"
         return_content: no
-      #no_log: true
+      no_log: true
       register: pages
 
     - debug:

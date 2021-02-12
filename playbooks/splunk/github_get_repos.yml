@@ -3,8 +3,11 @@
   hosts: pors_server
   connection: local
 
-  vars:
-    git_tmp_repos_file: /tmp/pors/gh.repos
+  pre_tasks:
+    - name: "Verify git_server_type"
+      fail:
+        msg: "ERROR: git_server_type variable is not set to 'github'"
+      when: git_server_type is undefined or git_server_type != 'github'
 
   tasks: 
     - set_fact:
@@ -35,7 +38,6 @@
       register: gh_out
       no_log: true
       loop: "{{ range(1, page_count|int+1)| list }}"
-
 
 #    - debug:
 #        var: gh_out
