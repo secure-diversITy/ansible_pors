@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-28"
+VERSIONNUM="4.0-29"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -945,7 +945,11 @@ F_RMAPP(){
     unset SELECTION RMAPPS ABORTED HOSTSELECT HOSTSELECTION
     F_HOSTFILE
 
-    SELECTION=$(F_DIALOG --radiolist "You have to choose an action mode first\n\nThe following will be choosen for ALL apps you will select in the next steps.\n(You can *not* use both modes in the same run)\n\n" 15 150 16 "Remove" "Will completely delete apps (local *AND* on remote)" "on" "Disable" "Will keep the link but disables app from PORS deployment (will *not* touch remote)" "off" "Unlink" "Will completely unlink the apps (will *not* touch remote)" "off" 2>&1 >/dev/tty)
+    SELECTION=$(F_DIALOG --radiolist "You have to choose an action mode first\n\nThe following will be choosen for ALL apps you will select in the next steps.\n\n" 15 150 16 \
+                "Remove" "completely delete app(s) (locally *AND* on remote)" "on" \
+                "Disable" "keep the link in PORS but disable app(s) from PORS deployment (will *not* touch remote)" "off" \
+                "Unlink" "unlink app(s) in PORS only (will *not* touch remote)" "off" \
+                2>&1 >/dev/tty)
     [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && return 4
 
     while [ -z "$HOSTSELECT" ];do
@@ -964,43 +968,53 @@ F_RMAPP(){
     fi
 
     F_LOG $FUNCNAME "Choosen target group: $HOSTSELECTION"
-    OPTIONS=($(for i in $(F_LISTAPPS "$HOSTSELECTION" |cut -d ":" -f 1-2);do echo "${i/*:}" "${i/:*}" off;done))
+
+    GETAPPS=$(F_LISTAPPS "$HOSTSELECTION")
+    [ -z "$GETAPPS" ] && F_LOG $FUNCNAME "GETAPPS: $GETAPPS <-- seems to be empty?! so no linked apps.." && F_DIALOG --colors --msgbox "\nThere are no linked apps for:\n\n    \Zb$HOSTSELECTION\ZB\n\nMaybe its a good time to add some ;) ?" 20 50 && return 0
+
+    OPTIONS=($(for i in $(echo "$GETAPPS" |cut -d ":" -f 1-2);do echo "${i/*:}" "${i/:*}" off;done))
     RMAPPS=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
     [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && return 4
 
-    F_LOG $FUNCNAME "choosen apps for deletion: $RMAPPS"
+    F_LOG $FUNCNAME "choosen apps: $RMAPPS, action: $SELECTION"
     
     # in any case disable the app locally
     for app in $RMAPPS;do
-        sed -i "s/\(^\s*\)\(install:\s*[Tt]rue\)/\1install: false/g" $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 2>> $LOG
+        sed -i "s/\(^\s*\)\(install:\s*[Tt]rue\)/\1install: false/g" $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 2>&1 >> $LOG
+        RMERR=$((RMERR + $?))
+        F_LOG $FUNCNAME "disabling: $app ended with $RMERR"
     done
 
     case $SELECTION in
-        Remove)
+        Remove) RMERR=0
            for app in $RMAPPS;do
                 # ensure migrated linked apps can be handled properly on the next step
                 egrep "\s*delete:" $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app || echo "    delete: false" >> $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 
                 # set removal flag
                 sed -i "s/\(^\s*\)\(delete:\s*[Ff]alse\)/\1delete: true/g" $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 2>> $LOG
             done
-            F_DIALOG --yesno "\nDo you want to remove the choosen apps now?\n(otherwise this will just happen on next deployment run)\n\nThis will delete theses apps on $HOSTSELECTION:\n\n$RMAPPS" 15 80 
+            F_DIALOG --yesno "\nDo you want to remove the choosen apps now?\n(otherwise this will happen on next deployment run)\n\nThis will delete theses apps on $HOSTSELECTION:\n\n$RMAPPS" 15 80 
             [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && return 4
 
             export SHOSTFILE=$HOSTFILE
             export BTARGET="$HOSTSELECTION"
             export DEPLOYAPPSUBSET=1
             F_DEPLOYAPP auto "$RMAPPS"
+            RMERR=$((RMERR + $?))
         ;;
         Disable)
             F_LOG $FUNCNAME "app has been disabled"
         ;;
-        Unlink)
+        Unlink) RMERR=0
             for app in $RMAPPS;do
                 rm -vf $AINVENTORY/$TARGETENV/group_vars/$HOSTSELECTION/$app 2>&1 >> $LOG
+                RMERR=$((RMERR + $?))
+                F_LOG $FUNCNAME "unlinking $app ended with $RMERR"
             done
         ;;
     esac
 
+    F_DIAERR $RMERR "$SELECTION $RMAPPS"
     F_LOG $FUNCNAME ended
 }
 
@@ -1488,15 +1502,12 @@ F_SETREPODIR(){
 }
 
 ## @fn F_ENAPP()
-## @brief enable an app for a host/target
+## @brief links an app for a host/target in PORS
 F_ENAPP(){
 	echo "$FUNCNAME started" >> $LOG
 	unset HOSTFILE
 	F_HOSTFILE
 	unset HOSTSELEXPANDED ABORTED HTARGETS HOSTSELECT OPTIONS
-
-	# local repository definition configuration file for tgz's	
-	#REPODEF=$AINVENTORY/$TARGETENV/group_vars/all/splunk_repository
 
 	# extract repo dir for apps
 	#REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")/apps"
@@ -1517,15 +1528,12 @@ F_ENAPP(){
         if [ "$ABORTED" -ne 0 ];then
                 echo "DEBUG: aborted by user."
         else
-		#HOSTSELEXPANDED="$(F_EXPANDHOSTS "$HOSTSELECTION")"
-		#F_SHOWHOSTS "checklist" "$HOSTSELEXPANDED"
-
 		# LOCAL or GIT
 		ENSRC=$(F_DIALOG --menu "\nChoose an option:" \
                         15 76 14 \
-                        github "define an available app within github" \
-                        gitlab "define an available app within gitlab" \
-                        local "define and push a local file on this server to a target" \
+                        github "choose app(s) from a github server" \
+                        gitlab "choose app(s) from a gitlab server" \
+                        local "choose app(s) from a local file on the PORS server" \
                         3>&1 1>&2 2>&3)
 		
 		case $ENSRC in
