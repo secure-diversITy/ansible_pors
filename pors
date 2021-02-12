@@ -642,12 +642,25 @@ F_LOG(){
     [ ! -d $LOGDIR ] && mkdir -p $LOGDIR
     CALLER="$1"
     MSG="$2"
+
     if [ -z "$MSG" ]||[ -z "$CALLER" ];then
     	F_DIAERR 2 "INTERNAL ERROR: $FUNCNAME requires an arg"
     else
     	PREFIX="$(date '+%F_%T') - PORS - ($CALLER) -"
         echo -e "$PREFIX $MSG" >> $LOG
     fi
+}
+
+## @fn F_ECHOLOG()
+## @brief Logging function which also echo's to the terminal
+## @param 1 (required) the calling parent function
+## @param 2 (required) the message to be logged
+## @details Useful mostly for batch / API processing in PORS
+F_ECHOLOG(){
+    CALLER="$1"
+    MSG="$2"
+    F_LOG "$CALLER" "$MSG"
+    echo "$CALLER: $MSG"
 }
 
 ## @fn F_LOGROTATE()
