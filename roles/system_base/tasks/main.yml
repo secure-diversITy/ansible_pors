@@ -18,7 +18,9 @@
 - name: Custom system tasks
   include_role:
     name: custom_system
-  when: system.add_custom_tasks is defined and system.add_custom_tasks == True
+  when:
+    - (system.add_custom_tasks is defined and system.add_custom_tasks == True)
+      or (custom.system_tasks is defined and custom.system_tasks == True)
 
 - include_tasks: software.yml
 

@@ -29,14 +29,6 @@ system:
         #- make
         #- ..
 
-    # custom tasks which will be run after a system has been deployed
-    # and/or on system upgrade.
-    # custom roles must be added to:
-    # <pors-data-dir>/custom/roles/custom_system/tasks/
-    # -> main.yml will be included so set any dependencies here
-    # Possible values: True | False
-    add_custom_tasks: False
-
 # NTP settings
 ntp_enabled: true
 ntp_timezone: Europe/Berlin

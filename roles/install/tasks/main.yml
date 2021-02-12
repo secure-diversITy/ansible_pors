@@ -19,6 +19,13 @@
 
 - include: install_splunk.yml
 
+- name: "CUSTOM: post-install tasks (if defined)"
+  include_role:
+    name: custom_post_install_splunk
+  when:
+    - custom.post_install is defined and custom.post_install == True
+    - splunk_upgrade == False
+
 - include: ../../splunk_info/tasks/installed_version.yml
 
 - include: set_splunk_secret.yml
