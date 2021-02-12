@@ -43,7 +43,10 @@
   register: shelper_result
 
 - name: shelper apply_shcluster_bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ groups['shcmember'][0] }} -auth {{ vault_dep_ae_user }}:{{ vault_dep_ae_pass }} --batch"
+  shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ generated_shcmember }} -auth {{ vault_dep_ae_user }}:{{ vault_dep_ae_pass }} --batch"
 #  no_log: true
-  when: inventory_hostname in groups['deployer']
+  when:
+    - generated_deployer is defined
+    - shc_site is defined
+    - inventory_hostname in groups['{{ shc_site }}_deployer']
   register: shelper_result

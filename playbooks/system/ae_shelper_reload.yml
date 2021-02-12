@@ -9,6 +9,12 @@
   handlers:
     - include: ../../roles/shelper/handlers/main.yml
 
+  pre_tasks:
+    - set_fact:
+        generated_shcmember: "{{ query('inventory_hostnames', '{{ shc_site }}_shcmember') | first }}"
+        generated_deployer: "{{ query('inventory_hostnames', '{{ shc_site }}_deployer') | first }}"
+      when: shc_site is defined
+
   tasks:
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
       debug:
