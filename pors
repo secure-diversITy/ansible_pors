@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-29"
+VERSIONNUM="4.0-30"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -422,10 +422,16 @@ declare INSTDEF=splunk_installation.yml
 declare PBDLSPL=${PBDIRSPLUNK}/ae_download_splunk.yml 
 
 ## @var PBGHFETCHREPOS
-## @brief Fetch all known github repos
+## @brief Fetch all accessible github repos
 ## @details Will connect to the defined repo server and fetches all repository locations (http or ssh - as defined)
 ## @showinitializer
 declare PBGHFETCHREPOS="${PBDIRSPLUNK}/github_get_repos.yml"
+
+## @var PBGLFETCHREPOS
+## @brief Fetch all accessible gitlab repos
+## @details Will connect to the defined repo server and fetches all repository locations (http or ssh - as defined)
+## @showinitializer
+declare PBGLFETCHREPOS="${PBDIRSPLUNK}/gitlab_get_repos.yml"
 
 ## @var PBVCINFO
 ## @brief Collecting vCenter information
@@ -1035,26 +1041,30 @@ F_SELECTOR(){
 ## @fn F_GOAPPS()
 ## @brief show current apps deployment
 F_GOAPPS(){
-	echo "$FUNCNAME started" >> $LOG
-	if [ "$SELECTION" == "ALL" ];then
-		F_SHOWAPPS "ALL"
+    F_LOG "$FUNCNAME" started
+    unset GROUPS
+
+    if [ "$SELECTION" == "ALL" ];then
+        # FIXME
+        GROUPS=$(for i in $(find $AINVENTORY/$TARGETENV/group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#$AINVENTORY/$TARGETENV/group_vars/##g);do echo $i;done)
+    else
+        if [ "$SELECTION" == "Choose" ];then
+	    OPTIONS=($(for i in $(find $AINVENTORY/$TARGETENV/group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#$AINVENTORY/$TARGETENV/group_vars/##g);do echo $i $i off;done))
+	    GROUPS=$(F_DIALOG --checklist "Select options:" 35 76 36 "${OPTIONS[@]}" 2>&1 >/dev/tty)
 	else
-		if [ "$SELECTION" == "Choose" ];then
-			OPTIONS=($(for i in $(find $AINVENTORY/$TARGETENV/group_vars/* -maxdepth 1 -type d |egrep -v "(templates|all)" |sed s#$AINVENTORY/$TARGETENV/group_vars/##g);do echo $i $i off;done))
-			SELECTION=$(F_DIALOG --checklist "Select options:" 35 76 36 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-			if [ -z "$SELECTION" ];then
-			F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30 
-			else
-                            APPLIST=$(for a in $SELECTION;do echo "\n\Zb$a\ZB\n---------------------------------------------------"; F_LISTAPPS "$a";done)
-                            APPLISTPREP=$(for i in $APPLIST;do echo "${i}\n" | sed "s/:/\t\t\t\t/g" ;done)
-                            F_LOG $FUNCNAME "APPLIST:\n$APPLIST\n\nAPPLISTPREP:\n$APPLISTPREP"
-                            F_DIALOG --colors --msgbox "\n\ZbThe following apps are linked to your selected groups:\ZB\n(use PG-UP/-DOWN to scroll if needed)\n$APPLISTPREP" 40 70
-			fi
-		else
-			echo ERROR no selection made 
-		fi
+	    F_LOG $FUNCNAME "ERROR: no selection made"
 	fi
-	echo "$FUNCNAME finished" >> $LOG
+    fi
+    if [ -z "$GROUPS" ];then
+        F_DIALOG --msgbox "ERROR: no selection made. Choose 1 or more targets with space bar." 10 30
+        return 4
+    else
+        APPLIST=$(for a in $GROUPS;do echo "\n\Zb$a\ZB\n---------------------------------------------------------------------------------------------"; F_LISTAPPS "$a";done)
+        APPLISTPREP=$(for i in $APPLIST;do echo "${i}\n" | sed "s/:/\t\t\t\t/g" ;done)
+        F_LOG $FUNCNAME "APPLIST:\n$APPLIST\n\nAPPLISTPREP:\n$APPLISTPREP"
+        F_DIALOG --colors --msgbox "\n\ZbThe following apps are linked to your selected groups:\ZB\n(use PG-UP/-DOWN to scroll if needed)\n$APPLISTPREP" 60 120
+    fi
+    F_LOG "$FUNCNAME" finished
 }
 
 ## @fn F_HOSTFILE()
@@ -1571,12 +1581,13 @@ F_ENAPP(){
 			    F_ERRLOG 0 "Linking apps finished" "$LOG"
             fi
 			;;
-                        github)
+                        github|gitlab)
                         unset SELAPPS CSELAPPS OPTIONS PREAPPS RMAPPS LAPPS GITAPP
-                        # get github repos
-                        F_WAITBOX "Please standby until all github locations have been parsed..."
-                        CSELAPPS=$(F_GITHUBSRC | tr ',' '\n')
-                        [ $? -ne 0 ] && F_ERRLOG $? "parsing repos" $LOG && return 3
+                        # get git repos
+                        F_WAITBOX "Please standby until all $ENSRC locations have been parsed..."
+                        CSELAPPS=$(F_FETCHGITREPOS $ENSRC | tr ',' '\n' ; return ${PIPESTATUS[0]})
+                        REPERR="$?"
+                        [ $REPERR -ne 0 ] && F_ERRLOG $REPERR "parsing repos" $LOG && return 3
 
                         # ensure only apps that are not already linked will be shown
                         PREAPPS="${CSELAPPS}"
@@ -1585,7 +1596,7 @@ F_ENAPP(){
                         SELAPPS=$(echo -e "${LAPPS}\n${RMAPPS}" | sort |uniq -u)
 
                         F_LOG $FUNCNAME "RMS: $RMAPPS\n\nPREAPPS: ${PREAPPS}\n\nSELAPPS: $SELAPPS\n\nCSELAPPS: $CSELAPPS\n\nLAPPS: $LAPPS"
-                        OPTIONS=($(for gapp in $SELAPPS;do prea="$(echo ${gapp##*/} | cut -d '=' -f 1)"; echo "${prea/\.git*/}" "git-repo" off; done))
+                        OPTIONS=($(for gapp in $SELAPPS;do prea="$(echo ${gapp##*/} | cut -d '=' -f 1)"; echo "${prea/\.git*/}" "$ENSRC" off; done))
                         GITAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
                         if [ $? -eq 0 ];then
                             for gapp in $GITAPP;do
@@ -1606,61 +1617,7 @@ F_ENAPP(){
                         else
                             F_DIAERR 4 "Aborted by user"
                         fi
-
                         ;;
-			gitlab)
-			unset SELAPPS CSELAPPS OPTIONS PREAPPS RMAPPS LAPPS GLABAPP
-			# check if settings are done already:
-			if [ -f $GLABSETTINGS ];then
-				. $GLABSETTINGS
-			else
-				F_SETUP_GITLAB
-			fi
-			# get gitlab projects
-			F_DIALOG --infobox "\nPlease standby until all gitlab projects have been parsed..." 5 80
-			CSELAPPS=$(F_GITLABSRC|sort)
-            echo "$CSELAPPS" |grep "returncode:0" >> $LOG
-            if [ $? -eq 0 ];then
-                    PREAPPS="${CSELAPPS/returncode:0}"
-                    # ensure only apps that are not already linked will be shown
-                    RMAPPS=$(for gh in $(F_LISTAPPS "$HOSTSELECTION" | grep git-hosted | cut -d ":" -f 2);do echo "$gh\n";done)
-                    LAPPS=$(for papp in $PREAPPS;do echo "${papp##*/}" ;done)
-                    SELAPPS=$(echo -e "${LAPPS}\n${RMAPPS}" | sort |uniq -u)
-
-                    F_LOG $FUNCNAME "RMS: $RMAPPS\n\nPREAPPS: ${PREAPPS}\n\nSELAPPS: $SELAPPS"
-        		    OPTIONS=($(echo "CUSTOM GIT-Project off" && for gapp in $SELAPPS;do echo ${gapp##*/} "GIT-Project" off; done))
-		            GLABAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-                if [ $? -eq 0 ];then
-                    for gapp in $GLABAPP;do
-				        if [ "$gapp" == "CUSTOM" ];then
-					        gapp=$(F_DIALOG --inputbox '\nHINT: the project MUST exists already on the gitlab server!\nType in the gitlab project name (only the name):\n' 15 100 2>&1 >>/dev/tty)
-				        fi
-				        F_GITLABSRC | grep $gapp >>/dev/null
-				        if [ $? -ne 0 ];then
-					        F_MSG "ERROR: > $gapp < does not exists on gitlab! Please create the repository first. This app will be SKIPPED."
-				        else
-	                                app_full=$(echo "$SELAPPS" |tr " " "\n" |egrep "/${gapp}$")
-	       	                        app_dir=${app_full%/*}
-	       	                        app_namespace=${app_dir##*/}
-					                F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
-	       	                        for tgroup in $HOSTSELECTION;do
-                                        F_GVARDIR $tgroup
-						                # TODO: may have an option for choosing branch?!
-	                                    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$gapp app2group=$tgroup filename='' git_url=git@${GLABHOST}:${app_namespace} git_branch=''\":\n" >>$LOG
-						                F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'git@${GLABHOST}:${app_namespace}','git_branch':'master','pors_data_dir':'$DATADIR'}"
-                                        LASTERR=$?
-                                        [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
-	                                done
-				          fi
-                       done
-                       F_ERRLOG 0 "linking $GLABAPP to $tgroup\n\n" "$LOG"
-                  else
-                        F_DIAERR 4 "Aborted by user"
-                  fi
-              else
-                       F_DIAERR 9 "$FUNCNAME: GITLAB API ERROR!! CHECK $LOG"
-              fi
-			;;
 			*)
 			echo NO SELECTION MADE..
 			;;
@@ -1669,94 +1626,29 @@ F_ENAPP(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
-## @fn F_SETUP_GITLAB()
-## @brief ask user and write settings to local file
-F_SETUP_GITLAB(){
-	echo "$FUNCNAME started" >> $LOG
-	# ask for server
-	# ask for personal token
-	# write config if all is fine (only)
-	unset GLABHOST PTOKEN ERRHOST ERRTOK
-	F_DIALOG --msgbox "\n(Re-)Initializing gitlab authentication!\n" 10 80
-
-	while [ -z "$GLABHOST" ];do
-		GLABHOST=$(F_DIALOG --inputbox '\nType the FQDN/IP of your gitlab server here (no URL!):\n' 15 100 2>&1 >>/dev/tty)
-		ERRHOST=$?
-		[ "$ERRHOST" -ne 0 ]&& break
-	done
-	while [ -z "$PTOKEN" ]&&[ "$ERRHOST" -eq 0 ];do
-		PTOKEN=$(F_DIALOG --inputbox '\nOpen your gitlab web GUI\n -> Open your profile settings\n -> Create a personal Access Token\n -> type that token here:\n' 25 100 2>&1 >>/dev/tty)
-		ERRTOK=$?
-		[ "$ERRTOK" -ne 0 ]&& break
-	done
-	# error out or write the config if not
-	if [ "$ERRHOST" -ne 0 ]||[ "$ERRTOK" -ne 0 ];then
-		F_DIAERR "host var: $ERRHOST,token var: $ERRTOK"
-	else
-		echo -e "GLABHOST=\"$GLABHOST\"\nPTOKEN=\"$PTOKEN\"" > $GLABSETTINGS
-	fi
-	echo "$FUNCNAME finished" >> $LOG
-}
-
-
-## @fn F_GITLABSRC()
-## @brief get all available gitlab projects for the current user
-## @details this does not work with other git servers (think of ssh git@git-server info for those supporting this)
-F_GITLABSRC(){
-	F_LOG $FUNCNAME started
-	# check of required vars are set
-	# build gitlab URL
-	# curl with the private token 
-	# parse the result with python and grep for the wanted project URLs
-    # HINT: no dialogs allowed here!
-	unset ERRC
-	if [ ! -z "$PTOKEN" ]&&[ ! -z "$GLABHOST" ];then
-		# TODO: check for curl as a req
-		# TODO: check for python and python module json.tool as a req
-
-		# I'm not that happy with this URL because it seems to be so unflexible for future changes (besides that parsing grep)
-		# ... but: it works atm..
-		# page=1 and per_page are required otherwise you will see the per page setting in the users settings only (default 20)
-                # max=100 according to https://docs.gitlab.com/ce/api/README.html#pagination
-                GLABURL="https://$GLABHOST/api/v4/projects?simple=true&per_page=100"
-
-                curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head | egrep "HTTP/.* 200 OK" >> $LOG
-                if [ $? -eq 0 ];then
-                    # fetch the needed page count first, then iterate over all pages
-                    PAGECNT=$(curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head | grep 'X-Total-Pages' |egrep -o '[[:digit:]]' |tr -d '\n')
-                    # debugging
-                    # echo "curl -k -s --header \"PRIVATE-TOKEN: $PTOKEN\" \"${GLABURL}\" --head" >> $LOG
-                    PAGE=1
-                    F_LOG $FUNCNAME "page count on GLABURL is: $PAGECNT starting at page: $PAGE"
-
-                    while [ "$PAGE" -le "$PAGECNT" ];do
-                        F_LOG $FUNCNAME "parsing page $PAGE ..."
-                        #curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" 2>&1 | python -mjson.tool >> $LOG
-                        curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}&page=$PAGE" | python -mjson.tool | sed 's/[\",]//g' | egrep "web_url:" |sed 's/\s*web_url:\s*//g'
-                        PAGE=$((PAGE + 1))
-                    done
-                    ERRC=$?
-                else
-                    curl -k -s --header "PRIVATE-TOKEN: $PTOKEN" "${GLABURL}" --head >> $LOG
-                    F_LOG $FUNCNAME "API ERROR! Check your gitlab config!\nconnecting to $GLABURL returned an error:\n$( curl -k -s --header \"PRIVATE-TOKEN: $PTOKEN\" \"${GLABURL}\" --head)\n\nstart PORS with --advanced to re-initialize gitlab, check the access token in gitlab and ensure the gitlab API url is still correct"
-                    ERRC=9
-                fi
-	fi
-	echo "$FUNCNAME finished" >> $LOG
-        echo "returncode:$ERRC"
-}
-
-## @fn F_GITHUBSRC()
+## @fn F_FETCHGITREPOS()
 ## @brief get all available git repos
-## @details works for github only (self-hosted or github.com)
-F_GITHUBSRC(){
-    F_LOG $FUNCNAME started
+## param1: required: git server type (gitlab, github)
+## @details fetches all repositories accessible by a defined token (vault)
+F_FETCHGITREPOS(){
+    F_LOG $FUNCNAME "started with $1"
 
-    F_A2BIN "$HOSTFILE" "$PBGHFETCHREPOS" "\Za\Z1Collecting repositories...\Z\n" "--limit pors_server -e 'git_tmp_repos_file=/tmp/pors/gh.repos'" >> $LOG 2>&1
-    [ $? -ne 0 ] && F_LOG $FUNCNAME "Error while collecting repos" && return 3
+    unset STYPE PLAYBOOK
+    STYPE="$1"
+    REPOFILE="/tmp/pors/${STYPE}.repos"
+
+    case $STYPE in
+        github) PLAYBOOK="$PBGHFETCHREPOS" ;;
+        gitlab) PLAYBOOK="$PBGLFETCHREPOS" ;;
+        *) F_LOG $FUNCNAME "git server type missing or unsupported: $STYPE" && return 3 ;;
+    esac
+
+    F_A2BIN "$HOSTFILE" "$PLAYBOOK" "\Za\Z1Collecting repositories...\Z\n" "--limit pors_server -e {'git_tmp_repos_file':'${REPOFILE}'}" 2>> $LOG 1>> /dev/null
+    RET=$?
+    [ $RET -ne 0 ] && F_LOG $FUNCNAME "Error while collecting repos" && return $RET
 
     # output all repo locations to the calling function
-    sort -u /tmp/pors/gh.repos || return $?
+    sort -u ${REPOFILE} || return $?
     F_LOG $FUNCNAME ended
 }
 
@@ -5476,10 +5368,6 @@ F_MENUMAIN(){
 			F_SHELPER
                         F_LOG $FUNCNAME "F_SHELPER ended with $?"
 			;;
-			gitlab)
-			F_SETUP_GITLAB
-                        F_LOG $FUNCNAME "F_SETUP_GITLAB ended with $?"
-			;;
 			'Install (splunk)')
 			F_INSTALLSPL
                         F_LOG $FUNCNAME "F_INSTALLSPL ended with $?"
@@ -5553,9 +5441,6 @@ F_MENUADVANCED(){
                 case "$SELECTION" in
                         Pull-SYSC)
                         F_PULLSYSC
-                        ;;
-                        gitlab)
-                        F_SETUP_GITLAB
                         ;;
                 esac
 	done	
