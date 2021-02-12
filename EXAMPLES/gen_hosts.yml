@@ -14,7 +14,7 @@
       #dest: /etc/hosts
       dest: /etc/cloud/templates/hosts.suse.tmpl
       regexp: '.*{{ item }}$'
-      line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{item}}"
+      line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['ansible_nodename'] }} {{item}}"
       backup: yes
       state: present
     when: hostvars[item]['ansible_facts']['default_ipv4'] is defined and item != "localhost"
