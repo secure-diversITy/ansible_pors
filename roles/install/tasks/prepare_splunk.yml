@@ -1,5 +1,4 @@
 ---
-
 - name: Create Splunk unix group
   group: name=splunk
          state=present
