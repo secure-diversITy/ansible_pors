@@ -23,7 +23,7 @@
   include_role:
     name: custom_post_install_splunk
   when:
-    - custom.post_install is defined and custom.post_install == True
+    - custom.post_install_splunk is defined and custom.post_install_splunk == True
     - splunk_upgrade == False
 
 - include: ../../splunk_info/tasks/installed_version.yml
