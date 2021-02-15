@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-30"
+VERSIONNUM="4.0-31"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -2309,12 +2309,15 @@ F_SHEXEC(){
     F_LOG $FUNCNAME "Starting calc with $TMPGRP"
 
     [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS="$(F_EXPANDHOSTS $TMPGRP)"
+    if [ -z "$TMPGRP" ];then
+        SHOSTS=$(LISTTYPE=checklist F_SELHOST)
+    else
+        SHOSTS="$(F_EXPANDHOSTS $TMPGRP)"
+    fi
     [ "$SHOSTS" == ABORTED ] && return 4
 
     # split ssh port from host
     SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
-
     # define a valid limit group depending on the user's selection
     LIMITLIST=$(echo "$SHOSTST" | tr '\n' ':' | sed 's/:$//g')
     if [ -z "$LIMITLIST" ];then
