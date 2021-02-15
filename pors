@@ -2255,7 +2255,7 @@ F_SHEXEC(){
 	while [ -z "$ANS" ];do
 		ANS=$(F_DIALOG --radiolist "\nSelect with the space-bar your shelper action:\n(pro tip: jump to an entry with the highlighted key shortcut)" 15 100 6 \
 			reload-all "shelperreload all - like a 'debug refresh'" on \
-			DS-reload "[WIP - do not use yet] reloads the serverclass on a DS (deploymentserver)" off \
+			DS-reload "reloads the serverclass on a DS (deploymentserver)" off \
 			SHC-apply-cb "apply cluster-bundle on a DEP (deployer)" off \
 			MN-apply-cb "apply cluster-bundle on a MN (masternode)" off \
 			custom-reload "define your own reload command" off \
