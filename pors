@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-31"
+VERSIONNUM="4.0-32"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -169,21 +169,23 @@ declare AINVENTORY="$DATADIR/inventories"
 ## The default when pressing just enter can be y (remove and take the lock) or N (quit)
 declare KICKUSER=N
 
+## @var APATH
+## @brief The path to the regular ansible playbook binary
+## @showinitializer
+[ -z "$APATH" ] && \
+declare APATH="/usr/bin"
+
 ## @var ABIN
-## @brief The full path to the regular ansible playbook binary
+## @brief The ansible playbook binary name
 ## @showinitializer
 [ -z "$ABIN" ] && \
-declare ABIN="/usr/bin/ansible-playbook"
+declare ABIN="$APATH/ansible-playbook"
 
 ## @var VBIN
 ## @brief The full path to the regular ansible-vault binary
 ## @showinitializer
 [ -z "$VBIN" ] && \
 declare VBIN="/usr/bin/ansible-vault"
-
-# if you want you can run another ansible version by specifying the A2xx vars:
-: "${A2PATH:=/usr/bin}"
-: "${A2BIN:=$A2PATH/ansible-playbook}"
 
 ## @var LOGDIR
 ## @brief The log directory
@@ -760,17 +762,16 @@ else
     done
 fi
 
-## @fn F_A2BIN()
-## @brief start ansible v2 (instead of PATH bin)
+## @fn F_ABIN()
+## @brief start ansible-playbook
 ## @param 1 (required) the ansible hostfile or the special "version" tag
 ## @param 2 (required) the ansible playbook
 ## @param 3 (required) the title for the progressbox of the playbook run
 ## @param 4 (optional) ansible extra args. space separated parameters like -e 'var1=moo var2=cow' need to be defined in JSON format<br>
 ## @param 5 (optional) a YAML or json formatted filename containing extra vars
-## @details start A2BIN. takes all args without any proof / verification!
-## TODO: parse args and do a basic validation?!<br>
-## example args: F_A2BIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
-F_A2BIN(){
+## @details Main function for all ansible-playbook commands (previously 'F_A2BIN')
+## example args: F_ABIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
+F_ABIN(){
         F_LOG $FUNCNAME started
 	# returns error code of the playbook run
 	#
@@ -781,7 +782,7 @@ F_A2BIN(){
 
 	# optional:
 	# ansible extra args. space separated parameters like -e 'var1=moo var2=cow' need to be defined in JSON format!!
-	# e.g.: F_A2BIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
+	# e.g.: F_ABIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
 	A2ARGSRAW="$4"	
 
         # optional: extra variables defined in a file in YAML/json format
@@ -806,32 +807,26 @@ F_A2BIN(){
             fi
 	fi
 
-	F_LOG $FUNCNAME "$A2BIN -i $A2HOSTFILE ${A2ARGS} $A2PB"
-        OLDPP="$PYTHONPATH"
-	F_LOG $FUNCNAME "python path before: $OLDPP"
-	export PYTHONPATH=${A2PATH}/lib
-	F_LOG $FUNCNAME "python path after: $PYTHONPATH"
+	F_LOG $FUNCNAME "$ABIN -i $A2HOSTFILE ${A2ARGS} $A2PB"
         if [ "$A2HOSTFILE" == "version" ];then
-            $A2BIN --version
+            $ABIN --version
             A2ERR=$?
         else
             if [ "$RUNMODE" == "interactive" ];then
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
-                    F_LOG $FUNCNAME "Will execute:\n$A2BIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $A2BIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                    F_LOG $FUNCNAME "Will execute:\n$ABIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
+	            $ABIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
                 else
-                    F_LOG $FUNCNAME "Will execute:\n$A2BIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $A2BIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                    F_LOG $FUNCNAME "Will execute:\n$ABIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
+	            $ABIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
-                $A2BIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
+                $ABIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
 	        A2ERR="${PIPESTATUS[0]}"
             fi
         fi
-        export PYTHONPATH="$OLDPP"
-        F_LOG $FUNCNAME "previous python path restored: $PYTHONPATH"
 	F_LOG $FUNCNAME "finished with errcode: $A2ERR"
 	return $A2ERR
 }
@@ -1621,7 +1616,7 @@ F_ENAPP(){
                                 for tgroup in $HOSTSELECTION;do
                                     F_GVARDIR $tgroup
                                     # TODO: may have an option for choosing branch?!
-                                    F_A2BIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'$git_branch','pors_data_dir':'$DATADIR'}"
+                                    F_ABIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'$git_branch','pors_data_dir':'$DATADIR'}"
                                     LASTERR=$?
                                     [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
                                 done
@@ -1656,7 +1651,7 @@ F_FETCHGITREPOS(){
         *) F_LOG $FUNCNAME "git server type missing or unsupported: $STYPE" && return 3 ;;
     esac
 
-    F_A2BIN "$HOSTFILE" "$PLAYBOOK" "\Za\Z1Collecting repositories...\Z\n" "--limit pors_server -e {'git_tmp_repos_file':'${REPOFILE}'}" 2>> $LOG 1>> /dev/null
+    F_ABIN "$HOSTFILE" "$PLAYBOOK" "\Za\Z1Collecting repositories...\Z\n" "--limit pors_server -e {'git_tmp_repos_file':'${REPOFILE}'}" 2>> $LOG 1>> /dev/null
     RET=$?
     [ $RET -ne 0 ] && F_LOG $FUNCNAME "Error while collecting repos" && return $RET
 
@@ -2233,7 +2228,7 @@ F_SPLACT(){
         EVARFILE=/tmp/pors_${FUNCNAME}
         echo -e "splunk_action: \"$SPLEXE\"\nsplunk_cmdparams: \"$ECUST\"\n" > $EVARFILE
 
-        F_A2BIN "$ITMPGRP" "$PBSPLACT" "running splunk $SPLEXE on $SELHOSTS ..." "$PBARGS" "$EVARFILE"
+        F_ABIN "$ITMPGRP" "$PBSPLACT" "running splunk $SPLEXE on $SELHOSTS ..." "$PBARGS" "$EVARFILE"
         LASTERR=$?
         F_ERRLOG "$LASTERR" "splunk <${SPLEXE}> ${ECUST} for:\n\n$SELHOSTS" "$LOG"
 	F_LOG $FUNCNAME "ended with $LASTERR"
@@ -2333,7 +2328,7 @@ F_SHEXEC(){
     [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
     ARGS="{'target':'$LIMITLIST','shelper_action':'$SHEXE','shelper_custom':'$SHCUST','shc_site':'$SITESEL'}"
-    F_A2BIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
+    F_ABIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
     AERR=$?
     [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
     [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST"
@@ -2401,10 +2396,10 @@ F_SHUPGRADE(){
 	for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
 	F_LOG "$FUNCNAME" "Temporary group: $(cat $UTMPGRP)"
 
- 	F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBSHINSTALL '--limit tmpshmaint" | tee -a $LOG
+ 	F_LOG $FUNCNAME "F_ABIN $UTMPGRP $PBSHINSTALL '--limit tmpshmaint" | tee -a $LOG
 
 	# do it
-	F_A2BIN "$UTMPGRP" "$PBSHINSTALL" "\Za\Z1UPGRADING/INSTALLING ...\Z\n" "--limit tmpshmaint" 
+	F_ABIN "$UTMPGRP" "$PBSHINSTALL" "\Za\Z1UPGRADING/INSTALLING ...\Z\n" "--limit tmpshmaint" 
         F_ERRLOG "${PIPESTATUS[0]}" "shelper upgrade/install for:\n\n$UPGRADEHOSTST" "$LOG"
 }
 
@@ -2478,7 +2473,7 @@ F_DLSPLUNK() {
     
     # download the auto-staged version
     [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
-    F_A2BIN $HOSTFILE $PBDLSPL "Downloading splunk <$NVER>..."
+    F_ABIN $HOSTFILE $PBDLSPL "Downloading splunk <$NVER>..."
     ERR=$?
     F_RMVAULTPW
     F_DIAERR $ERR "Downloading splunk version: $NVER"
@@ -2714,7 +2709,7 @@ F_INSTALLSPL(){
 	F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
 	# doit
-	F_A2BIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp " 
+	F_ABIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp " 
         F_ERRLOG "${PIPESTATUS[0]}" "Installing splunk on:\n\n$SHOSTST" "$LOG"
 
 	# cleanup
@@ -2782,10 +2777,10 @@ F_INSTALLLOGSTREAM(){
 
         F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
 
-        F_LOG $FUNCNAME "F_A2BIN $ITMPGRP $PBINSTALLLOGSTREAM --limit logstream_worker"
+        F_LOG $FUNCNAME "F_ABIN $ITMPGRP $PBINSTALLLOGSTREAM --limit logstream_worker"
 
         # doit
-        F_A2BIN "$ITMPGRP" "$PBINSTALLLOGSTREAM" "\Za\Z1INSTALLING ...\Z\n" "--limit logstream_worker"
+        F_ABIN "$ITMPGRP" "$PBINSTALLLOGSTREAM" "\Za\Z1INSTALLING ...\Z\n" "--limit logstream_worker"
         F_ERRLOG "${PIPESTATUS[0]}" "Installing cribl logstream on:\n\n$SHOSTST" "$LOG"
 
         # add service account
@@ -2820,7 +2815,7 @@ F_ADDSYSUSER(){
         return 3
     fi
 
-    F_A2BIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
+    F_ABIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
 
     F_LOG $FUNCNAME ended
 }
@@ -2941,14 +2936,14 @@ F_UPGRADESPL(){
                 else
     	            F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 	            # upgrade
- 	            F_LOG $FUNCNAME "F_A2BIN $UTMPGRP $PBUPGRADE --limit tmpupgrade" | tee -a $LOG
-	            F_A2BIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade" 
+ 	            F_LOG $FUNCNAME "F_ABIN $UTMPGRP $PBUPGRADE --limit tmpupgrade" | tee -a $LOG
+	            F_ABIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade" 
                     F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
                 fi
             fi
     else
-            F_LOG $FUNCNAME "F_A2BIN $HOSTFILE $PBUPGRADE '--limit $AUTOMODE -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
-            F_A2BIN "$HOSTFILE" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
+            F_LOG $FUNCNAME "F_ABIN $HOSTFILE $PBUPGRADE '--limit $AUTOMODE -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
+            F_ABIN "$HOSTFILE" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
             UPERR=${PIPESTATUS[0]}
             F_LOG $FUNCNAME "Upgrade for:\n\n$UPGRADEHOSTST ended with: $UPERR"
             return $UPERR
@@ -3180,8 +3175,8 @@ F_DEPLOYAPP(){
             # CLEAN previous deploy app playbook
             [ -f $AINVENTORY/$TARGETENV/$PBDEPLAPP ] && rm $AINVENTORY/$TARGETENV/$PBDEPLAPP && F_LOG "$FUNCNAME" "Deleted previous temp playbook"
 
-#            F_LOG $FUNCNAME "will exec: $A2BIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
-            F_A2BIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE,'data_dir':'$DATADIR'}"
+#            F_LOG $FUNCNAME "will exec: $ABIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
+            F_ABIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE,'data_dir':'$DATADIR'}"
 		
             DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 1-2 | egrep "($SUBSETAPPS)" | sed 's/^/\\n - /g')
             [ -z "$DEPAPPS" ] && F_LOG $FUNCNAME "ERROR: No app found for deployment" && return 99
@@ -3191,10 +3186,10 @@ F_DEPLOYAPP(){
             if [ $? -eq 0 ]||[ "$RUNMODE" == "batch" ];then
 		    for tgroup in $HOSTSELECTION;do
 			# CHECK first!
-			F_LOG $FUNCNAME "will exec: $A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
-			#$A2BIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
-			#$A2BIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup 2>&1 | tee -a $LOG
-			F_A2BIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Deploying <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
+			F_LOG $FUNCNAME "will exec: $ABIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
+			#$ABIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
+			#$ABIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup 2>&1 | tee -a $LOG
+			F_ABIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Deploying <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
                         ERRCODE=$?
                         F_LOG $FUNCNAME "deploying\n\n$DEPAPPS\n\nto $tgroup ended with $ERRCODE"
                         if [ $ERRCODE -eq 0 ];then    
@@ -3360,7 +3355,7 @@ F_DEPLOYKEY(){
         return 3
     fi
     
-    F_A2BIN "$HOSTFILE" "$PBDEPLOYKEY" "\Za\Z1Key deployment running ...\Z\n" "-e {'target_group':'$DESTGRP'} --limit $SRCNAME"
+    F_ABIN "$HOSTFILE" "$PBDEPLOYKEY" "\Za\Z1Key deployment running ...\Z\n" "-e {'target_group':'$DESTGRP'} --limit $SRCNAME"
     LERR="${PIPESTATUS[0]}"
     [ $LERR -ne 0 ] && F_ERRLOG "$LERR" "Deploying key of: $SRCNAME" "$LOG" && return $LERR
 
@@ -3413,7 +3408,7 @@ F_ADDDEP(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFDEP" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFDEP" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration SHC Deployer on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3464,7 +3459,7 @@ F_ADDLM(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFLM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFLM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     LERR=$?
     #[ $LERR -ne 0 ] && 
     F_ERRLOG "$LERR" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG" && return $LERR
@@ -3520,7 +3515,7 @@ F_ADDMN(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFMN" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFMN" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer MasterNode on:\n\n$SHOSTST" "$LOG"
 
     # FIXME: deploy pub key for dist search (useless here? IDX are likely not setup yet
@@ -3611,7 +3606,7 @@ F_ADDMC(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFMC" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFMC" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     CONERR=$?
     [ $CONERR -ne 0 ] && F_LOG "$FUNCNAME" "aborted due to an error on configure playbook ($CONERR)" && F_ERRLOG $CONERR "issue during configuration" $LOG && return $CONERR
     F_LOG $FUNCNAME "Finished configuration successfully.."
@@ -3621,15 +3616,15 @@ F_ADDMC(){
     DERR=0
 #FIXME: use all + negative $LIMITLIST ?
     for t in $GRPS;do
-        F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBDEPLMONKEY 'Deploying MC key ...' -e {'target':'$t'} --limit $WHAT"
-#        F_A2BIN "$ITMPGRP" "$PBDEPLMONKEY" "\Za\Z1Deploying MC key ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+        F_LOG $FUNCNAME "will exec: F_ABIN $ITMPGRP $PBDEPLMONKEY 'Deploying MC key ...' -e {'target':'$t'} --limit $WHAT"
+#        F_ABIN "$ITMPGRP" "$PBDEPLMONKEY" "\Za\Z1Deploying MC key ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
         [ $? -ne 0 ] && F_LOG $FUNCNAME "Failed to setup monitoring for: $t" && DERR=1 && break
     done
     [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
 
     # configure MC as MC
     DERR=0
-    F_A2BIN "$ITMPGRP" "$PBCONFMC" "\Za\Z1Setup MC ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+    F_ABIN "$ITMPGRP" "$PBCONFMC" "\Za\Z1Setup MC ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
     [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
 
     # TODO: restart all GRPS
@@ -3641,13 +3636,13 @@ F_ADDMC(){
         F_ERRLOG 4 "ABORTED by user - configuration as $WHAT on:\n\n$SHOSTST" "$LOG"
         return 4
     else
-        F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBSPLACT 'Reloading splunk ...' -e {'splunk_action':'reload_all','shelper':'True'} --limit $GRPCOL"
-        F_A2BIN "$ITMPGRP" $PBSPLACT "\Za\Z1Reloading splunk ...\Z\n" "-e {'splunk_action':'reload_all','shelper':'True'} --limit $GRPCOL"
+        F_LOG $FUNCNAME "will exec: F_ABIN $ITMPGRP $PBSPLACT 'Reloading splunk ...' -e {'splunk_action':'reload_all','shelper':'True'} --limit $GRPCOL"
+        F_ABIN "$ITMPGRP" $PBSPLACT "\Za\Z1Reloading splunk ...\Z\n" "-e {'splunk_action':'reload_all','shelper':'True'} --limit $GRPCOL"
         [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
         # auto-configure MC roles
         DERR=0
-        F_LOG $FUNCNAME "will exec: F_A2BIN $ITMPGRP $PBCONFMONROLES 'Setting up MC Roles ...' -e {'target':'$t'} --limit $WHAT"
-        F_A2BIN "$ITMPGRP" "$PBCONFMONROLES" "\Za\Z1Setting up MC Roles ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
+        F_LOG $FUNCNAME "will exec: F_ABIN $ITMPGRP $PBCONFMONROLES 'Setting up MC Roles ...' -e {'target':'$t'} --limit $WHAT"
+        F_ABIN "$ITMPGRP" "$PBCONFMONROLES" "\Za\Z1Setting up MC Roles ...\Z\n" "-e {'target':'$t'} --limit $WHAT"
         [ $DERR -ne 0 ] && F_ERRLOG "$DERR" "configuration as $WHAT on:\n\n$SHOSTST" "$LOG" && return $DERR
     fi
     
@@ -3711,7 +3706,7 @@ F_ADDDS(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFDS" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFDS" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration as Deploymentserver on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3765,7 +3760,7 @@ F_ADDSHCMEMBER(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
   
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','shc_site':'${SITESEL}'}"
+    F_ABIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','shc_site':'${SITESEL}'}"
     F_ERRLOG "$?" "configuration as SHC member on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3811,7 +3806,7 @@ F_ADDPEER(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
         # doit
-        F_A2BIN "$HOSTFILE" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+        F_ABIN "$HOSTFILE" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
         F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer peernode on:\n\n$SHOSTST" "$LOG"
 
         F_LOG $FUNCNAME ended	
@@ -3852,7 +3847,7 @@ F_ADDSH(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFSH" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFSH" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as SearchHead on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3890,7 +3885,7 @@ F_ADDHF(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_A2BIN "$HOSTFILE" "$PBCONFHF" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBCONFHF" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as Heavy Forwarder on:\n\n$SHOSTST" "$LOG"
 
     F_LOG $FUNCNAME ended
@@ -3944,7 +3939,7 @@ F_VAULTPW(){
 ## $AINVENTORY/$TARGETENV/vmware (defined in $PBVCINFO playbook)
 F_VSPHERE_VCDEFS(){ 
     F_LOG $FUNCNAME started
-    F_A2BIN $HOSTFILE $PBVCSHOW "Collecting vCenter definitions..."
+    F_ABIN $HOSTFILE $PBVCSHOW "Collecting vCenter definitions..."
     F_LOG $FUNCNAME ended
 }
 
@@ -3995,10 +3990,10 @@ F_VSPHERE_VCGETINFO(){
         VCREFRESH=$?
     fi
     if [ $LISTSAVAIL -eq 0 -o $VCREFRESH -eq 1 ];then
-        F_A2BIN $HOSTFILE $PBVCINFO "Collecting vCenter information ..." "-e {'vsphere_var':'$VCENTER'}"
+        F_ABIN $HOSTFILE $PBVCINFO "Collecting vCenter information ..." "-e {'vsphere_var':'$VCENTER'}"
     else
         F_LOG $FUNCNAME "Using cached vCenter lists but refreshing vhosts (always)"
-        F_A2BIN $HOSTFILE $PBVCGETVHOSTSTATES "Collecting vhosts states ..." "-e {'vsphere_var':'$VCENTER'}"
+        F_ABIN $HOSTFILE $PBVCGETVHOSTSTATES "Collecting vhosts states ..." "-e {'vsphere_var':'$VCENTER'}"
     fi
 
     for list in $VCLIST $VCHOSTLIST $VCNETLIST $VCDCLIST $VCDSLIST; do
@@ -4139,7 +4134,7 @@ F_VSPHERE_DEPLOY(){
 
     F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
 
-    F_A2BIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
+    F_ABIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
 #2>&1 >> $LOG
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -4187,7 +4182,7 @@ F_VSPHERE_DEPLOY(){
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
             #F_LOG $FUNCNAME "will call $PBVMNEWDISK with: 'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'"
 
-            F_A2BIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
+            F_ABIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
@@ -4207,7 +4202,7 @@ F_VSPHERE_DEPLOY(){
             VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
             VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
    
-            F_A2BIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            F_ABIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
             ERR=$?
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
             
@@ -4610,7 +4605,7 @@ F_STARTVMDEP(){
                 proxmox|pve)
 		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
                     # collect available Nodes
-                    F_A2BIN $HOSTFILE $PBPVEGETNODES "Collecting Proxmox Nodes.." >> $LOG
+                    F_ABIN $HOSTFILE $PBPVEGETNODES "Collecting Proxmox Nodes.." >> $LOG
                     VM_PVE_NODES=$(cat ${PORS_TEMPDIR}/pve_nodes.lst | tr '\n' ',' | sed 's/,$//g')
 
                     PROVOUT=$(F_DIALOG --mixedform "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
@@ -4627,7 +4622,7 @@ F_STARTVMDEP(){
                 googlecp|gcp)
                     # collect ansible config
 		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
-                    F_A2BIN $HOSTFILE $PBGCPGETIDS "Parsing ansible config ..." >> $LOG
+                    F_ABIN $HOSTFILE $PBGCPGETIDS "Parsing ansible config ..." >> $LOG
                     VM_GOOGLECP_IDS=$(cat ${PORS_TEMPDIR}/googlecp.ids | tr '\n' ',' | sed 's/,$//g')
                     [ -z "$VM_GOOGLECP_MROLE" ] && VM_GOOGLECP_MROLE=$SERVER_ROLE
 
@@ -4883,7 +4878,7 @@ F_GOOGLECP_DEPLOY(){
     DISK_LIST_FLAT="${DISK_LIST['all']}"
     F_LOG $FUNCNAME "DISK_LIST:\n${DISK_LIST['all']}"
 
-    F_A2BIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to $VM_PROVIDER ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
+    F_ABIN $HOSTFILE $PBGCPDEPLOY "Deploying $VMHOST to $VM_PROVIDER ..." "--limit pors_server -e {'project_name':'$VM_GOOGLECP_ID','server_hostname':'${VMHOSTF}','server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_machine_type':'$VM_GOOGLECP_MTYPE','server_metadata_role':'$VM_GOOGLECP_MROLE','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_gcpdevname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
 
@@ -4969,7 +4964,7 @@ F_PROXMOX_DEPLOY(){
 
     F_LOG $FUNCNAME "Will use this ip config: $VMIPCONF"
 
-    F_A2BIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ipconfig':'$VMIPCONF','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_extraname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
+    F_ABIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ipconfig':'$VMIPCONF','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_extraname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
 
@@ -5031,10 +5026,10 @@ F_FORMATDISK(){
 
         if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
             F_LOG "$FUNCNAME" "Will configure without LVM.."
-            F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
+            F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
         else
             F_LOG "$FUNCNAME" "Will configure with LVM.."
-            F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
         fi
         ERR=$?
         [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
@@ -5044,7 +5039,7 @@ F_FORMATDISK(){
             F_LOG $FUNCNAME "... moving filesystem needed!"
             if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
                 F_LOG "$FUNCNAME" "moving FS (no LVM, VMDISKLVMLV=$VMDISKLVMLV).."
-                F_A2BIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true','format_disk':'false','server_disk_fs':'${!VMDISKFS}'}"
+                F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true','format_disk':'false','server_disk_fs':'${!VMDISKFS}'}"
             else
                 F_LOG "$FUNCNAME" "moving FS (LVM).."
             fi
@@ -5131,7 +5126,7 @@ F_ADDDISK(){
 
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
 
-            F_A2BIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'${VMDISKNAME}','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
+            F_ABIN $HOSTFILE $PROVPB "Adding a new disk to $VMHOST ..." "--limit ${VMHOSTF} -e {$PROVIDERVARS,'server_hostname':'$VMHOSTF','server_shortname':'${VMHOST}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','server_disk_name':'${VMDISKNAME}','server_disk_bootdev':'${!VMDISKDEVBOOT}'}"
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
@@ -5178,9 +5173,9 @@ F_BASEINSTALL(){
         # check ssh first
         F_CHECKSSH "$uhost"
         if [ -f "$TMPHWPROFILE" ];then
-            F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost -e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN'}"
+            F_ABIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost -e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN'}"
         else
-            F_A2BIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost"
+            F_ABIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost"
         fi
     done
     F_DIAERR $? "Base install on:\n\n$SELHOSTS\n\n"
@@ -5216,7 +5211,7 @@ F_SYSUPGRADE(){
     for uhost in $(echo "$SELHOSTS" |tr " " "\n" | cut -d ":" -f 1);do
         # check ssh first
         F_CHECKSSH "$uhost"
-        F_A2BIN $HOSTFILE $PBSYSUPGRADE "Upgrading $uhost ..." "--limit $uhost"
+        F_ABIN $HOSTFILE $PBSYSUPGRADE "Upgrading $uhost ..." "--limit $uhost"
         FORERR=$?
         [ $FORERR -ne 0 ] && break
     done
@@ -5249,7 +5244,7 @@ F_SYSREBOOT(){
         honly=${host/:*}
         F_DIALOG --scrollbar --yesno "\n\nThe server $host requires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
         if [ $? -eq 0 ];then
-            F_A2BIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
+            F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
         else
             F_LOG "$FUNCNAME" "Skipped rebooting $honly"
         fi
@@ -5273,7 +5268,7 @@ F_CHECKSSH(){
     [ -z "$CHOST" ] && F_DIAERR 9 "missing arg in $FUNCNAME" && break 99
     [ -z "$DHOSTF" ] && DHOSTF="$HOSTFILE"
 
-    F_A2BIN $HOSTFILE $PBSSHCHK "checking $CHOST ..." "--limit $CHOST"
+    F_ABIN $HOSTFILE $PBSSHCHK "checking $CHOST ..." "--limit $CHOST"
 
     F_LOG $FUNCNAME ended
 }
@@ -5477,7 +5472,7 @@ unset AVERSF AVERS A2VERSF A2VERS
 MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
 AVERSF=$($ABIN --version | head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+")
 AVERS=$(echo $AVERSF | tr -d ".")
-[ -f "$A2BIN" ] && A2VERSF=$(F_A2BIN version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && A2VERS=$(echo $A2VERSF | tr -d ".")
+[ -f "$ABIN" ] && A2VERSF=$(F_ABIN version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && A2VERS=$(echo $A2VERSF | tr -d ".")
 F_LOG MAIN "Detected Ansible version(s):\nAVERS: $AVERS\nA2VERS: $A2VERS\nMin required: $MREQAVERSION"
 
 if [ -z "$A2VERS" ];then
