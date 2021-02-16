@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-32"
+VERSIONNUM="4.0-34"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -2675,45 +2675,40 @@ F_SELHOST(){
 ## @brief Install splunk on ansible prepared servers
 ## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
-        F_LOG $FUNCNAME started
-	# this installs pure splunk (i.e. without any configuration)
+    F_LOG $FUNCNAME started
+    # this installs pure splunk (i.e. with common configuration but without any specific configuration)
 
-        # force cleaning the temp hosts file in F_EXPANDHOSTS()
-        # must be explicitly unset for any subsequent tasks
-        export CLEANHOSTFILE=yes
+    # force cleaning the temp hosts file in F_EXPANDHOSTS()
+    # must be explicitly unset for any subsequent tasks
+    export CLEANHOSTFILE=yes
 	
-        SHOSTS="$(LISTTYPE=checklist F_SELHOST)"
-        [ $? -eq 4 ] && return 4
-        [ "$SHOSTS" == ABORTED ] && return 4
-        SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g')"
+    SHOSTS="$(LISTTYPE=checklist F_SELHOST)"
+    [ $? -eq 4 ] && return 4
+    [ "$SHOSTS" == ABORTED ] && return 4
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
 
-        if  [ -z "$SHOSTS" ] || [ -z "$SHOSTST" ];then
-                F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
-                F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
-        else
-                F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
-        fi
+    if  [ -z "$SHOSTS" ] || [ -z "$SHOSTST" ];then
+        F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+        F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+        F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+    fi
 	
-	F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
-	F_DIALOG --scrollbar --yesno "Will install Splunk on these hosts:\n\n$SHOSTST\n\nAre you sure?" 30 100
-	[ $? -ne 0 ] && return $?
+    CURVER=$(F_GETSTAGEDSPL)
+    F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
+    F_DIALOG --colors --scrollbar --yesno "Will install splunk\n\n    \Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$SHOSTST\ZB\n\nAre you sure?" 30 100
+    [ $? -ne 0 ] && return $?
 
-	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
-	ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
-        echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
-	echo '[tmpgrp]' >> $ITMPGRP
-	for h in $SHOSTS;do echo "$h" >> $ITMPGRP; done
-	if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
+    # doit
+    F_ABIN "$HOSTFILE" "$PBINSTALL" "\Za\Z1Installing splunk ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ERRLOG $? "Installing splunk on:\n\n$SHOSTST" "$LOG"
 
-	F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
-	# doit
-	F_ABIN "$ITMPGRP" "$PBINSTALL" "\Za\Z1INSTALLING ...\Z\n" "--limit tmpgrp " 
-        F_ERRLOG "${PIPESTATUS[0]}" "Installing splunk on:\n\n$SHOSTST" "$LOG"
-
-	# cleanup
-	[ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
+    # cleanup
+    [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
 
     F_LOG $FUNCNAME ended
 }
