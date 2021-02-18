@@ -91,27 +91,30 @@ class CallbackModule(Default):
         # All result keys stating with _ansible_ are internal, so remove them from the result before we output anything.
         abridged_result = strip_internal_keys(module_response_deepcopy(result))
 
+        # remove invocation unless specifically wanting it
+        if not keep_invocation and self._display.verbosity < 3 and 'invocation' in result:
+            del abridged_result['invocation']
+
         # Censor the log based on known splunk cmd's
-        HIDE_PARAM = ['-auth .*:.*','-password .*(\s|$)']
+        HIDE_PARAM = ['-auth .*:.*','-password .*(\s|$)','(http|https|ssh|git)://(.*)@']
+        HIDE_MSG = "**CENSORED-BY-HIDE_PARAM**"
 
         for pattern in HIDE_PARAM:
             if 'invocation' in abridged_result:
                 if 'module_args' in abridged_result['invocation']:
                     if '_raw_params' in abridged_result['invocation']['module_args']:
-                        abridged_result['invocation']['module_args']['_raw_params'] = re.sub(pattern,'CENSORED-by-HIDE_PARAM', abridged_result['invocation']['module_args']['_raw_params'])
+                        abridged_result['invocation']['module_args']['_raw_params'] = re.sub(pattern, HIDE_MSG, abridged_result['invocation']['module_args']['_raw_params'])
+                    elif 'repo' in abridged_result['invocation']['module_args']:
+                        abridged_result['invocation']['module_args']['repo'] = re.sub(pattern, HIDE_MSG, abridged_result['invocation']['module_args']['repo'])
             if 'cmd' in abridged_result:
                 if type(abridged_result['cmd']) == list:
                     cmd_str = ','.join(abridged_result['cmd'])
-                    cmd_parsed = re.sub(pattern,'CENSORED-by-HIDE_PARAM', cmd_str)
+                    cmd_parsed = re.sub(pattern, HIDE_MSG, cmd_str)
                     abridged_result['cmd'] = [ cmd_parsed.replace(',',' ') ]
                 else:
-                    abridged_result['cmd'] = re.sub(pattern,'CENSORED-by-HIDE_PARAM', abridged_result['cmd'])
+                    abridged_result['cmd'] = re.sub(pattern, HIDE_MSG, abridged_result['cmd'])
             if 'stdout' in abridged_result:
-                abridged_result['stdout'] = re.sub(pattern,'CENSORED-by-HIDE_PARAM', abridged_result['stdout'])
-
-        # remove invocation unless specifically wanting it
-        if not keep_invocation and self._display.verbosity < 3 and 'invocation' in result:
-            del abridged_result['invocation']
+                abridged_result['stdout'] = re.sub(pattern, HIDE_MSG, abridged_result['stdout'])
 
         # remove diff information from screen output
         if self._display.verbosity < 3 and 'diff' in result:
