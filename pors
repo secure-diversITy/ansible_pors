@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-34"
+VERSIONNUM="4.0-35"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1582,7 +1582,7 @@ F_ENAPP(){
 				    for tgroup in $HOSTSELECTION;do
 					    F_GVARDIR $tgroup
 					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR\":\n" >>$LOG
-					    $ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR" >> $LOG 2>&1
+					    $ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR" 2>> $LOG 1>> /dev/null
 					    [ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				    done
 			    done
@@ -1606,19 +1606,24 @@ F_ENAPP(){
                         F_LOG $FUNCNAME "RMS: $RMAPPS\n\nPREAPPS: ${PREAPPS}\n\nSELAPPS: $SELAPPS\n\nCSELAPPS: $CSELAPPS\n\nLAPPS: $LAPPS"
                         OPTIONS=($(for gapp in $SELAPPS;do prea="$(echo ${gapp##*/} | cut -d '=' -f 1)"; echo "${prea/\.git*/}" "$ENSRC" off; done))
                         GITAPP=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 80 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-                        if [ $? -eq 0 ];then
+                        if [ $? -eq 0 ]&&[ ! -z "$GITAPP" ];then
                             for gapp in $GITAPP;do
+				F_WAITBOX "... linking $gapp ..."
                                 app_full=$(echo -e "$CSELAPPS" | cut -d "=" -f 1 | egrep "(/${gapp}$|/${gapp}\.git$)")
+#                                git_url=$(echo "$app_full" | sed 's#://#://{{ vault_git_ro_user }}:x-oauth-basic@#g')
                                 git_branch=$(echo -e "$CSELAPPS" | egrep "$app_full" | cut -d "=" -f 2)
                                 app_dir=${app_full%/*}
                                 app_namespace=${app_dir##*/}
                                 F_LOG $FUNCNAME "gapp: $gapp, app_full: $app_full, app_dir: $app_dir, appnamespace: $app_namespace" 
                                 for tgroup in $HOSTSELECTION;do
                                     F_GVARDIR $tgroup
+                                    F_APPTPLUPDATE "${ROLEDIR}/apps/app.template" "$DATADIR/custom/roles/apps" "$gapp"
+                                    LERR=$?
+                                    [ $LERR -ne 0 ] && F_ERRLOG "$LERR" "Linking app template" $LOG && return $LERR
                                     # TODO: may have an option for choosing branch?!
-                                    F_ABIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'$git_branch','pors_data_dir':'$DATADIR'}"
+                                    F_ABIN $HOSTFILE $PBENAPP "Enable App" "-e {'app_name':'$gapp','app2group':'$tgroup','filename':'','git_url':'$app_full','git_branch':'$git_branch','pors_data_dir':'$DATADIR'}"  2>> $LOG 1>> /dev/null
                                     LASTERR=$?
-                                    [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG"
+                                    [ $LASTERR != 0 ] && F_ERRLOG "$LASTERR" "linking\n\n$gapp\n\nto $tgroup\n\n" "$LOG" && return $LASTERR
                                 done
                             done
                             F_ERRLOG 0 "linking $GITAPP to $tgroup\n\n" "$LOG"
@@ -1699,24 +1704,45 @@ F_TPLUPDATE(){
 
 ## @fn F_APPTPLUPDATE()
 ## @brief updating target dirs based on the APP template dir
+## @param 1 required: app.template path
+## @param 2 required: custom data path (usually /opt/pors_data)
+## @param 3 required: app name
 ## @details ensures consistent tasks for all config folders
 F_APPTPLUPDATE(){
-        echo "$FUNCNAME started" >> $LOG
-        # required argument: targetgroup/hostname
-        unset ROLEPATH FRPATH
+        F_LOG "$FUNCNAME" "started with $1,$2,$3"
+        unset ROLEPATH FRPATH APPNAME LINKDIR TROLEPATH
 
-        FRPATH="$1" # roles/apps/app.template
-        ROLEPATH="$2" # roles/apps/TA-xxxxxxxxxxxxxxxxxx-dsl
-
-        #FRPATH="roles/system"
+        FRPATH="$1"
+        ROLEPATH="$2"
+        APPNAME="$3"
 
         if [ -z "$ROLEPATH" ]||[ ! -d "$FRPATH" ];then
                 echo "FATAL: missing req arg in $FUNCNAME! $ROLEPATH and $FRPATH. ABORTED!" && F_EXIT
         fi
 
-        cp -av $FRPATH/* $ROLEPATH/ >>$LOG
-        [ $? -ne 0 ] && echo "FATAL: Cannot copy template to $ROLEPATH/ !" && F_EXIT
-        echo "$FUNCNAME finished" >> $LOG
+        TROLEPATH="${ROLEPATH}/${APPNAME}"
+        [ ! -d "$TROLEPATH" ] && mkdir -p $TROLEPATH && F_LOG $FUNCNAME "created $TROLEPATH"
+
+        F_LOG $FUNCNAME "target: $TROLEPATH"
+
+        # copy whats needed but link tasks only because other then with vars etc they are never app specific
+        for d in $(find "$FRPATH" -maxdepth 1 -mindepth 1 -type d);do
+            dshort="${d/*\//}"
+            LINKDIR="$TROLEPATH/${dshort}"
+            F_LOG $FUNCNAME "processing: $LINKDIR"
+            case $dshort in
+                tasks)
+                    [ -L "$LINKDIR" ] && F_LOG "$FUNCNAME" "link to $LINKDIR already set" && continue
+                    [ -d "$LINKDIR" ] && F_LOG "$FUNCNAME" "removing deprecated dir: $LINKDIR as we are using links now" && rm -rvf "$LINKDIR" >> $LOG 2>&1
+                    ln -vsf $d $LINKDIR >> $LOG 2>&1
+                ;;
+                *)
+                    [ -d "$LINKDIR" ] && F_LOG "$FUNCNAME" "clean dir: $LINKDIR" && rm -rvf "$LINKDIR" >> $LOG 2>&1
+                    cp -avf $d $LINKDIR 1> /dev/null 2>> $LOG ;;
+            esac
+        done
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "FATAL: Cannot link template to $ROLEPATH !" && return 3
+        F_LOG "$FUNCNAME" "finished"
 }
 
 ## @fn F_PULLSYSC()
@@ -3141,9 +3167,6 @@ F_DEPLOYAPP(){
                 fi
         done
 	if [ "$ABORTED" -eq 0 ];then
-	    for rolesapp in $(find ${ROLEDIR}/apps -maxdepth 1 -type d |egrep -v "(template|file|vars|tasks)");do
-			F_APPTPLUPDATE "${ROLEDIR}/apps/app.template/tasks" "$rolesapp/tasks"
-	    done
 	    F_LOG "$FUNCNAME" "Re-creating deployment playbook to reflect any manual changes.. "
 
             [ $DEPLOYAPPSUBSET == 0 ] && DEPTYPE="'deploy_type':'all'" && SUBSETAPPS=".*"

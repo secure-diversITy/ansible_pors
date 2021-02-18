@@ -70,20 +70,12 @@
     set_fact:
         app_variable: "{{ app_name | regex_replace('-', '_')}}"
 
-  - name: Create target dir if it does not exist
-    file:
-        path: "{{ custom_data_dir }}/roles/apps/"
-        state: directory
-
-  - name: Copy template app template
-    command: cp -RfT {{ base_install_dir }}/roles/apps/app.template {{ custom_data_dir }}/roles/apps/{{ app_name }} 
-
   - name: Set app variables
     template: src={{ custom_data_dir }}/roles/apps/{{ app_name }}/vars/main.yml.j2
               dest={{ custom_data_dir }}/roles/apps/{{ app_name }}/vars/main.yml
               mode=0640
 
-  - name: Set app variables within group_vars
+  - name: "Set app variables within group_vars ({{ git_access_type }})"
     template: src={{ base_install_dir }}/roles/common/templates/add_app_groupvars.j2
               dest={{ inventory_dir }}/group_vars/{{ app2group }}/{{ app_name }}
               mode=0640
