@@ -15,5 +15,8 @@
     bundle: {{ filename }}
 {% else %}
     git_repo: {{ git_url }}
+    # the following git branch was autodetected when linking
+    # and might get overwritten by git_default_branch_override
+    # during deployment
     git_version: {{ git_branch }}
 {% endif %}

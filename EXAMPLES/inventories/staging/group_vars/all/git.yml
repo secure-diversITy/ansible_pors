@@ -38,6 +38,11 @@
 # Possible values: http | ssh (recommended: http)
 #git_access_type: http
 
+# PORS detects & uses the default branch which has been set in your
+# git repo. if you want to overwrite this branch detection specify
+# an override here but beware it will affect ALL repo's:
+#git_default_branch_override: "your-branch-name"
+
 # some repositories requires authentication even for
 # git clone/pull (e.g. private repos). here you define
 # the username for that. When deploying apps PORS connects
