@@ -1,5 +1,6 @@
 ---
 - hosts: pors_server
+  gather_facts: False
  
   vars_prompt:
     - name: "app_name"
