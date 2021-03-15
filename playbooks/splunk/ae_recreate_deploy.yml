@@ -2,7 +2,7 @@
 - hosts: pors_server
 
   vars:
-    custom_data_dir: "{{ pors_data_dir }}/custom"
+    custom_data_dir: "{{ data_dir }}/custom"
 
   pre_tasks:
     - name: Check if custom template exists
