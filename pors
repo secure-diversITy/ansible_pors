@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-35"
+VERSIONNUM="4.0-40"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -347,6 +347,12 @@ declare PBINSTALL=${PBDIRSPLUNK}/ae_install_splunk.yml
 ## @showinitializer
 declare PBINSTALLLOGSTREAM=${PBDIRCRIBL}/ae_install_logstream.yml
 
+## @var PBUPGRADELOGSTREAM
+## @brief Upgrade cribl logstream
+## @details Will upgrade cribl logstream on a single host or group of hosts
+## @showinitializer
+declare PBUPGRADELOGSTREAM=${PBDIRCRIBL}/ae_upgrade_logstream.yml
+
 ## @var PBCONFMN
 ## @brief Configures splunk as a master node
 ## @details This will configure an existing splunk installation as a MasterNode for a new cluster
@@ -422,6 +428,17 @@ declare INSTDEF=splunk_installation.yml
 ## @details Will download a defined splunk release (hard coded type: linux/64bit/tar.gz) directly from splunk
 ## @showinitializer
 declare PBDLSPL=${PBDIRSPLUNK}/ae_download_splunk.yml 
+
+## @var INSTDEFLS
+## @brief cribl logstream installation conf
+## @showinitializer
+declare INSTDEFLS=logstream_installation.yml
+
+## @var PBDLLOGSTREAM
+## @brief Downloader for cribl logstream
+## @details Will download a defined logstream release directly from cribl
+## @showinitializer
+declare PBDLSPL=${PBDIRCRIBL}/ae_download_logstream.yml
 
 ## @var PBGHFETCHREPOS
 ## @brief Fetch all accessible github repos
@@ -2413,7 +2430,7 @@ F_SHUPGRADE(){
 	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
 
 	F_LOG "$FUNCNAME" "Will upgrade/install shelper on: <$UPGRADEHOSTS>"
-	F_DIALOG --scrollbar --yesno "Will upgrade/install shelper on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
+	F_DIALOG --scrollbar --yesno "\n\nWill upgrade/install shelper on these hosts:\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
 	[ $? -ne 0 ] && return $?
 
 	# create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
@@ -2458,7 +2475,7 @@ F_GETAPICREDS(){
 ## @details Lists available splunk versions in the local repository
 F_LISTSPLREPO() { 
     F_LOG $FUNCNAME started
-    REPODIR="$(F_SETREPODIR)/common/packages"
+    REPODIR="$(F_SETREPODIR)/common/packages/splunk"
     find ${REPODIR} -maxdepth 1 -type f -name splunk*tgz | tac | sed 's#.*/##g'
     F_LOG $FUNCNAME ended
 }
@@ -2619,6 +2636,121 @@ F_UPGRADESPLC(){
 	F_LOG $FUNCNAME ended
 }
 
+## @fn F_DLLOGSTREAM()
+## @brief Downloads a specific cribl logstream release
+## @return success/error
+## @details Takes an URL parses the relevant parts out of it and downloads to the local repo
+F_DLLOGSTREAM() { 
+    F_LOG $FUNCNAME started
+    unset VERINFO
+
+    while [ -z "$VERINFO" ];do
+        VERINFO=$(F_DIALOG --colors --inputbox '\nThis will download logstream based on just the version number & the hash value.\nGuide to get version and hash:\n\n1) open https://cribl.io/download/logstream-past-releases\n   (select the URL and use your terminal copy-hotkey)\n2) find the wanted version but do not click on it\n3) identify the version and hash from the package name\n\nExample:\ncribl-\Zb2.4.1-070b9e2b\ZB-linux-x64.tgz\n\nResult: \n2.4.1 (version), 070b9e2b (hash)\n\nType or paste in the version + hash ONLY.\nThe format must be exactly like this: 2.4.1-070b9e2b (version-hash):\n' 30 100 2>&1 >>/dev/tty || echo 1)
+        F_LOG $FUNCNAME "input was: $VERINFO"
+        [ "$VERINFO" == "1" ] && unset VERINFO && return 3
+        
+        echo "$VERINFO" | egrep -q "[0-9]*\.[0-9]*\.[0-9]*-\w*"
+        if [ $? -eq 0 ];then
+            NVER=$(echo "$VERINFO" | cut -d "-" -f 1 | tr -d " ")
+            NHASH=$(echo "$VERINFO" | cut -d "-" -f 2 | tr -d " ")
+            if [ -z "$NVER" ];then
+                unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Cannot parse version! Try again" "$LOG"
+            else
+                echo "$NVER" | egrep -q "^[[:digit:]]"
+                [ $? -ne 0 ] && unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Version does not start with a number! Try again" "$LOG"
+            fi  
+            [ -z "$NHASH" ] && unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Cannot parse hash! Try again" "$LOG"
+        else
+            F_ERRLOG "3" "$FUNCNAME: You typed: $VERINFO which is not in the correct format!" "$LOG"
+            unset VERINFO
+        fi
+    done
+    # auto-stage the given version 
+    F_STAGELS "${NVER}:${NHASH}"
+   
+    F_LOG $FUNCNAME "Parsed version: $NVER, parsed hash: $NHASH"
+    
+    # download the auto-staged version
+    [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
+    F_ABIN $HOSTFILE $PBDLSPL "Downloading cribl logstream <$NVER>..."
+    ERR=$?
+    F_RMVAULTPW
+    F_DIAERR $ERR "Downloading cribl logstream version: $NVER"
+    [ $ERR -eq 0 ] && F_DIALOG --infobox "\ncribl logstream $NVER has been staged automatically." 5 80
+    
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_GETSTAGEDLS()
+## @brief Get the current staged cribl logstream version
+## @return version string of the current staged cribl logstream package
+## @details Parses the local global var to identify the current staged cribl logstream version
+F_GETSTAGEDLS(){ 
+    F_LOG $FUNCNAME started
+    # extract repo dir for apps
+    STAGEDVER="$(grep ^logstream_globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEFLS" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+(\.\d+)?')"
+ 
+    if [ ! -z "$STAGEDVER" ];then
+        echo "$STAGEDVER"
+    fi
+    F_LOG $FUNCNAME "current version string: $STAGEDVER"
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_LISTCRIBLREPO()
+## @brief Lists cribl packages in the local repo
+## @return a list of cribl packages (filenames) ordered by version top-level down
+## @details Lists available cribl packages in the local repository
+F_LISTCRIBLREPO() {
+    F_LOG $FUNCNAME started
+    REPODIR="$(F_SETREPODIR)/common/packages/cribl"
+    find ${REPODIR} -maxdepth 1 -type f -name cribl*tgz | tac | sed 's#.*/##g'
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_STAGELS()
+## @brief Stage a specific cribl logstream version from the local repository
+## @param 1 OPTIONAL: logstream version:hash -> will auto-stage the given version + hash
+## @return success/error
+## @details Parses the local repository for available logstream versions, let the user choose and stage that version for the PORS upgrade function
+F_STAGELS(){ 
+    F_LOG $FUNCNAME "started with $1"
+    unset FVER VER VERHASH SELECTION AUTOVER
+    AUTOVER="$1"
+    STAGEDSPLVER=$(F_GETSTAGEDLS)
+    
+    if [ -z "$AUTOVER" ];then
+        # get the local avail versions
+        OPTIONS=($(for i in $(F_LISTCRIBLREPO | grep -P -o "cribl-(\d+\.\d+\.\d+(\.\d+)?)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
+
+	F_LOG $FUNCNAME "cribl logstream packages found in local repo:\n$(F_LISTCRIBLREPO)"
+
+        F_LOG $FUNCNAME "OPTIONS:\n$OPTIONS"
+
+        SELECTION=$(F_DIALOG --colors --ok-label "Stage" --radiolist "\nThe following shows your local repository for CRIBL logstream packages\n\nCurrently active/staged version:\n\n \Zb\Zu${STAGEDSPLVER}\ZB\ZU\n\nTo stage another version simply select (space bar) and choose select.\n\n" \
+                40 80 40 \
+                "${OPTIONS[@]}" \
+                2>&1 >/dev/tty)
+
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && return 4
+
+        FVER=$(echo "${OPTIONS[@]}" | egrep -o "$SELECTION.*" | cut -d " " -f 1-2)
+        VER=$(echo "${FVER}" | cut -d " " -f 1)
+        VERHASH=$(echo "${FVER}" | cut -d " " -f 2)
+    else
+        SELECTION="$AUTOVER"
+        VER="${SELECTION/:*}"
+        VERHASH="${SELECTION/*:}"
+    fi
+    F_LOG $FUNCNAME "s/^logstream_globversion:.*/logstream_globversion: \"$VER\"/g;s/^logstream_globhash:.*/logstream_globhash: \"$VERHASH\"/g $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEFLS"
+    sed -i "s/^logstream_globversion:.*/logstream_globversion: \"$VER\"/g;s/^logstream_globhash:.*/logstream_globhash: \"$VERHASH\"/g" $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEFLS
+    [ -z "$AUTOVER" ] && F_DIAERR $? "Staging splunk (VER: $VER, VERHASH: $VERHASH)"
+
+    F_LOG $FUNCNAME "staged version: $SELECTION (FVER: $FVER, VER: $VER, VERHASH: $VERHASH)"
+    F_LOG $FUNCNAME ended
+}
+
+
 ## @fn F_SELHOST()
 ## @brief Show and choose host(s)
 ## @param 1 specify a target group directly (non interactive - will just output ALL(!) the host(s) of a group)
@@ -2722,7 +2854,7 @@ F_INSTALLSPL(){
 	
     CURVER=$(F_GETSTAGEDSPL)
     F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
-    F_DIALOG --colors --scrollbar --yesno "Will install splunk\n\n    \Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$SHOSTST\ZB\n\nAre you sure?" 30 100
+    F_DIALOG --colors --scrollbar --yesno "Will install splunk\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$SHOSTST\ZB\n\nAre you sure?" 30 100
     [ $? -ne 0 ] && return $?
 
     # define a valid limit group depending on the user's selection
@@ -2743,17 +2875,35 @@ F_INSTALLSPL(){
 ## @brief Install cribl logstream on ansible prepared servers
 ## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLLOGSTREAM(){
-        F_LOG $FUNCNAME started
-        unset HOSTSELECT
-        ABORTED=0
-        F_DIALOG --infobox "\nCollecting hostnames ..." 5 80
+    F_LOG $FUNCNAME started
+    unset HOSTSELECT HOSTSELECTION SHOSTS SHOSTST
+    ABORTED=0
 
-        SHOSTS="$(F_EXPANDHOSTS logstream_worker clean)"
-        [ "$SHOSTS" == ABORTED ] && return 4
+    # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+    > $ITMPGRP
 
-        while [ -z "$HOSTSELECT" ];do
-	    OPTIONS=($(for i in $(echo "${SHOSTS}" );do echo ${i/:*} $i off; done | sort -u ))
-            HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+    # force cleaning the temp hosts file in F_EXPANDHOSTS()
+    # must be explicitly unset for any subsequent tasks
+    export CLEANHOSTFILE=yes
+
+    F_WAITBOX "Collecting hostnames ..."
+
+    SHOSTS="$(LISTTYPE=checklist F_EXPANDHOSTS logstream_worker $ITMPGRP clean)"
+    [ $? -eq 4 ] && return 4
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
+
+    if  [ -z "$SHOSTS" ] || [ -z "$SHOSTST" ];then
+        F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+        F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+        F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+    fi
+    CURVER=$(F_GETSTAGEDLS)
+
+    while [ -z "$HOSTSELECT" ];do
+            OPTIONS=($(for i in $(echo "${SHOSTST}" );do echo ${i/:*} "(space_to_select)" off; done | sort -u ))
+            HOSTSELECTION=$(F_DIALOG --colors --checklist "\nPlease use the space-bar to make your selection to install cribl \Zb\Zuv${CURVER}\ZB\ZU\n" 50 100 100 "${OPTIONS[@]}" 2>&1 >/dev/tty)
             [ $? -ne 0 ] && ABORTED=1
             F_LOG $FUNCNAME "HOSTSELECTION=$HOSTSELECTION, ABORTED=$ABORTED"
             if [ "$HOSTSELECTION" == "ABORTED" ]||[ $ABORTED -eq 1 ];then
@@ -2767,52 +2917,50 @@ F_INSTALLLOGSTREAM(){
                     ABORTED=0
                 fi
             fi
-        done
-        [ $ABORTED -eq 1 ] && return 4
+    done
+    [ $ABORTED -eq 1 ] && return 4
 
-        SHOSTST="$(echo "$HOSTSELECTION" | sed 's/ /\n/g')"
+    F_LOG "$FUNCNAME" "Will install cribl logstream on <$HOSTSELECTION>"
+    F_DIALOG --colors --scrollbar --yesno "Will install cribl logstream\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$HOSTSELECTION\ZB\n\nAre you sure?" 30 100
+    [ $? -ne 0 ] && return $?
 
-        if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ] || [ -z "$HOSTSELECTION" ];then
-                F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) or HOSTSELECTION ($HOSTSELECTION) empty"
-                F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
-        else
-                F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
-        fi
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$HOSTSELECTION" | tr "\n" : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
+    # doit
+    F_ABIN "$HOSTFILE" "$PBINSTALLLOGSTREAM" "\Za\Z1Installing cribl logstream ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ERRLOG $? "Installing cribl logstream on:\n\n$HOSTSELECTION" "$LOG"
 
-        F_LOG "$FUNCNAME" "Will install cribl logstream on <$HOSTSELECTION>"
-        F_DIALOG --scrollbar --yesno "Will install cribl logstream on these hosts:\n\n$SHOSTST\n\nAre you sure?" 30 100
-        [ $? -ne 0 ] && return $?
+    # cleanup
+    [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
 
-        # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
-        ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+    F_LOG $FUNCNAME ended
+}
 
-        echo -e "[all:vars]\ntarget_env=${TARGETENV}\n" > $ITMPGRP
-        echo '[logstream_worker]' >> $ITMPGRP
-        for h in $HOSTSELECTION;do echo "$h" >> $ITMPGRP; done
-        if [ $? -ne 0 ];then F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"; return 3;fi
+## @fn F_ADDSERVICEUSER()
+## @brief Creates the OS_SERVICE_USER linux user account and add any extra groups needed
+## @param1 (required) the remote hostname where the user should be created
+## @param2 (required) the username to be added
+## @param3 (required) the linux group name 
+## @return success|fail
+## @details The user created will get a random strong password which does not get stored anywhere
+## because pubkey authentication is the way to go.
+F_ADDSERVICEUSER(){
+    F_LOG $FUNCNAME started
+    _HOST=$1
 
-        CRIBLMN=$(F_SELHOST logstream_mn)
-        echo -e '\n[logstream_mn]' >> $ITMPGRP
-        echo "$CRIBLMN" >> $ITMPGRP
+    if [ -z "$_HOST" ];then
+        F_LOG $FUNCNAME "HOST, USER, GRP or PASS missing: $_HOST, $_USER, $_GRP, $_PASS"
+        return 3
+    fi
 
-        F_LOG "$FUNCNAME" "Temporary generated group: $(cat $ITMPGRP)"
-
-        F_LOG $FUNCNAME "F_ABIN $ITMPGRP $PBINSTALLLOGSTREAM --limit logstream_worker"
-
-        # doit
-        F_ABIN "$ITMPGRP" "$PBINSTALLLOGSTREAM" "\Za\Z1INSTALLING ...\Z\n" "--limit logstream_worker"
-        F_ERRLOG "${PIPESTATUS[0]}" "Installing cribl logstream on:\n\n$SHOSTST" "$LOG"
-
-        # add service account
-        for h in $HOSTSELECTION;do
-            F_ADDSYSUSER "$h" "$OS_SERVICE_USER" cribl
-        done
-        F_ERRLOG "$?" "Installing cribl logstream on:\n\n$SHOSTST" "$LOG"
-
-        # cleanup
-        [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
-
+    if [ ! -z "$OS_SERVICE_USER" ];then
+        [ ! -z $OS_SERVICE_USER_EXTRAGROUPS ] && _GRP="$OS_SERVICE_USER_EXTRAGROUPS"
+        F_ADDSYSUSER "$_HOST" "$OS_SERVICE_USER" "$OS_SERVICE_USER_EXTRAGROUPS"
+    else
+        F_LOG $FUNCNAME "SKIPPING: No OS_SERVICE_USER specified"
+    fi
     F_LOG $FUNCNAME ended
 }
 
@@ -2820,10 +2968,10 @@ F_INSTALLLOGSTREAM(){
 ## @brief Creates a linux user account and add it to a group
 ## @param1 (required) the remote hostname where the user should be created
 ## @param2 (required) the username to be added
-## @param3 (required) the linux group name 
+## @param3 (required) the (extra) linux group names (comma separated)
 ## @return success|fail
-## @details The user created will get a random strong password and so has to
-## user pubkey authentication instead.
+## @details The user created will get a random strong password which does not get stored anywhere
+## because pubkey authentication is the way to go.
 F_ADDSYSUSER(){
     F_LOG $FUNCNAME started
     _HOST=$1
@@ -2836,28 +2984,31 @@ F_ADDSYSUSER(){
         return 3
     fi
 
-    F_ABIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
-
+    F_ABIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ($_USER) ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
     F_LOG $FUNCNAME ended
 }
 
 ## @fn F_UPGRADEMENU()
 ## @brief A submenu for upgrade tasks
+## @param 1 Specify menu type (logstream|splunk)
 ## @return a submenu action
 ## @details Shows several upgrade tasks in an own submenu
 F_UPGRADEMENU(){ 
-    F_LOG $FUNCNAME started
-    unset SELECTION
+    F_LOG $FUNCNAME "started with $1"
+    unset SELECTION MENUTYPE
+    MENUTYPE=$1
+    [ -z "$MENUTYPE" ] && F_LOG $FUNCNAME "ERROR: missing arg for $FUNCNAME" && return 3
+
     SELECTION=$(F_DIALOG --ok-label "Select an entry" --cancel-label "Back" --colors \
                     --menu "\nSelect an option:\n(pro tip: jump to an entry with the highlighted key shortcut)" \
                         20 90 80 \
                         '' '\Zb\ZuUpgrade Tasks\ZB\ZU'\
                         "" "" \
-                        Download "Downloads a specific splunk version" \
-                        Stage "Shows and sets a specific version for the upgrade tasks" \
-                        Upgrade-Splunk "upgrade without a specific order (if multiple targets: in parallel)" \
+                        "Download ${MENUTYPE}" "Downloads a specific $MENUTYPE version" \
+                        "Stage ${MENUTYPE}" "Shows and sets a specific version for the upgrade tasks" \
+                        "Upgrade ${MENUTYPE}" "upgrade without a specific order (if multiple targets: in parallel)" \
                         Guided-Upgrade "of splunk instance(s) in a specific order (sequentially)" \
-                        Upgrade-System "the operating system of a splunk server" \
+                        Upgrade-System "the operating system of a $MENUTYPE server" \
                         "" "" \
                         "" "" \
                         3>&1 1>&2 2>&3)
@@ -2869,20 +3020,28 @@ F_UPGRADEMENU(){
               return 4
     else
         case "$SELECTION" in
-            Download)
+            "Download splunk")
                 F_DLSPLUNK
-                F_UPGRADEMENU
+                F_UPGRADEMENU $MENUTYPE
             ;;
-            Stage)
+            "Stage splunk")
                 F_STAGESPL
-                F_UPGRADEMENU
+                F_UPGRADEMENU $MENUTYPE
             ;;
-            Upgrade-Splunk)
-                F_UPGRADESPL
-                F_UPGRADEMENU
+            "Upgrade $MENUTYPE")
+                F_UPGRADE $MENUTYPE
+                F_UPGRADEMENU $MENUTYPE
+            ;;
+            "Download logstream")
+                F_DLLOGSTREAM
+                F_UPGRADEMENU $MENUTYPE
+            ;;
+            "Stage logstream")
+                F_STAGELS
+                F_UPGRADEMENU $MENUTYPE
             ;;
             Guided-Upgrade)
-                F_GUIDEDUPGRADE
+                F_GUIDEDUPGRADE $MENUTYPE
                 F_UPGRADEMENU
             ;;
             Upgrade-System)
@@ -2897,18 +3056,15 @@ F_UPGRADEMENU(){
     F_LOG $FUNCNAME ended
 }
 
-## @fn F_UPGRADESPL()
-## @brief Upgrade splunk
-F_UPGRADESPL(){
-    F_LOG $FUNCNAME "started with: $@"
-	# Prepare new version?
-	# -> Setup the configs
-	# -> Show the current staged version
-	# Ask for hostfile
-	# Ask for hosts OR/AND target groups?
-	# Use upgrade playbook
-
+## @fn F_UPGRADE()
+## @brief Upgrade splunk|logstream
+## @param 1 required. upgrade type: splunk|logstream
+## @param 2 optional. when set: non-interactive upgrade of all hosts specified within this param
+F_UPGRADE(){
+    F_LOG $FUNCNAME "started with: $1"
     unset AUTOMODE PARENTPID
+    UPGTYPE=$1
+    AUTOMODE="$2"
 
     # a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
     ITMPGRP="${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts"
@@ -2916,13 +3072,23 @@ F_UPGRADESPL(){
     
     export PARENTPID=$BASHPID
 
-    AUTOMODE="$1"
+    case $UPGTYPE in
+        splunk)
+            STAGEDVER=$(F_GETSTAGEDSPL)
+            PLAYB=$PBUPGRADE
+        ;;
+        logstream)
+            STAGEDVER=$(F_GETSTAGEDLS)
+            PLAYB=$PBUPGRADELOGSTREAM
+        ;;
+        *)
+        F_ERRLOG 3 "INTERNAL ERROR: no upgrade type specified" && return 3
+        ;;
+    esac
+
     if [ -z "$AUTOMODE" ];then
     	UPGRADEHOSTS="$(F_SELHOST)"
         [ "$UPGRADEHOSTS" == ABORTED ] && return 4
-	    #CREDS=$(F_GETAPICREDS)
-	    #SPLUSR="${CREDS/:*}"
-	    #SPLPW="${CREDS/*:}"
     else
         UPGRADEHOSTS="$AUTOMODE"
     fi
@@ -2932,6 +3098,7 @@ F_UPGRADESPL(){
 	if  [ -z "$UPGRADEHOSTS" ] || [ -z $UPGRADEHOSTST ];then
 		F_LOG $FUNCNAME "UPGRADEHOSTS ($UPGRADEHOSTS) or UPGRADEHOSTSST ($UPGRADEHOSTST) empty"
 		F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+                return 3
 	else
 		F_LOG $FUNCNAME "UPGRADEHOSTS and UPGRADEHOSTST are both set"
 	fi
@@ -2939,7 +3106,7 @@ F_UPGRADESPL(){
 	F_LOG "$FUNCNAME" "Will upgrade <$UPGRADEHOSTS>"
 
     if [ -z "$AUTOMODE" ];then
-            F_DIALOG --scrollbar --yesno "Will upgrade Splunk on these hosts IN PARALLEL(!!):\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
+            F_DIALOG --scrollbar --yesno "\n\nWill upgrade $UPGTYPE to $STAGEDVER on these hosts IN PARALLEL(!!):\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
 	    if [ $? -ne 0 ];then
                 return $?
             else
@@ -2957,43 +3124,62 @@ F_UPGRADESPL(){
                 else
     	            F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 	            # upgrade
- 	            F_LOG $FUNCNAME "F_ABIN $UTMPGRP $PBUPGRADE --limit tmpupgrade" | tee -a $LOG
-	            F_ABIN "$UTMPGRP" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit tmpupgrade" 
-                    F_ERRLOG "${PIPESTATUS[0]}" "Upgrade for:\n\n$UPGRADEHOSTST" "$LOG"
+	            F_ABIN "$UTMPGRP" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit tmpupgrade" 
+                    F_ERRLOG "${PIPESTATUS[0]}" "Upgrade $UPGTYPE to $STAGEDVER for:\n\n$UPGRADEHOSTST" "$LOG"
                 fi
             fi
     else
-            F_LOG $FUNCNAME "F_ABIN $HOSTFILE $PBUPGRADE '--limit $AUTOMODE -e \"splunk_user=$SPLUSR splunk_password=$SPLPW\"" | tee -a $LOG
-            F_ABIN "$HOSTFILE" "$PBUPGRADE" "\Za\Z1UPGRADING ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
+            F_ABIN "$HOSTFILE" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
             UPERR=${PIPESTATUS[0]}
-            F_LOG $FUNCNAME "Upgrade for:\n\n$UPGRADEHOSTST ended with: $UPERR"
+            F_LOG $FUNCNAME "Upgrade $UPGTYPE for:\n\n$UPGRADEHOSTST ended with: $UPERR"
             return $UPERR
     fi
     F_LOG $FUNCNAME ended
 }
 
 ## @fn F_GUIDEDUPGRADE()
-## @brief Guided upgrade of several splunk servers and clusters
-## @exception on abort: return 4, on failure: F_ERRLOG dialog
-## @details Prepare your very own upgrade order 
+## @brief Guided upgrade of splunk|logstream on multiple servers at once (sequentiel and ordered)
+## @param 1 required. upgrade type: splunk|logstream
+## @param 2 optional. hostnames to upgrade
+## @exception on abort: return 4, internal failure: 3
+## @details Prepare your very own upgrade order
 F_GUIDEDUPGRADE(){
     F_LOG $FUNCNAME started
 
     unset HOSTSELECT UHOSTS
     ABORTED=0
-    UHOSTS="$1"
+    UPGTYPE=$1
+    UHOSTS="$2"
+
+    # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+    > $ITMPGRP
+
+    # force cleaning the temp hosts file in F_EXPANDHOSTS()
+    # must be explicitly unset for any subsequent tasks
+    export CLEANHOSTFILE=yes
+
+    case $UPGTYPE in
+        splunk)
+            STAGEDVER=$(F_GETSTAGEDSPL)
+        ;;
+        logstream)
+            STAGEDVER=$(F_GETSTAGEDLS)
+        ;;
+        *)
+        F_ERRLOG 3 "INTERNAL ERROR: no upgrade type specified" && return 3
+        ;;
+    esac
 
     if [ -z "$UHOSTS" ];then
-        F_DIALOG --infobox "\nCollecting hostnames ..." 5 80
-
-        SHOSTS="$(F_EXPANDHOSTS all clean |grep -v localhost)"
+        F_WAITBOX "Collecting hostnames ..."
+    
+        SHOSTS="$(LISTTYPE=checklist F_EXPANDHOSTS all $ITMPGRP clean | egrep -v localhost)"
         [ "$SHOSTS" == ABORTED ] && return 4
-
-        STAGEDSPLVER=$(F_GETSTAGEDSPL)
 
         while [ -z "$HOSTSELECT" ];do
 	    OPTIONS=($(for i in $(echo "${SHOSTS}" );do echo ${i/:*} "(space_to_select)" off; done | sort -u ))
-            HOSTSELECTION=$(F_DIALOG --colors --checklist "\nPlease use the space-bar to make your selection to install splunk \Zb\Zuv${STAGEDSPLVER}\ZB\ZU\n" 50 100 100 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+            HOSTSELECTION=$(F_DIALOG --colors --checklist "\nPlease use the space-bar to make your selection to upgrade $UPGTYPE \Zb\Zuv${STAGEDVER}\ZB\ZU\n" 50 100 100 "${OPTIONS[@]}" 2>&1 >/dev/tty)
             [ $? -ne 0 ] && ABORTED=1
             F_LOG $FUNCNAME "HOSTSELECTION=$HOSTSELECTION, ABORTED=$ABORTED"
             if [ "$HOSTSELECTION" == "ABORTED" ]||[ $ABORTED -eq 1 ];then
@@ -3019,6 +3205,7 @@ F_GUIDEDUPGRADE(){
     if  [ -z "$SHOSTS" ] || [ -z $SHOSTST ] || [ -z "$HOSTSELECTION" ];then
                 F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) or HOSTSELECTION ($HOSTSELECTION) empty"
                 F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+                return 3
     else
                 F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
@@ -3035,18 +3222,7 @@ F_GUIDEDUPGRADE(){
 
     F_LOG $FUNCNAME "FORMARGS: $FORMARGS"
 
-    #UPGRADEHOSTS="$(F_SELHOST)"
-    #UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\n/g')"
-
-    #if  [ -z "$UPGRADEHOSTS" ] || [ -z $UPGRADEHOSTST ];then
-    #            F_LOG $FUNCNAME "UPGRADEHOSTS ($UPGRADEHOSTS) or UPGRADEHOSTSST ($UPGRADEHOSTST) empty"
-    #            F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
-    #else
-    #            F_LOG $FUNCNAME "UPGRADEHOSTS and UPGRADEHOSTST are both set"
-    #fi
-    #F_LOG $FUNCNAME "UPGRADEHOSTS: $UPGRADEHOSTS\nUPGRADEHOSTSST: $UPGRADEHOSTST"
-
-    UPGORDER=$(F_DIALOG --colors --form "\nPuzzle your custom order for upgrading splunk to \Zb\Zuv${STAGEDSPLVER}\ZB\ZU\n\nHowto:\nweight each target group with a number from 001-999 (or 1-9, 01-99, 001-999).\nThe upgrade will be done from LOW to HIGH based on these numbers.\n\n\nNote: upgrades do NOT happen in parallel but \Zbsequentially\ZB.\n\nWARNING:\n\ZbTHERE IS NO WAIT BETWEEN EACH HOST SO JUST SELECT WHAT YOU WANT TO UPGRADE IN ONE RUN!!!\ZB\n" \
+    UPGORDER=$(F_DIALOG --colors --form "\nPuzzle your custom order for upgrading $UPGTYPE to \Zb\Zuv${STAGEDVER}\ZB\ZU\n\nHowto:\nweight each target group with a number from 001-999 (or 1-9, 01-99, 001-999).\nThe upgrade will be done from LOW to HIGH based on these numbers.\n\n\nNote: upgrades do NOT happen in parallel but \Zbsequentially\ZB.\n\nWARNING:\n\ZbTHERE IS NO WAIT BETWEEN EACH HOST SO JUST SELECT WHAT YOU WANT TO UPGRADE IN ONE RUN!!!\ZB\n" \
                $FORMARGS \
                3>&1 1>&2 2>&3 )
     if [ $? -ne 0 ];then
@@ -3065,16 +3241,18 @@ F_GUIDEDUPGRADE(){
     SORTO=$(echo -e "$SORTED" | sed 's/\n/,/g')
     F_LOG $FUNCNAME "$SORTO"
 
-    F_DIALOG --colors --scrollbar --yesno "Will upgrade Splunk to \Zb\Zuv${STAGEDSPLVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
-    if [ $? -ne 0 ];then
-        return $?
+    F_DIALOG --colors --scrollbar --yesno "\n\nWill upgrade $UPGTYPE to \Zb\Zuv${STAGEDVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
+    RET=$?
+    if [ $RET -ne 0 ];then
+        F_LOG $FUNCNAME "aborted on user request"
+        return $RET
     else	
         for utg in $SORTED;do
-            F_UPGRADESPL "${utg/*:/}"
+            F_UPGRADE "$UPGTYPE" "${utg/*:/}"
             UPERR=$?
             [ $UPERR -ne 0 ] && break
         done
-        F_ERRLOG "$UPERR" "Upgrade to splunk v${STAGEDSPLVER} for:\n\n$SORTED" "$LOG"
+        F_ERRLOG "$UPERR" "Upgrade to $UPGTYPE v${STAGEDSPLVER} for:\n\n$SORTED" "$LOG"
     fi
 
     F_LOG $FUNCNAME ended
@@ -4825,8 +5003,12 @@ F_STARTVMDEP(){
         F_DIAERR $? "Base install"
         F_SYSUPGRADE "${VMHOSTF}"
         F_DIAERR $? "Upgrading System"
+        if [ ! -z "$OS_SERVICE_USER" ];then
+            F_ADDSERVICEUSER "${VMHOSTF}"
+            F_DIAERR $? "Adding linux service account"
+        fi
     fi
-    if [ $VMERR -ne 0 ] || [ "$IACKEEP" -ne 1 ];then
+    if [ "$IACKEEP" -ne 1 ];then
         F_LOG $FUNCNAME "deleting IaC file due to a previous error/abort"
         rm $TMPHWPROFILE
     else
@@ -5320,10 +5502,11 @@ F_MENUMAIN(){
 			"" "" \
 			'' '\Zb\ZuSYSTEM MAINTENANCE\ZB\ZU' \
 			"" "" \
-			Upgrade	"Opens a submenu with upgrade tasks" \
+			"Upgrade splunk"	"Opens a submenu with splunk upgrade tasks" \
+			"Upgrade logstream"	"Opens a submenu with logstream upgrade tasks" \
                         VM-Management "Deploy and manage VMs" \
 			'Install (splunk)'      "splunk> on ansible-ready server(s)" \
-			'Install (cribl)'	"cribl logstream-worker on ansible-ready server(s)" \
+			'Install (logstream)'	"cribl logstream-worker on ansible-ready server(s)" \
                         Configure "Configure splunk> on fresh installed splunk instances" \
 			Cluster "Indexer tasks" \
 			"" "" \
@@ -5372,10 +5555,14 @@ F_MENUMAIN(){
 			F_DEPLSYSC "$(F_SELECTOR)"
                         F_LOG $FUNCNAME "F_DEPLSYSC ended with $?"
 			;;
-			Upgrade)
-			F_UPGRADEMENU
+			"Upgrade splunk")
+			F_UPGRADEMENU splunk
                         F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
 			;;
+                        "Upgrade logstream")
+                        F_UPGRADEMENU logstream
+                        F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
+                        ;;
 			splunkd)
 			F_SPLACT
                         F_LOG $FUNCNAME "F_SPLACT ended with $?"
@@ -5388,7 +5575,7 @@ F_MENUMAIN(){
 			F_INSTALLSPL
                         F_LOG $FUNCNAME "F_INSTALLSPL ended with $?"
 			;;
-			'Install (cribl)')
+			'Install (logstream)')
 			F_INSTALLLOGSTREAM
                         F_LOG $FUNCNAME "F_INSTALLLOGSTREAM ended with $?"
 			;;
