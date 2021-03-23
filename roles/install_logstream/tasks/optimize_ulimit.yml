@@ -1,0 +1,35 @@
+---
+- name: Set the ulimit recommendation (nofile,soft)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: soft
+    limit_item: nofile
+    value: 32768
+
+- name: Set ulimit recommendation (nofile,hard)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: hard
+    limit_item: nofile
+    value: 65536
+
+- name: Set ulimit recommendation (nproc,soft+hard)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: '-'
+    limit_item: nproc
+    value: 16000
+
+- name: Set ulimit recommendation (fsize,soft+hard)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: '-'
+    limit_item: fsize
+    value: unlimited
+
+- name: Set ulimit recommendation (data,soft+hard)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: '-'
+    limit_item: data
+    value: unlimited
