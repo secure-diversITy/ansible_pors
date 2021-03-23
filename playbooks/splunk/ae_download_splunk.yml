@@ -5,12 +5,12 @@
 
   - name: Check/Create repo dir
     file:
-        path: "{{ repo_base }}/common/packages"
+        path: "{{ repo_base }}/common/packages/splunk"
         state: directory
 
   - name: Download Splunk tgz packages
     get_url: url="{{ item.value.url }}"
-             dest={{ repo_base }}/common/packages
+             dest="{{ repo_base }}/common/packages/splunk"
              owner={{ splunk_repository.repository_owner }}
              group={{ splunk_repository.repository_group }}
              mode=644
