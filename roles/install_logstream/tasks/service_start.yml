@@ -12,8 +12,9 @@
   ignore_errors: yes
  
 - name: Start daemon
-  service: name=cribl
-           state=started
+  service:
+    name: cribl
+    state: restarted
  
 # ensure daemon is REALLY running ! Do not rely on init, systemd etc!!
 - name: Re-Check daemon status

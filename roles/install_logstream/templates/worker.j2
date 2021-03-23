@@ -1,13 +1,13 @@
 distributed:
   mode: worker
-  group: {{ logstream_installation.worker.group }}
-  envRegex: {{ logstream_installation.worker.envRegex }}
+  group: {{ logstream_worker.group }}
+  envRegex: {{ logstream_worker.envRegex }}
   master:
     host: {{ groups['logstream_mn'] | first }}
-    port: {{ logstream_installation.worker.port }}
+    port: {{ logstream_worker.port }}
     authToken: {{ vault_logstream_master_authtoken }}
-    compression: {{ logstream_installation.worker.compression }}
+    compression: {{ logstream_worker.compression }}
     tls:
-      disabled: {{ logstream_installation.worker.disabledtls }}
-    connectionTimeout: {{ logstream_installation.worker.connectionTimeout }}
-    writeTimeout: {{ logstream_installation.worker.writeTimeout }}
+      disabled: {{ logstream_worker.disabledtls }}
+    connectionTimeout: {{ logstream_worker.connectionTimeout }}
+    writeTimeout: {{ logstream_worker.writeTimeout }}

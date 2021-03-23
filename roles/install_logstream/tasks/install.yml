@@ -1,22 +1,30 @@
 ---
 - name: Install {{ logstream_installation.package_file }}
-  unarchive: src="{{ logstream_installation.remote_package_temp_path }}/{{ logstream_installation.package_file }}"
-             dest={{ logstream_root_path }}
-             copy=no
+  unarchive:
+    src: "{{ logstream_installation.remote_package_temp_path }}/{{ logstream_installation.package_file }}"
+    dest: "{{ logstream_root_path }}"
+    copy: no
 
 - name: Remove temporary package
-  command: rm "{{ logstream_installation.remote_package_temp_path }}/{{ logstream_installation.package_file }}"
+  file: 
+    path: "{{ logstream_installation.remote_package_temp_path }}/{{ logstream_installation.package_file }}"
+    state: absent
   when: logstream_installation.delete_package_after_install != false
 
 - name: Set directory owner and group
-  file: path="{{ logstream_installation.home_path }}" 
-        owner="{{ cribl_install_user }}"
-        group="{{ cribl_install_group }}"
-        recurse=yes
+  file:
+    path: "{{ logstream_installation.home_path }}"
+    owner: "{{ cribl_install_user }}"
+    group: "{{ cribl_install_group }}"
+    recurse: yes
   when: 
     - logstream_installation.set_permissions == true
 
+- name: Copy skel files
+  shell: "cp -uv /etc/skel/.b* {{ logstream_installation.home_path }}/"
+
 - name: Set directory permissions
-  file: path={{ logstream_installation.home_path }}/
-        mode=0750
+  file:
+    path: "{{ logstream_installation.home_path }}/"
+    mode: 0750
   when: logstream_installation.set_permissions == true

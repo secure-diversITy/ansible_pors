@@ -11,7 +11,7 @@
 - name: Create worker config
   template: src=worker.j2
             dest={{ logstream_installation.home_path }}/local/_system/instance.yml
-  when: logstream_upgrade != True and logstream_worker == True
+  when: logstream_upgrade != True and logstream_worker is defined
 
 - name: Set permissions on config file
   file: path={{ logstream_installation.home_path }}/local/_system/instance.yml

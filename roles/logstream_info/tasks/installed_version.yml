@@ -1,6 +1,8 @@
 ---
 - name: Gather currently installed logstream version
   shell: "{{ logstream_installation.home_path }}/bin/cribl version | grep -i version | cut -d ':' -f 2 | tr -d ' ' | cut -d '-' -f1"
+  become: yes
+  become_user: "{{ cribl_install_user }}"
   register: logstream_version_installed
 
 - name: Parse version

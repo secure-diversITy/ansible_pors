@@ -4,11 +4,10 @@
   become: yes
   become_user: root
   gather_facts: true
-#  strategy: free
+  strategy: free
 
   vars:
     logstream_upgrade: False
-    logstream_worker: True
 
   roles:
     - install_logstream
