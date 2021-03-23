@@ -31,4 +31,4 @@
       authorized_key:
         user: "{{ user_name }}"
         state: present
-        key: "{{ lookup('file', '/opt/ae_repo/authorized_keys_{{ user_name }}') }}"
+        key: "{{ lookup('file', '{{ repo_base }}/common/ssh/authorized_keys_{{ user_name }}') }}"
