@@ -30,6 +30,12 @@
 ## permissions
 #export OS_SERVICE_USER=
 
+## @var OS_SERVICE_USER_EXTRAGROUPS
+## @brief The (optional) additional (!) groups of the OS_SERVICE_USER
+## @details The user will be creates always with a primary group of OS_SERVICE_USER
+## you can specify more then 1 group with comma separated
+#export OS_SERVICE_USER_EXTRAGROUPS=
+
 ## @var ADIR
 ## @details the PORS install dir.
 #export ADIR="/opt/pors"
