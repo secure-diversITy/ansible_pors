@@ -11,8 +11,10 @@
              state=present
     
     - name: Create {{ appadm }} group
-      group: name={{ appadm }}
-             state=present
+      group:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ appadm.split(',') }}"
 
     - name: Create {{ user_name }} unix user
       user: name={{ user_name }}
