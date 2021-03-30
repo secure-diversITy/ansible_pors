@@ -12,13 +12,14 @@
 - name: Tune splunk init.d script (header)
   blockinfile:
         dest: "/etc/init.d/splunk"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - INFO (last run initiated at {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - INFO -->"
         insertbefore: "RETVAL=0"
         block: |
            # ----------------------------------------------------------------------------------------
            # THIS SCRIPT IS PROTECTED BY THE IMMUTABLE BIT TO AVOID ACCIDENTALLY OVERWRITING!
            # 
-           # see: http://www.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.com/confluence/x/6IQqAg for details
+           # Last modification: {{ ansible_date_time.date }} by {{ ansible_conf.host }}
+           # 
            # TO MODIFY: chattr -i
            # TO PROTECT AGAIN: chattr +i
            #
@@ -33,7 +34,7 @@
 - name: Tune splunk init.d script (ulimit 1/2)
   blockinfile:
         dest: "/etc/init.d/splunk"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS (last run {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS -->"
         insertafter: ". /etc/init.d/functions"
         block: |
             SPLUNKH=/opt/splunk
@@ -43,7 +44,7 @@
             echo "$(date) - splunk init start: max file size $(ulimit -f)" >> $SPLUNKH/var/log/splunk/splunk-init-ulimit.log
             echo "$(date) - splunk init start: data segment size $(ulimit -d)" >> $SPLUNKH/var/log/splunk/splunk-init-ulimit.log
             ulimit -Hn 65536
-            ulimit -Sn 32768
+            ulimit -Sn 65536
             ulimit -u 16000
             ulimit -f unlimited
             ulimit -d unlimited
@@ -53,7 +54,7 @@
 - name: Tune splunk init.d script (ulimit 2/2)
   blockinfile:
         dest: "/etc/init.d/splunk"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG (last run {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG -->"
         insertbefore: "exit .RETVAL"
         block: |
             echo "$(date) - splunk init end : nofiles soft $(ulimit -Sn)" >> $SPLUNKH/var/log/splunk/splunk-init-ulimit.log

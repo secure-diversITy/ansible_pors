@@ -11,13 +11,14 @@
 - name: Tune splunk init.d script (header)
   blockinfile:
         dest: "/etc/init.d/cribl"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - INFO (last run initiated at {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - INFO -->"
         insertbefore: "USAGE="
         block: |
            # ----------------------------------------------------------------------------------------
            # THIS SCRIPT IS PROTECTED BY THE IMMUTABLE BIT TO AVOID ACCIDENTALLY OVERWRITING!
+           #
+           # Last modification: {{ ansible_date_time.date }} by {{ ansible_conf.host }}
            # 
-           # see: http://www.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.com/confluence/x/6IQqAg for details
            # TO MODIFY: chattr -i
            # TO PROTECT AGAIN: chattr +i
            #
@@ -32,7 +33,7 @@
 - name: Tune init.d script (ulimit 1/2)
   blockinfile:
         dest: "/etc/init.d/cribl"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS (last run {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS -->"
         insertafter: 'FORCE_ARG=\"\"'
         block: |
             CRIBL_HOME={{ logstream_installation.home_path }}
@@ -43,7 +44,7 @@
             echo "$(date) - init start: max file size $(ulimit -f)" >> $CRIBL_HOME/log/init-ulimit.log
             echo "$(date) - init start: data segment size $(ulimit -d)" >> $CRIBL_HOME/log/init-ulimit.log
             ulimit -Hn 65536
-            ulimit -Sn 32768
+            ulimit -Sn 65536
             ulimit -u 16000
             ulimit -f unlimited
             ulimit -d unlimited
@@ -53,7 +54,7 @@
 - name: Tune init.d script (ulimit 2/2)
   blockinfile:
         dest: "/etc/init.d/cribl"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG (last run {{ ansible_date_time.date }} from: {{ ansible_conf.host }}) -->"
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG -->"
         insertbefore: "exit ??"
         block: |
             echo "$(date) - init end : nofiles soft $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
