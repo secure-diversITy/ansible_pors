@@ -8,6 +8,11 @@
 # VMware vSphere definitions #
 ##############################
 vsphere:
+    # if set to true no RAM backup swap (vswp) will be created
+    # use this with care and avoid any over-provisioning of RAM then!
+    # if not set or set to false vmem will act as usual.
+    disablevmem: true
+
     host:
        # you can specify as much vsphere centers as you wish.
        # vsphere-hostname-01 is just an example any should be replaced by the hostname
