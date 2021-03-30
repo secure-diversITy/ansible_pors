@@ -37,6 +37,17 @@ logstream_installation:
   backup: false
   remote_backup_path: /opt/backup/
 
+  # ulimit settings
+  #ulimit_nofile_soft: 32768 
+  ulimit_nofile_soft: 65536
+  ulimit_nofile_hard: 65536
+  ulimit_nproc_soft: 16000
+  ulimit_nproc_hard: 16000
+  ulimit_fsize_soft: unlimited
+  ulimit_fsize_hard: unlimited
+  ulimit_data_soft: unlimited
+  ulimit_data_hard: unlimited
+
   # default no-prompt/silence args for starting non-interactive
   args_noninteractive: "--answer-yes --accept-license --no-prompt"
 

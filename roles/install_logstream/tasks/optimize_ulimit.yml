@@ -1,35 +1,56 @@
 ---
-- name: Set the ulimit recommendation (nofile,soft)
+- name: Set ulimit (nofile,soft)
   community.general.pam_limits:
     domain: "{{ cribl_install_user }}"
     limit_type: soft
     limit_item: nofile
-    value: 32768
+    value: "{{ logstream_installation.ulimit_nofile_soft }}"
 
-- name: Set ulimit recommendation (nofile,hard)
+- name: Set ulimit (nofile,hard)
   community.general.pam_limits:
     domain: "{{ cribl_install_user }}"
     limit_type: hard
     limit_item: nofile
-    value: 65536
+    value: "{{ logstream_installation.ulimit_nofile_hard }}"
 
-- name: Set ulimit recommendation (nproc,soft+hard)
+- name: Set ulimit (nproc,soft)
   community.general.pam_limits:
     domain: "{{ cribl_install_user }}"
-    limit_type: '-'
+    limit_type: soft
     limit_item: nproc
-    value: 16000
+    value: "{{ logstream_installation.ulimit_nproc_soft }}"
 
-- name: Set ulimit recommendation (fsize,soft+hard)
+- name: Set ulimit (nproc,hard)
   community.general.pam_limits:
     domain: "{{ cribl_install_user }}"
-    limit_type: '-'
+    limit_type: hard
+    limit_item: nproc
+    value: "{{ logstream_installation.ulimit_nproc_hard }}"
+
+- name: Set ulimit (fsize,soft)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: soft
     limit_item: fsize
-    value: unlimited
+    value: "{{ logstream_installation.ulimit_fsize_soft }}"
 
-- name: Set ulimit recommendation (data,soft+hard)
+- name: Set ulimit (fsize,hard)
   community.general.pam_limits:
     domain: "{{ cribl_install_user }}"
-    limit_type: '-'
+    limit_type: hard
+    limit_item: fsize
+    value: "{{ logstream_installation.ulimit_fsize_hard }}"
+
+- name: Set ulimit (data,soft)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: soft
     limit_item: data
-    value: unlimited
+    value: "{{ logstream_installation.ulimit_data_soft }}"
+
+- name: Set ulimit (data,hard)
+  community.general.pam_limits:
+    domain: "{{ cribl_install_user }}"
+    limit_type: hard
+    limit_item: data
+    value: "{{ logstream_installation.ulimit_data_hard }}"
