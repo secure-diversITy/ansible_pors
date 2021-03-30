@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=beta
-VERSIONNUM="4.0-40"
+VERSIONNUM="4.0-44"
 VERSION="${VERSIONNUM}-${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -438,7 +438,7 @@ declare INSTDEFLS=logstream_installation.yml
 ## @brief Downloader for cribl logstream
 ## @details Will download a defined logstream release directly from cribl
 ## @showinitializer
-declare PBDLSPL=${PBDIRCRIBL}/ae_download_logstream.yml
+declare PBDLLOGSTREAM=${PBDIRCRIBL}/ae_download_logstream.yml
 
 ## @var PBGHFETCHREPOS
 ## @brief Fetch all accessible github repos
@@ -1683,7 +1683,8 @@ F_FETCHGITREPOS(){
 }
 
 ## @fn F_MSG()
-## @brief Just showing a simple message box with some dynamic info
+## @brief Just showing a simple message box
+## param 1: required: message to show
 F_MSG(){
 	echo "$FUNCNAME started" >> $LOG
 	# required arg: message
@@ -2672,7 +2673,7 @@ F_DLLOGSTREAM() {
     
     # download the auto-staged version
     [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
-    F_ABIN $HOSTFILE $PBDLSPL "Downloading cribl logstream <$NVER>..."
+    F_ABIN $HOSTFILE $PBDLLOGSTREAM "Downloading cribl logstream <$NVER>..."
     ERR=$?
     F_RMVAULTPW
     F_DIAERR $ERR "Downloading cribl logstream version: $NVER"
@@ -2958,6 +2959,7 @@ F_ADDSERVICEUSER(){
     if [ ! -z "$OS_SERVICE_USER" ];then
         [ ! -z $OS_SERVICE_USER_EXTRAGROUPS ] && _GRP="$OS_SERVICE_USER_EXTRAGROUPS"
         F_ADDSYSUSER "$_HOST" "$OS_SERVICE_USER" "$OS_SERVICE_USER_EXTRAGROUPS"
+        return $?
     else
         F_LOG $FUNCNAME "SKIPPING: No OS_SERVICE_USER specified"
     fi
@@ -2985,7 +2987,7 @@ F_ADDSYSUSER(){
     fi
 
     F_ABIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ($_USER) ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
-    F_LOG $FUNCNAME ended
+    return $?
 }
 
 ## @fn F_UPGRADEMENU()
@@ -3106,7 +3108,7 @@ F_UPGRADE(){
 	F_LOG "$FUNCNAME" "Will upgrade <$UPGRADEHOSTS>"
 
     if [ -z "$AUTOMODE" ];then
-            F_DIALOG --scrollbar --yesno "\n\nWill upgrade $UPGTYPE to $STAGEDVER on these hosts IN PARALLEL(!!):\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
+            F_DIALOG --scrollbar --yesno "\n\nWill upgrade $UPGTYPE $STAGEDVER on these hosts IN PARALLEL(!!):\n\n$UPGRADEHOSTST\n\nAre you sure?" 30 100
 	    if [ $? -ne 0 ];then
                 return $?
             else
@@ -3241,7 +3243,7 @@ F_GUIDEDUPGRADE(){
     SORTO=$(echo -e "$SORTED" | sed 's/\n/,/g')
     F_LOG $FUNCNAME "$SORTO"
 
-    F_DIALOG --colors --scrollbar --yesno "\n\nWill upgrade $UPGTYPE to \Zb\Zuv${STAGEDVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
+    F_DIALOG --colors --scrollbar --yesno "\n\nWill upgrade $UPGTYPE \Zb\Zuv${STAGEDVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
     RET=$?
     if [ $RET -ne 0 ];then
         F_LOG $FUNCNAME "aborted on user request"
@@ -4303,10 +4305,24 @@ F_VSPHERE_SELDS(){
 
 ## @fn F_VSPHERE_DEPLOY()
 ## @brief Deploys the vSphere VM
+## @param 1 required: the full path to the hardware profile to source
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_VSPHERE_DEPLOY(){ 
     F_LOG $FUNCNAME started
+    
+    HWP=$1
+    if [ -z "$HWP" ] || [ ! -f "$HWP" ];then
+        F_LOG $FUNCNAME "ERROR: missing hw profile! ABORTED" && return 3
+    fi
+    # make all user defined settings available here
+    source $HWP
+
+    VCENTER="$VM_VSPHERE_VCENTER"
+    VCHOST="$VM_VSPHERE_ESX"
+    VCDC="$VM_VSPHERE_DC"
+    VCDS="$VM_VSPHERE_DS"
+    VCNET="$VM_VSPHERE_NETNAME"
 
     F_LOG "$FUNCNAME" "VCENTER,VMHOST,VMCPU,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VCHOST,VCDC,VCDS,VCNET,VMGUESTOS,VMDISK,VMDISKTYPE,VMDISKSIZEGB,VMDISKOPTS,VMDISKDEV"
     F_LOG "$FUNCNAME" "$VCENTER,$VMHOST,$VMCPU,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VCHOST,$VCDC,$VCDS,$VCNET,$VMGUESTOS,$VMDISK,$VMDISKTYPE,$VMDISKSIZEGB,$VMDISKOPTS,$VMDISKDEV"
@@ -4319,14 +4335,11 @@ F_VSPHERE_DEPLOY(){
         ABORTED=0
     fi
 
-    # make all user defined settings available here
-    source $TMPHWPROFILE
-
     # sum up (makes uses of real tab spaces in dialog):
     F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 50 80
     DEPLOYIT=$?
 
-    [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
+    [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
     F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
 
@@ -4334,7 +4347,7 @@ F_VSPHERE_DEPLOY(){
 #2>&1 >> $LOG
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
-    F_DIAERR $DEPERR "Deploying $VMHOST to $VCENTER" 
+    #F_DIAERR $DEPERR "Deploying $VMHOST to $VCENTER" 
     [ $DEPERR -ne 0 ] && return 99
 
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
@@ -4355,25 +4368,28 @@ F_VSPHERE_DEPLOY(){
             VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
             VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
+            F_LOG $FUNCNAME "adding $VMDISKMNTP"
+
+# TODO: either remove or add an option to set DS per Disk
             # Target Datastore name
-            FINISHED=0    
-            while [ $FINISHED -eq 0 ];do        
-                OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
-                VCDS=$(F_DIALOG --colors --radiolist \
-                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} - ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
-                100 80 100 \
-                "${OPTIONS[@]}" \
-                2>&1 >/dev/tty)
-                [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
-                F_LOG $FUNCNAME "Choosen: $VCDS"
-                [ ! -z "$VCDS" ] && FINISHED=1
-            done
+#            FINISHED=0
+#            while [ $FINISHED -eq 0 ];do        
+#                OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
+#                VCDS=$(F_DIALOG --colors --radiolist \
+#                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} - ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
+#                100 80 100 \
+#                "${OPTIONS[@]}" \
+#                2>&1 >/dev/tty)
+#                [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
+#                F_LOG $FUNCNAME "Choosen: $VCDS"
+#                [ ! -z "$VCDS" ] && FINISHED=1
+#            done
 
             # sum up (makes uses of real tab spaces in dialog):
-            F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to VM $VMHOST with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n\nDo you want to continue?\n" 50 80
-            DEPLOYIT=$?
+#            F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to VM $VMHOST with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n\nDo you want to continue?\n" 50 80
+#            DEPLOYIT=$?
 
-            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
+#            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
 
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
             #F_LOG $FUNCNAME "will call $PBVMNEWDISK with: 'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'"
@@ -4675,7 +4691,7 @@ F_STARTVMDEP(){
         OPTIONS=($(for i in $SROLE;do echo "$i" "$i" off;done))
         HWPROFILE=$(F_DIALOG --colors --radiolist \
             "\nAvailable PORS hardware profiles will be listed here.\nSelect (space-bar) any or choose 'Empty' \nif you want to start with an empty template:\n" \
-            50 80 100 \
+            50 100 250 \
             "${OPTIONS[@]}" \
             "Common" "Load just the common config" off \
             2>&1 >/dev/tty)
@@ -4780,19 +4796,22 @@ F_STARTVMDEP(){
             case $VM_PROVIDER in
                 vsphere|vmware)
                     PROVOUT=$(F_DIALOG --form "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
-                                "ESXi host" 1 1 "$VM_VSPHERE_ESX" 1 20 27 28 \
-                                "Datastore" 2 1 "$VM_VSPHERE_DS" 2 20 70 60  \
-                                "Datacenter" 3 1 "$VM_VSPHERE_DC" 3 20 70 60  \
-                                "Network Name" 4 1 "$VM_VSPHERE_NETNAME" 4 20 70 60  \
+                                "vCenter" 1 1 "$VM_VSPHERE_VCENTER" 1 20 27 28 \
+                                "ESXi host" 2 1 "$VM_VSPHERE_ESX" 2 20 27 28 \
+                                "Datastore" 3 1 "$VM_VSPHERE_DS" 3 20 70 60  \
+                                "Datacenter" 4 1 "$VM_VSPHERE_DC" 4 20 70 60  \
+                                "Network Name" 5 1 "$VM_VSPHERE_NETNAME" 5 20 70 60  \
                                 3>&1 1>&2 2>&3)
                     VMERR=$?
                     # normalize the output so it can be parsed correctly
                     NDIAOUT=$(echo -e "$PROVOUT" | tr "\n" "|")
-                    VM_VSPHERE_ESX=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")              
-                    VM_VSPHERE_DS=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")              
-                    VM_VSPHERE_DC=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")              
-                    VM_VSPHERE_NETNAME=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")
+                    VM_VSPHERE_VCENTER=$(echo $NDIAOUT | cut -d "|" -f1 | tr -d " ")              
+                    VM_VSPHERE_ESX=$(echo $NDIAOUT | cut -d "|" -f2 | tr -d " ")              
+                    VM_VSPHERE_DS=$(echo $NDIAOUT | cut -d "|" -f3 | tr -d " ")              
+                    VM_VSPHERE_DC=$(echo $NDIAOUT | cut -d "|" -f4 | tr -d " ")              
+                    VM_VSPHERE_NETNAME=$(echo $NDIAOUT | cut -d "|" -f5 | tr -d " ")
 
+                    echo "VM_VSPHERE_VCENTER=$VM_VSPHERE_VCENTER" >> $TMPHWPROFILE
                     echo "VM_VSPHERE_ESX=$VM_VSPHERE_ESX" >> $TMPHWPROFILE
                     echo "VM_VSPHERE_DS=$VM_VSPHERE_DS" >> $TMPHWPROFILE
                     echo "VM_VSPHERE_DC=$VM_VSPHERE_DC" >> $TMPHWPROFILE
@@ -4972,7 +4991,8 @@ F_STARTVMDEP(){
             case $VM_PROVIDER in
                 vsphere|vmware)
                     # switch to vCenter information and actions
-                    VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
+                    #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
+                    F_VSPHERE_DEPLOY "$TMPHWPROFILE"
                     VMERR=$?
                     ;;
                 proxmox|pve)
@@ -5000,12 +5020,11 @@ F_STARTVMDEP(){
     # install base software not in template, ensure up2date system patches
     if [ $VMERR -eq 0 ];then
         F_BASEINSTALL "${VMHOSTF}" "$TMPHWPROFILE"
-        F_DIAERR $? "Base install"
         F_SYSUPGRADE "${VMHOSTF}"
         F_DIAERR $? "Upgrading System"
         if [ ! -z "$OS_SERVICE_USER" ];then
             F_ADDSERVICEUSER "${VMHOSTF}"
-            F_DIAERR $? "Adding linux service account"
+            F_DIAERR $? "Adding linux service account: $OS_SERVICE_USER"
         fi
     fi
     if [ "$IACKEEP" -ne 1 ];then
@@ -5018,6 +5037,7 @@ F_STARTVMDEP(){
     # close function when aborted
     [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "closing func due to abort state" && return 3
 
+    F_MSG "Congratulations! Your VM has been successfully deployed and is ready to use now."
     F_LOG $FUNCNAME ended
 }
 
@@ -5378,7 +5398,9 @@ F_BASEINSTALL(){
             F_ABIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost"
         fi
     done
-    F_DIAERR $? "Base install on:\n\n$SELHOSTS\n\n"
+    LERR=$?
+    F_DIAERR $LERR "Base install on:\n\n$SELHOSTS\n\n"
+    return $LERR
 
     F_LOG $FUNCNAME ended
 }
