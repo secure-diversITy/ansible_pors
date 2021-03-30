@@ -4,7 +4,7 @@
     domain: "{{splunk_install_user }}"
     limit_type: soft
     limit_item: nofile
-    value: 32768
+    value: 65536
 
 - name: Set splunk's ulimit recommendation (nofile,hard)
   community.general.pam_limits:
