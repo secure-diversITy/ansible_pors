@@ -8,9 +8,6 @@
 
 - include: ../system/ae_system_base.yml
 
-- include: ../vmware/ae_install_openvmtools.yml
-  when: ansible_virtualization_type == "VMware"
-
 - include: ../shelper/ae_install_shelper.yml
   when: shelper_installation.enabled
 

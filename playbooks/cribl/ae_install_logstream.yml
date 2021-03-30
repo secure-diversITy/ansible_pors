@@ -13,6 +13,3 @@
     - install_logstream
 
 - include: ../system/ae_system_base.yml
-
-- include: ../vmware/ae_install_openvmtools.yml
-  when: ansible_virtualization_type == "VMware"
