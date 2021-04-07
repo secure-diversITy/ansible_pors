@@ -40,14 +40,20 @@
             USER="{{ cribl_install_user }}"
             echo "$(date) - init start: nofiles soft $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
             echo "$(date) - init start: nofiles hard $(ulimit -Hn)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: no processes $(ulimit -u)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: max file size $(ulimit -f)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: data segment size $(ulimit -d)" >> $CRIBL_HOME/log/init-ulimit.log
-            ulimit -Hn 65536
-            ulimit -Sn 65536
-            ulimit -u 16000
-            ulimit -f unlimited
-            ulimit -d unlimited
+            echo "$(date) - init start: no processes $(ulimit -Su)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: no processes $(ulimit -Hu)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: max file size $(ulimit -Sf)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: max file size $(ulimit -Hf)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: data segment size $(ulimit -Sd)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init start: data segment size $(ulimit -Hd)" >> $CRIBL_HOME/log/init-ulimit.log
+            ulimit -Sn {{ logstream_installation.ulimit_nofile_soft }}
+            ulimit -Hn {{ logstream_installation.ulimit_nofile_hard }}
+            ulimit -Su {{ logstream_installation.ulimit_nproc_soft }}
+            ulimit -Hu {{ logstream_installation.ulimit_nproc_hard }}
+            ulimit -Sf {{ logstream_installation.ulimit_fsize_soft }}
+            ulimit -Hf {{ logstream_installation.ulimit_fsize_hard }}
+            ulimit -Sd {{ logstream_installation.ulimit_data_soft }}
+            ulimit -Hd {{ logstream_installation.ulimit_data_hard }}
         backup: yes
   when: "cribl_optimize.initd == true | default(false)"
 
@@ -57,11 +63,14 @@
         marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG -->"
         insertbefore: "exit ??"
         block: |
-            echo "$(date) - init end : nofiles soft $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end : nofiles hard $(ulimit -Hn)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end : no processes $(ulimit -u)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end : max file size $(ulimit -f)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end : data segment size $(ulimit -d)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: nofiles soft $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: nofiles hard $(ulimit -Hn)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: no processes $(ulimit -Su)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: no processes $(ulimit -Hu)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: max file size $(ulimit -Sf)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: max file size $(ulimit -Hf)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: data segment size $(ulimit -Sd)" >> $CRIBL_HOME/log/init-ulimit.log
+            echo "$(date) - init end: data segment size $(ulimit -Hd)" >> $CRIBL_HOME/log/init-ulimit.log
         backup: yes
   when: "cribl_optimize.initd == true | default(false)"
 
