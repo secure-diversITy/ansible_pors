@@ -43,6 +43,16 @@ splunk_installation:
   # Possible values: True | False
   deploy_key_to_peers: True
 
+  # ulimit settings
+  ulimit_nofile_soft: 65536
+  ulimit_nofile_hard: 65536
+  ulimit_nproc_soft: 16000
+  ulimit_nproc_hard: 16000
+  ulimit_fsize_soft: unlimited
+  ulimit_fsize_hard: unlimited
+  ulimit_data_soft: unlimited
+  ulimit_data_hard: unlimited
+
 # name of the tuned profile (used as directory name, branch identifier, local repo filename, ...)
 tuned_name: "splunk"
 
