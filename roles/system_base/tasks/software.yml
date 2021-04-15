@@ -39,6 +39,14 @@
         - libselinux-python
   when: ansible_facts['os_family'] == "RedHat"
 
+- name: vSphere requirements (RHEL)
+  package:
+    name:
+        - open-vm-tools
+  when:
+    - ansible_facts['os_family'] == "RedHat"
+    - ansible_virtualization_type == "VMware"
+
 - name: enable NTPd
   systemd:
     daemon_reload: yes

@@ -12,9 +12,3 @@
     - system_optimize
     - system_ntp
     - system_journal
-
-- include: ../vmware/ae_download_openvmtools.yml
-  when: ansible_virtualization_type == "VMware"
-
-- include: ../vmware/ae_install_openvmtools.yml
-  when: ansible_virtualization_type == "VMware"

@@ -1,5 +1,6 @@
 ---
 - hosts: pors_server
+  connection: local
 
   tasks:
   - debug: msg="{{ file.linux_64_rpm.tools.name }}"
