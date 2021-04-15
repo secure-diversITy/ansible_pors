@@ -16,6 +16,18 @@ logstream_tgzname: "cribl-{{ logstream_globversion }}-{{ logstream_globhash }}-l
 
 logstream_root_path: /opt
 
+# ulimits are defined in
+# roles/install/defaults/main.yml
+# but can be overwritten here:
+#logstream_ulimit_nofile_soft: 65536
+#logstream_ulimit_nofile_hard: 65536
+#logstream_ulimit_nproc_soft: 16000
+#logstream_ulimit_nproc_hard: 16000
+#logstream_ulimit_fsize_soft: unlimited
+#logstream_ulimit_fsize_hard: unlimited
+#logstream_ulimit_data_soft: unlimited
+#logstream_ulimit_data_hard: unlimited
+
 logstream_installation:
   home_path: "{{ logstream_root_path }}/cribl"
   version: "{{ logstream_globversion }}"
@@ -36,17 +48,6 @@ logstream_installation:
   # backup before upgrade (can be true|false)
   backup: false
   remote_backup_path: /opt/backup/
-
-  # ulimit settings
-  #ulimit_nofile_soft: 32768 
-  ulimit_nofile_soft: 65536
-  ulimit_nofile_hard: 65536
-  ulimit_nproc_soft: 16000
-  ulimit_nproc_hard: 16000
-  ulimit_fsize_soft: unlimited
-  ulimit_fsize_hard: unlimited
-  ulimit_data_soft: unlimited
-  ulimit_data_hard: unlimited
 
   # default no-prompt/silence args for starting non-interactive
   args_noninteractive: "--answer-yes --accept-license --no-prompt"

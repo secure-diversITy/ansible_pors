@@ -1,21 +1,19 @@
-splunk_installation:
-    # ulimit settings
-    ulimit_nofile_soft: 65536
-    ulimit_nofile_hard: 65536
-    ulimit_nproc_soft: 16000
-    ulimit_nproc_hard: 16000
-    ulimit_fsize_soft: unlimited
-    ulimit_fsize_hard: unlimited
-    ulimit_data_soft: unlimited
-    ulimit_data_hard: unlimited
+---
 
-logstream_installation:
-    # ulimit settings
-    ulimit_nofile_soft: 65536
-    ulimit_nofile_hard: 65536
-    ulimit_nproc_soft: 16000
-    ulimit_nproc_hard: 16000
-    ulimit_fsize_soft: unlimited
-    ulimit_fsize_hard: unlimited
-    ulimit_data_soft: unlimited
-    ulimit_data_hard: unlimited
+# splunk
+splunk_ulimit_nofile_softhard: 65536
+splunk_ulimit_nproc_soft: 16000
+splunk_ulimit_nproc_hard: 16000
+splunk_ulimit_fsize_soft: unlimited
+splunk_ulimit_fsize_hard: unlimited
+splunk_ulimit_data_soft: unlimited
+splunk_ulimit_data_hard: unlimited
+
+# logstream
+logstream_ulimit_nofile_softhard: 65536
+logstream_ulimit_nproc_soft: 16000
+logstream_ulimit_nproc_hard: 16000
+logstream_ulimit_fsize_soft: unlimited
+logstream_ulimit_fsize_hard: unlimited
+logstream_ulimit_data_soft: unlimited
+logstream_ulimit_data_hard: unlimited

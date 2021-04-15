@@ -37,23 +37,21 @@
         marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS -->"
         insertafter: ". /etc/init.d/functions"
         block: |
-            SPLUNKH=/opt/splunk
-            echo "$(date) - init start: nofiles soft $(ulimit -Sn)" >> $SPLUNKH/log/init-ulimit.log
-            echo "$(date) - init start: nofiles hard $(ulimit -Hn)" >> $SPLUNKH/log/init-ulimit.log
+            SPLUNKH={{ splunk_installation.splunk_home_path }}/var
+            echo "$(date) - init start: nofiles soft+hard $(ulimit -n)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init start: no processes $(ulimit -Su)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init start: no processes $(ulimit -Hu)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init start: max file size $(ulimit -Sf)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init start: max file size $(ulimit -Hf)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init start: data segment size $(ulimit -Sd)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init start: data segment size $(ulimit -Hd)" >> $SPLUNKH/log/init-ulimit.log
-            ulimit -Sn {{ splunk_installation.ulimit_nofile_soft }}
-            ulimit -Hn {{ splunk_installation.ulimit_nofile_hard }}
-            ulimit -Su {{ splunk_installation.ulimit_nproc_soft }}
-            ulimit -Hu {{ splunk_installation.ulimit_nproc_hard }}
-            ulimit -Sf {{ splunk_installation.ulimit_fsize_soft }}
-            ulimit -Hf {{ splunk_installation.ulimit_fsize_hard }}
-            ulimit -Sd {{ splunk_installation.ulimit_data_soft }}
-            ulimit -Hd {{ splunk_installation.ulimit_data_hard }}
+            ulimit -n {{ splunk_ulimit_nofile_softhard }}
+            ulimit -Su {{ splunk_ulimit_nproc_soft }}
+            ulimit -Hu {{ splunk_ulimit_nproc_hard }}
+            ulimit -Sf {{ splunk_ulimit_fsize_soft }}
+            ulimit -Hf {{ splunk_ulimit_fsize_hard }}
+            ulimit -Sd {{ splunk_ulimit_data_soft }}
+            ulimit -Hd {{ splunk_ulimit_data_hard }}
         backup: yes
   when: "splunk_optimize.initd == true | default(false)"
 
@@ -63,8 +61,7 @@
         marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG -->"
         insertbefore: "exit .RETVAL"
         block: |
-            echo "$(date) - init end: nofiles soft $(ulimit -Sn)" >> $SPLUNKH/log/init-ulimit.log
-            echo "$(date) - init end: nofiles hard $(ulimit -Hn)" >> $SPLUNKH/log/init-ulimit.log
+            echo "$(date) - init end: nofiles soft + hard $(ulimit -n)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init end: no processes $(ulimit -Su)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init end: no processes $(ulimit -Hu)" >> $SPLUNKH/log/init-ulimit.log
             echo "$(date) - init end: max file size $(ulimit -Sf)" >> $SPLUNKH/log/init-ulimit.log
