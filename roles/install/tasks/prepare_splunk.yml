@@ -8,8 +8,8 @@
   user: name=splunk 
         group=splunk
         state=present
-        comment="Splunk Server"
+        comment="Splunk"
         shell="/bin/bash"
-        home="/opt/splunk"
+        home="{{ splunk_installation.splunk_home_path }}"
         password="!!"
   when: splunk_installation.package_format != "rpm"

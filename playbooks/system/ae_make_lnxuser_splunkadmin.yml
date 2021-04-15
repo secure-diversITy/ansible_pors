@@ -5,9 +5,51 @@
   become: yes
   become_user: root
 
+  vars:
+    sudoalias: "{{ spladm | upper | regex_replace('[^\\w+]') }}"
+
   tasks:
+    # check for existence
+    - stat: path=/etc/sudoers.d/splunk-admin
+      register: sudofile
+
+    - stat: path="{{ repo_base }}/common/sudo/splunk-admin"
+      connection: local
+      become: no
+      register: sudofilelocal
+
+    - name: Check local repo req
+      debug:
+        msg: "Create {{ repo_base }}/common/sudo/splunk-admin if you do not want to use the default sudoers created by PORS! If you want to do so check the proper format though."
+      when: sudofilelocal is not defined or sudofilelocal.stat.exists != true
+
+    # file attr doesnt work and is available in ansible version >= v2.3 only
+    - name: Initial sudoers setup (create PORS default)
+      blockinfile:
+        dest: "/etc/sudoers.d/splunk-admin"
+        create: yes
+        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK -->"
+        block: |
+            # Managed and added by Ansible (PORS)
+
+            User_Alias              USER{{ sudoalias }}=
+            Cmnd_Alias              CMD{{ sudoalias | upper | regex_replace('[^\w+]') }}=/bin/su - {{ splunk_install_user }} -c *, /bin/su - {{ splunk_install_user }},/usr/sbin/tcpdump *
+            USER{{ sudoalias | upper | regex_replace('[^\w+]') }}         ALL=(root)      NOPASSWD: CMD{{ sudoalias | upper | regex_replace('[^\w+]') }}
+        validate: '/usr/sbin/visudo -cf %s'
+      when:
+        - sudofilelocal.stat.exists != true
+        - sudofile.stat.exists != true
+
+    - name: Initial sudoers setup (copy from repo)
+      copy:
+        src: "{{ repo_base }}/common/sudo/splunk-admin"
+        dest: /etc/sudoers.d/splunk-admin
+      when: 
+        - sudofilelocal.stat.exists == true
+        - sudofile.stat.exists != true
+
     - name: Check if its needed
-      shell: "grep {{ spladm }} /etc/sudoers.d/splunk-admin"
+      shell: "grep '{{ spladm }}' /etc/sudoers.d/splunk-admin"
       ignore_errors: true
       register: needed
 
@@ -16,8 +58,8 @@
         path: /etc/sudoers.d/splunk-admin
         state: present
         backrefs: yes
-        regexp: '^User_Alias(.*)USER1=(.*)'
-        line: 'User_Alias\1USER1={{ spladm }},\2'
+        regexp: '^User_Alias(.*)USER(.*)=(.*)'
+        line: 'User_Alias\1USER\2={{ spladm }},\3'
         validate: '/usr/sbin/visudo -cf %s'
       when: needed.rc != 0
 
