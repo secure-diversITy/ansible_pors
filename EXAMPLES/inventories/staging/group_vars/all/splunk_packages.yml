@@ -11,7 +11,9 @@ splunk_packages:
       url: "http://download.splunk.com/products/splunk/releases/6.3.3/splunk/linux/splunk-6.3.3-f44afce176d0-linux-2.6-x86_64.rpm"
 
   linux_64_tgz:
-    package:
+    splunk:
       version: "{{ globversion }}"
       url: 'https://download.splunk.com/products/splunk/releases/{{ globversion }}/linux/{{ tgzname }}'
-
+    splunkforwarder:
+      version: "{{ globversion }}"
+      url: 'https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version={{ globversion }}&product=universalforwarder&filename={{ tgzname }}&wget=true'

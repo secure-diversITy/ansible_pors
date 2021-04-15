@@ -1,0 +1,92 @@
+---
+#####################################################################################################################
+# Installation Variables
+#####################################################################################################################
+
+# change these to any version you like. you need to find the version hash value once (e.g. dl manually once to find it in the filename)!
+# NOTE: you do not need to change anything here when using the PORS download / staging menu!!
+globversion: "8.0.8"
+globhash: "70c2fa5ea15d"
+
+# several things are changing in newer versions (e.g. 7.2 do not have the needed init.d script anymore)
+# so the following can be used to identify the version in playbooks: when splunkversionnum <= 123 ..
+splunkversionnum: "{{ globversion | replace('.','') | int }}"
+
+# construct the full file name
+tgzname: "splunkforwarder-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
+
+splunk_installation:
+  splunk_home_path: /opt/splunkforwarder
+  version: "{{ globversion }}"
+  ssh_public_key: "{{ vault_ssh_pubkey_splunk }}" 
+
+  package_format: tgz
+
+  package_file: "{{ tgzname }}"
+  remote_package_temp_path: /tmp
+  delete_package_after_install: false
+
+  remote_app_temp_path: /tmp
+
+  firewalld_disable: true
+
+  # backup before upgrade (can be true|false)
+  backup: false
+  remote_backup_path: /opt/backup/
+
+  # default no-prompt/silence args for starting splunk non-interactive
+  splunk_args_noninteractive: "--answer-yes --accept-license --no-prompt"
+
+  # when installing splunk you might want to auto-add the local key
+  # to all indexer peernodes. this way you can search on the peernodes
+  # without the need to add them in the UI.
+  # Possible values: True | False
+  deploy_key_to_peers: True
+
+  # ulimit settings
+  ulimit_nofile_soft: 65536
+  ulimit_nofile_hard: 65536
+  ulimit_nproc_soft: 16000
+  ulimit_nproc_hard: 16000
+  ulimit_fsize_soft: unlimited
+  ulimit_fsize_hard: unlimited
+  ulimit_data_soft: unlimited
+  ulimit_data_hard: unlimited
+
+# name of the tuned profile (used as directory name, branch identifier, local repo filename, ...)
+tuned_name: "splunk"
+
+splunk_optimize:
+    initd: True
+    tuned: True
+
+    #################################################################################################
+    # tuned profile settings
+    #
+    # highly recommended to enable one of the following to achieve the best performance and required
+    # settings like ulimit etc.
+
+    # target install path for the tuned profile
+    tuned_path: "/etc/tuned/{{ tuned_name }}"
+
+    # OPTION A (recommended): GIT repo
+    # choose one of the three methods ONLY - not multiple!! ;)
+    # if the repo does not require authentication remove the tokenauth stuff
+    install_tuned_git: yes
+    #tuned_git_url: "https://{{ tokenauth.git_ro_user | urlencode }}:{{ tokenauth.git_ro_password | urlencode }}@{{ git_server }}/tuned_profile.git"
+    tuned_git_url: "https://github.com/secure-diversITy/tuned_profile.git"
+    tuned_git_branch: "rhel_{{ tuned_name }}"
+
+    # OPTION B: download a TGZ (e.g a release package from git or from anywhere else)
+    # choose one of the three methods ONLY - not multiple!! ;)
+    # if the repo does not require authentication remove the tokenauth stuff
+    install_tuned_tgz: no
+    #tuned_tgz_url: "https://{{ tokenauth.git_ro_user | urlencode }}:{{ tokenauth.git_ro_token | urlencode }}@{{ git_server }}/tuned_profile/-/archive/vars['tuned_git_branch']/tuned_profile-.tar.gz"
+
+    # OPTION C: use a LOCAL TGZ which has been downloaded to the ansible repo
+    # choose one of the three methods ONLY - not multiple!! ;)
+    install_tuned_ansible: no
+    #tuned_ansible_repo: "{{ splunk_repository.repository_root }}/{{ tuned_name }}_tuned.tgz"
+
+    # << END: tuned profile settings
+    #################################################################################################

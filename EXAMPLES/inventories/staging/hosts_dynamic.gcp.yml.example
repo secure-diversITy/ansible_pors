@@ -54,6 +54,7 @@ groups:
     - licensemaster:              "'lm' in name"
     - monitoringconsole:          "'mc' in name"
     - deploymentserver:           "'ds' in name"
+    - universal_forwarder:        "'fwd' in name"
     - logstream_masternode:       "'criblmn' in name"
     - logstream_worker:           "'cribl' in name"
 

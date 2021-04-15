@@ -121,6 +121,9 @@ site1_peernode
 # ...
 # [site63:children]
 
+# all splunk UF's regardless of the site
+[universal_forwarder]
+
 ########## CRIBL logstream
 
 # CRIBL logstream master node

@@ -27,6 +27,7 @@
 
   vars:
     splunk_upgrade: True
+    splunk_type: "splunk"
 
   roles:
     - splunk_info

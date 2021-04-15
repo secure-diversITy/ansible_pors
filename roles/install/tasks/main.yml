@@ -46,12 +46,15 @@
   when: splunk_upgrade == False
 
 - include: fetch_distserverkeys.yml
-  when: splunk_upgrade == False
+  when:
+    - splunk_upgrade == False
+    - splunk_type != "splunkforwarder"
 
 - include: ../../system_optimize/tasks/optimize_tuned.yml
   when: 
     - splunk_optimize.tuned is defined
     - splunk_optimize.tuned == True
+    - splunk_type != "splunkforwarder"
 
 - include: optimize_initd.yml
   when: 

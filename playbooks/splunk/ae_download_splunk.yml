@@ -1,21 +1,27 @@
 ---
 - hosts: pors_server
+  connection: local
+
+  vars:
+    tgzname: "{{ spltype }}-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
 
   tasks:
 
   - name: Check/Create repo dir
     file:
-        path: "{{ repo_base }}/common/packages/splunk"
+        path: "{{ repo_base }}/common/packages/{{ spltype }}"
         state: directory
 
   - name: Download Splunk tgz packages
-    get_url: url="{{ item.value.url }}"
-             dest="{{ repo_base }}/common/packages/splunk"
-             owner={{ splunk_repository.repository_owner }}
-             group={{ splunk_repository.repository_group }}
-             mode=644
-    with_dict: "{{ splunk_packages.linux_64_tgz }}"
-    when: splunk_installation.package_format == "tgz" and
-          splunk_packages.linux_64_tgz is defined
-
+    get_url:
+        url: "{{ item.value.url }}"
+        dest: "{{ repo_base }}/common/packages/{{ spltype }}/{{ tgzname }}"
+        owner: "{{ splunk_repository.repository_owner }}"
+        group: "{{ splunk_repository.repository_group }}"
+        mode: 0644
+    loop: "{{ splunk_packages.linux_64_tgz | dict2items }}"
+    when: 
+        - splunk_installation.package_format == "tgz"
+        - splunk_packages.linux_64_tgz is defined
+        - item.key == spltype
 

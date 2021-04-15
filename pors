@@ -35,9 +35,9 @@
 ## https://github.com/secure-diversITy/ansible_pors/wiki
 ##<br>
 ###############################################################################################################
-VERSIONTYPE=RC
-VERSIONNUM="4.0-45"
-VERSION="${VERSIONNUM}-${VERSIONTYPE}"
+VERSIONTYPE=RC2
+VERSIONNUM="4.0-48"
+VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
 # This script can be automatically documented by doxygen (http://doxygen.nl)
@@ -2472,32 +2472,43 @@ F_GETAPICREDS(){
 
 ## @fn F_LISTSPLREPO()
 ## @brief Lists splunk versions in the local repo
+## @param 1 optional: set splunk type (e.g. splunkforwarder)
 ## @return a list of splunk packages (filenames) ordered by version top-level down
 ## @details Lists available splunk versions in the local repository
 F_LISTSPLREPO() { 
     F_LOG $FUNCNAME started
-    REPODIR="$(F_SETREPODIR)/common/packages/splunk"
-    find ${REPODIR} -maxdepth 1 -type f -name splunk*tgz | tac | sed 's#.*/##g'
+    unset SPLTYPE
+    SPLTYPE=$1
+    [ -z "$SPLTYPE" ] && SPLTYPE=splunk
+
+    REPODIR="$(F_SETREPODIR)/common/packages/$SPLTYPE"
+    find ${REPODIR} -maxdepth 1 -type f -name ${SPLTYPE}*tgz | tac | sed 's#.*/##g'
     F_LOG $FUNCNAME ended
 }
 
 ## @fn F_DLSPLUNK()
 ## @brief Downloads a specific splunk release
+## @param 1 required: set splunk type (e.g. splunkforwarder)
 ## @return success/error
 ## @details Takes an URL parses the relevant parts out of it and downloads splunk to the local repo
 F_DLSPLUNK() { 
     F_LOG $FUNCNAME started
-    unset VERINFO
+    unset VERINFO SPLTYPE
+    SPLTYPE=$1
 
     while [ -z "$VERINFO" ];do
-        VERINFO=$(F_DIALOG --colors --inputbox 'This will download splunk based on just the version number & the hash value.\nGuide to get version and hash:\n\n1) open https://www.splunk.com/page/previous_releases#x86_64linux\n   (select the URL and use your terminal copy-hotkey)\n2) find the wanted version but do not click on it\n3) identify the version and hash from the package name\n\nExample:\nsplunk-\Zb7.0.1-2b5b15c4ee89\ZB-Linux-x86_64.tgz\n\nResult: \n7.0.1 = version, 2b5b15c4ee89 = hash\n\nType or paste in the version & hash ONLY.\nThe format must be exactly like this: 7.0.1-2b5b15c4ee89 (X.x.x-hash):\n' 30 100 2>&1 >>/dev/tty || echo 1)
+        if [ "$SPLTYPE" == "splunkforwarder" ];then
+            VERINFO=$(F_DIALOG --colors --inputbox "This will download splunkforwarder based on a valid filename.\nGuide to get the valid filename:\n\n1) open (select the URL and use CTRL+SHIFT+C to copy / CTRL+SHIFT+mouseclick might work too):\n   \Zuhttps://www.splunk.com/en_us/download/previous-releases/universalforwarder.html#tabs/linux\ZU\n2) find the version you want and choose to download\n3) Cancel the download but identify the full file name including version and hash from the package name\n\nExample:\n\n\Zb${SPLTYPE}-7.0.1-2b5b15c4ee89-Linux-x86_64.tgz\ZB\n\n\nType or paste in the full file name ONLY (i.e. \Zbnot\ZB the full URL) and ensure it matches exact the format: \Zrsplunk-X.X.X-xxxxxxxxxxxx-Linux-x86_64.tgz (X.X.X = version, xxxxxxxxxxxx = hash)\ZR\n\n" 23 110 2>&1 >>/dev/tty || echo 1)
+        else
+            VERINFO=$(F_DIALOG --colors --inputbox "This will download splunk based on a valid filename.\nGuide to get the valid filename:\n\n1) open (select the URL and use CTRL+SHIFT+C to copy / CTRL+SHIFT+mouseclick might work too):\n   \Zuhttps://www.splunk.com/en_us/download/previous-releases.html#tabs/linux\ZU\n2) find the version you want and choose to download\n3) Cancel the download but identify the full file name including version and hash from the package name\n\nExample:\n\n\Zbsplunk-7.0.1-2b5b15c4ee89-Linux-x86_64.tgz\ZB\n\n\nType or paste in the full file name ONLY (i.e. \Zbnot\ZB the full URL) and ensure it matches exact the format: \Zrsplunk-X.X.X-xxxxxxxxxxxx-Linux-x86_64.tgz (X.X.X = version, xxxxxxxxxxxx = hash)\ZR\n\n" 23 110 2>&1 >>/dev/tty || echo 1)
+        fi 
         F_LOG $FUNCNAME "input was: $VERINFO"
         [ "$VERINFO" == "1" ] && unset VERINFO && return 3
         
-        echo "$VERINFO" | egrep -q "[0-9]*\.[0-9]*\.[0-9]*-\w*"
+        echo "$VERINFO" | egrep -q "\w*-[0-9]*\.[0-9]*\.[0-9]*-\w*"
         if [ $? -eq 0 ];then
-            NVER=$(echo "$VERINFO" | cut -d "-" -f 1 | tr -d " ")
-            NHASH=$(echo "$VERINFO" | cut -d "-" -f 2 | tr -d " ")
+            NVER=$(echo "$VERINFO" | cut -d "-" -f 2 | tr -d " ")
+            NHASH=$(echo "$VERINFO" | cut -d "-" -f 3 | tr -d " ")
             if [ -z "$NVER" ];then
                 unset VERINFO && F_ERRLOG "3" "$FUNCNAME: Cannot parse the splunk version! Try again" "$LOG"
             else
@@ -2511,13 +2522,13 @@ F_DLSPLUNK() {
         fi
     done
     # auto-stage the given version 
-    F_STAGESPL "${NVER}:${NHASH}"
+    F_STAGESPL $SPLTYPE "${NVER}:${NHASH}"
    
     F_LOG $FUNCNAME "Parsed version: $NVER, parsed hash: $NHASH"
     
     # download the auto-staged version
     [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
-    F_ABIN $HOSTFILE $PBDLSPL "Downloading splunk <$NVER>..."
+    F_ABIN $HOSTFILE $PBDLSPL "Downloading splunk <$NVER>..." "-e spltype=$SPLTYPE"
     ERR=$?
     F_RMVAULTPW
     F_DIAERR $ERR "Downloading splunk version: $NVER"
@@ -2528,12 +2539,19 @@ F_DLSPLUNK() {
 
 ## @fn F_GETSTAGEDSPL()
 ## @brief Get the current staged splunk version
+## @param 1 optional: set splunk type (e.g. splunkforwarder)
 ## @return version string of the current staged splunk package
 ## @details Parses the local global var to identify the current staged splunk version
 F_GETSTAGEDSPL(){ 
     F_LOG $FUNCNAME started
+    SPLTYPE=$1
+
     # extract repo dir for apps
-    STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+(\.\d+)?')"
+    if [ "$SPLTYPE" == "splunkforwarder" ];then
+        STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/universal_forwarder/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+(\.\d+)?')"
+    else
+        STAGEDVER="$(grep ^globversion "$AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF" |cut -d ":" -f 2 | grep -Po '\d+\.\d+\.\d+(\.\d+)?')"
+    fi
  
     if [ ! -z "$STAGEDVER" ];then
         echo "$STAGEDVER"
@@ -2544,24 +2562,31 @@ F_GETSTAGEDSPL(){
 
 ## @fn F_STAGESPL()
 ## @brief Stage a specific splunk version from the local repository
-## @param 1 OPTIONAL: splunk version:hash -> will auto-stage the given version + hash
+## @param 1 required: set splunk type (e.g. splunkforwarder)
+## @param 2 optional: splunk version:hash -> will auto-stage the given version + hash
 ## @return success/error
 ## @details Parses the local repository for available splunk versions, let the user choose and stage that version for the PORS upgrade function
 F_STAGESPL(){ 
-    F_LOG $FUNCNAME "started with $@"
-    unset FVER VER VERHASH SELECTION AUTOVER
-    AUTOVER="$1"
-    STAGEDSPLVER=$(F_GETSTAGEDSPL)
+    F_LOG $FUNCNAME "started with $1,$2"
+    unset FVER VER VERHASH SELECTION AUTOVER SPLTYPE
+    SPLTYPE="$1"
+    AUTOVER="$2"
+    STAGEDSPLVER=$(F_GETSTAGEDSPL $SPLTYPE)
     
     if [ -z "$AUTOVER" ];then
         # get the local avail versions
-        OPTIONS=($(for i in $(F_LISTSPLREPO | grep -P -o "splunk-(\d+\.\d+\.\d+(\.\d+)?)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
+        if [ "$SPLTYPE" == "splunkforwarder" ];then
+            SPLNAME=$SPLTYPE
+        else
+            SPLNAME=splunk
+        fi
+        OPTIONS=($(for i in $(F_LISTSPLREPO $SPLTYPE | grep -P -o "${SPLNAME}-(\d+\.\d+\.\d+(\.\d+)?)-(\w+)");do VER=$(echo "${i}" | cut -d "-" -f 2); VHASH=$(echo "${i}"| cut -d "-" -f 3); echo "$VER" "$VHASH" off;done))
 
 	F_LOG $FUNCNAME "splunk packages found in local repo:\n$(F_LISTSPLREPO)"
 
         F_LOG $FUNCNAME "OPTIONS:\n$OPTIONS"
 
-        SELECTION=$(F_DIALOG --colors --ok-label "Stage" --radiolist "\nThe following shows your local repository for splunk Enterprise packages\n\nCurrently active/staged splunk version:\n\n \Zb\Zu${STAGEDSPLVER}\ZB\ZU\n\nTo stage another version simply select (space bar) and choose select.\n\n" \
+        SELECTION=$(F_DIALOG --colors --ok-label "Stage" --radiolist "\nThe following shows your local repository for splunk $SPLTYPE packages\n\nCurrently active/staged splunk version:\n\n \Zb\Zu${STAGEDSPLVER}\ZB\ZU\n\nTo stage another version simply select (space bar) and choose select.\n\n" \
                 40 80 40 \
                 "${OPTIONS[@]}" \
                 2>&1 >/dev/tty)
@@ -2576,8 +2601,13 @@ F_STAGESPL(){
         VER="${SELECTION/:*}"
         VERHASH="${SELECTION/*:}"
     fi
-    F_LOG $FUNCNAME "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF"
-    sed -i "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g" $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF
+    if [ "$SPLTYPE" == "splunkforwarder" ];then
+        F_LOG $FUNCNAME "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g $AINVENTORY/$TARGETENV/group_vars/universal_forwarder/$INSTDEF"
+        sed -i "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g" $AINVENTORY/$TARGETENV/group_vars/universal_forwarder/$INSTDEF
+    else
+        F_LOG $FUNCNAME "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF"
+        sed -i "s/^globversion:.*/globversion: \"$VER\"/g;s/^globhash:.*/globhash: \"$VERHASH\"/g" $AINVENTORY/$TARGETENV/group_vars/all/$INSTDEF
+    fi
     [ -z "$AUTOVER" ] && F_DIAERR $? "Staging splunk (VER: $VER, VERHASH: $VERHASH)"
 
     F_LOG $FUNCNAME "staged version: $SELECTION (FVER: $FVER, VER: $VER, VERHASH: $VERHASH)"
@@ -2832,9 +2862,12 @@ F_SELHOST(){
 
 ## @fn F_INSTALLSPL()
 ## @brief Install splunk on ansible prepared servers
+## @param 1 optional: set install type (e.g. splunkforwarder)
 ## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
     F_LOG $FUNCNAME started
+
+    SPLTYPE="$1"
     # this installs pure splunk (i.e. with common configuration but without any specific configuration)
 
     # force cleaning the temp hosts file in F_EXPANDHOSTS()
@@ -2852,10 +2885,17 @@ F_INSTALLSPL(){
     else
         F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
-	
-    CURVER=$(F_GETSTAGEDSPL)
-    F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
-    F_DIALOG --colors --scrollbar --yesno "Will install splunk\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$SHOSTST\ZB\n\nAre you sure?" 30 100
+
+    CURVER=$(F_GETSTAGEDSPL "$SPLTYPE")
+
+    if [ "$SPLTYPE" == "splunkforwarder" ];then
+        F_LOG "$FUNCNAME" "Will install splunkforwarder on <$SHOSTS>"
+        F_DIALOG --colors --scrollbar --yesno "Will install splunkforwarder\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$SHOSTST\ZB\n\nAre you sure?" 30 100
+    else
+        SPLTYPE=splunk
+        F_LOG "$FUNCNAME" "Will install splunk on <$SHOSTS>"
+        F_DIALOG --colors --scrollbar --yesno "Will install splunk\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$SHOSTST\ZB\n\nAre you sure?" 30 100
+    fi
     [ $? -ne 0 ] && return $?
 
     # define a valid limit group depending on the user's selection
@@ -2863,7 +2903,7 @@ F_INSTALLSPL(){
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_ABIN "$HOSTFILE" "$PBINSTALL" "\Za\Z1Installing splunk ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBINSTALL" "\Za\Z1Installing $SPLTYPE ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','splunk_type':'$SPLTYPE'}"
     F_ERRLOG $? "Installing splunk on:\n\n$SHOSTST" "$LOG"
 
     # cleanup
@@ -3023,11 +3063,23 @@ F_UPGRADEMENU(){
     else
         case "$SELECTION" in
             "Download splunk")
-                F_DLSPLUNK
+                F_DLSPLUNK splunk
                 F_UPGRADEMENU $MENUTYPE
             ;;
             "Stage splunk")
-                F_STAGESPL
+                F_STAGESPL splunk
+                F_UPGRADEMENU $MENUTYPE
+            ;;
+            "Upgrade $MENUTYPE")
+                F_UPGRADE $MENUTYPE
+                F_UPGRADEMENU $MENUTYPE
+            ;;
+            "Download splunkforwarder")
+                F_DLSPLUNK splunkforwarder
+                F_UPGRADEMENU $MENUTYPE
+            ;;
+            "Stage splunkforwarder")
+                F_STAGESPL splunkforwarder
                 F_UPGRADEMENU $MENUTYPE
             ;;
             "Upgrade $MENUTYPE")
@@ -5037,7 +5089,7 @@ F_STARTVMDEP(){
     # close function when aborted
     [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "closing func due to abort state" && return 3
 
-    F_MSG "Congratulations! Your VM has been successfully deployed and is ready to use now."
+    F_MSG "\n\nCongratulations! Your VM has been successfully deployed and is ready to use now."
     F_LOG $FUNCNAME ended
 }
 
@@ -5504,33 +5556,38 @@ F_MENUMAIN(){
  	    while [ "$MENUDONE" == "0" ]; do
 		SELECTION=$(F_DIALOG --ok-label "Select Entry" --cancel-label "Exit" --colors \
 			--menu "\nSelect an option:\n(pro tip: jump to an entry with the highlighted key shortcut)" \
-			37 86 35 \
-			'' '\Zb\ZuAPPS\ZB\ZU'\
+			43 96 35 \
+			'' '\Zb\ZuAPP MANAGEMENT\ZB\ZU'\
 			"" "" \
 			Link-app "Link an app (local file or git project) to a group" \
 			Deploy-apps "Deploy linked apps for a target group" \
 			Remove-app "Unlink or completely remove an app of a group" \
 			Show-apps "Show all already linked apps" \
 			"" "" \
-			'' '\Zb\Zusystem/local/*.conf\ZB\ZU'\
+			'' '\Zb\ZuMAINTENANCE\ZB\ZU' \
 			"" "" \
-			Edit-SYSC "Fetch/Edit/Show/Manage remote conf files" \
-			Deploy-SYSC "Deploy enabled system configs"\
-			"" "" \
-			'' '\Zb\ZuSPLUNK ACTIONS\ZB\ZU' \
-			"" "" \
+                        "VM-Management" "Deploy and manage VMs" \
 			shelper	"Upgrade/Install/Exec shelper (reload,DEP/MN/DS apply bundles)" \
 			splunkd "splunk> daemon commands (restart, webrestart ,..)" \
-			"" "" \
-			'' '\Zb\ZuSYSTEM MAINTENANCE\ZB\ZU' \
-			"" "" \
-			"Upgrade splunk"	"Opens a submenu with splunk upgrade tasks" \
-			"Upgrade logstream"	"Opens a submenu with logstream upgrade tasks" \
-                        VM-Management "Deploy and manage VMs" \
-			'Install (splunk)'      "splunk> on ansible-ready server(s)" \
-			'Install (logstream)'	"cribl logstream-worker on ansible-ready server(s)" \
-                        Configure "Configure splunk> on fresh installed splunk instances" \
 			Cluster "Indexer tasks" \
+			"" "" \
+			'' '\Zb\ZuINSTALLATION / CONFIGURATION\ZB\ZU' \
+			"" "" \
+			'Install splunk'      "splunk> on ansible-ready server(s)" \
+			'Install splunkforwarder'      "splunk> Universal forwarder on ansible-ready server(s)" \
+			'Install logstream'	"cribl logstream-worker on ansible-ready server(s)" \
+                        Configure "Configure splunk> on fresh installed splunk instances" \
+			"" "" \
+			'' '\Zb\ZuUPGRADE\ZB\ZU' \
+			"" "" \
+			"Upgrade/stage splunk"	"Upgrade, download, stage splunk>" \
+			'Upgrade/stage splunkforwarder'      "Upgrade, download, stage splunk> Universal forwarder" \
+			"Upgrade/stage logstream"	"Upgrade, download, stage cribl logstream" \
+			"" "" \
+			'' '\Zb\Zusystem/local/*.conf\ZB\ZU'\
+			"" "" \
+			"Edit system/local" "Fetch/Edit/Show/Manage remote conf files" \
+			"Deploy system/local" "Deploy enabled system configs"\
 			"" "" \
 			"" "" \
 			3>&1 1>&2 2>&3)
@@ -5564,24 +5621,23 @@ F_MENUMAIN(){
 			F_GOAPPS
                         F_LOG $FUNCNAME "F_GOAPPS ended with $?"
 			;;
-			Edit-SYSC)
+			"Edit system/local")
 			F_EDITSYSC
                         F_LOG $FUNCNAME "F_EDITSYSC ended with $?"
 			;;
-			Pull-SYSC)
-			F_PULLSYSC
-                        F_LOG $FUNCNAME "F_PULLSYSC ended with $?"
-			;;
-			Deploy-SYSC)
-			#SELECTION=$(F_SELECTOR)
+			"Deploy system/local")
 			F_DEPLSYSC "$(F_SELECTOR)"
                         F_LOG $FUNCNAME "F_DEPLSYSC ended with $?"
 			;;
-			"Upgrade splunk")
+			"Upgrade/stage splunk")
 			F_UPGRADEMENU splunk
                         F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
 			;;
-                        "Upgrade logstream")
+			"Upgrade/stage splunkforwarder")
+			F_UPGRADEMENU splunkforwarder
+                        F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
+			;;
+                        "Upgrade/stage logstream")
                         F_UPGRADEMENU logstream
                         F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
                         ;;
@@ -5593,11 +5649,15 @@ F_MENUMAIN(){
 			F_SHELPER
                         F_LOG $FUNCNAME "F_SHELPER ended with $?"
 			;;
-			'Install (splunk)')
+			'Install splunk')
 			F_INSTALLSPL
                         F_LOG $FUNCNAME "F_INSTALLSPL ended with $?"
 			;;
-			'Install (logstream)')
+			'Install splunkforwarder')
+			F_INSTALLSPL splunkforwarder
+                        F_LOG $FUNCNAME "F_INSTALLSPL ended with $?"
+			;;
+			'Install logstream')
 			F_INSTALLLOGSTREAM
                         F_LOG $FUNCNAME "F_INSTALLLOGSTREAM ended with $?"
 			;;
