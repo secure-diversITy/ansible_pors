@@ -4918,32 +4918,32 @@ F_STARTVMDEP(){
             F_LOG $FUNCNAME "diaout:\n$DIAOUT"
         fi
 
+        # IaC stuff to identify inheritated roles later:
+        egrep -q '^SERVER_ROLE=' $TMPHWPROFILE
+        if [ $? -eq 0 ];then
+            sed -i "s/^SERVER_ROLE=/SELECTED_SERVER_ROLE=/g" $TMPHWPROFILE
+        fi
+        echo "SERVER_ROLE=$VMHOSTWDATE" >> $TMPHWPROFILE
+        echo "SELECTED_SERVER_ROLE=$SERVER_ROLE" >> $TMPHWPROFILE
+        echo "HW_PROFILE_BASED_ON=$HWPROFILE" >> $TMPHWPROFILE
+
+        echo "VMHOST=$VMHOST" >> $TMPHWPROFILE
+        echo "VMCPU=$VMCPU" >> $TMPHWPROFILE
+        echo "VMRAM_GB=$VMRAM_GB" >> $TMPHWPROFILE
+        VMRAM_MB=$((VMRAM_GB * 1024))
+        echo "VMRAM_MB=$VMRAM_MB" >> $TMPHWPROFILE
+        echo "VMIP=$VMIP" >> $TMPHWPROFILE
+        echo "VMNETMASK=$VMNETMASK" >> $TMPHWPROFILE
+        echo "VMNETCIDR=$VMNETCIDR" >> $TMPHWPROFILE
+        echo "VMGW=$VMGW" >> $TMPHWPROFILE
+        echo "VMDNS1=$VMDNS1" >> $TMPHWPROFILE
+        echo "VMDNS2=$VMDNS2" >> $TMPHWPROFILE
+        echo "VMSDOMAIN=$VMSDOMAIN" >> $TMPHWPROFILE
+        echo "VM_PROVIDER=$VM_PROVIDER" >> $TMPHWPROFILE
+        echo "VMDISK=$VMDISK" >> $TMPHWPROFILE
+
         # add as many disk(s) as needed
         if [ $VMERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
-            # IaC stuff to identify inheritated roles later:
-            egrep -q '^SERVER_ROLE=' $TMPHWPROFILE
-            if [ $? -eq 0 ];then
-                sed -i "s/^SERVER_ROLE=/SELECTED_SERVER_ROLE=/g" $TMPHWPROFILE
-            fi
-            echo "SERVER_ROLE=$VMHOSTWDATE" >> $TMPHWPROFILE
-            echo "SELECTED_SERVER_ROLE=$SERVER_ROLE" >> $TMPHWPROFILE
-            echo "HW_PROFILE_BASED_ON=$HWPROFILE" >> $TMPHWPROFILE
-
-            echo "VMHOST=$VMHOST" >> $TMPHWPROFILE
-            echo "VMCPU=$VMCPU" >> $TMPHWPROFILE
-            echo "VMRAM_GB=$VMRAM_GB" >> $TMPHWPROFILE
-            VMRAM_MB=$((VMRAM_GB * 1024))
-            echo "VMRAM_MB=$VMRAM_MB" >> $TMPHWPROFILE
-            echo "VMIP=$VMIP" >> $TMPHWPROFILE
-            echo "VMNETMASK=$VMNETMASK" >> $TMPHWPROFILE
-            echo "VMNETCIDR=$VMNETCIDR" >> $TMPHWPROFILE
-            echo "VMGW=$VMGW" >> $TMPHWPROFILE
-            echo "VMDNS1=$VMDNS1" >> $TMPHWPROFILE
-            echo "VMDNS2=$VMDNS2" >> $TMPHWPROFILE
-            echo "VMSDOMAIN=$VMSDOMAIN" >> $TMPHWPROFILE
-            echo "VM_PROVIDER=$VM_PROVIDER" >> $TMPHWPROFILE
-            echo "VMDISK=$VMDISK" >> $TMPHWPROFILE
-
             VMDISKCNT=0
             while [ $VMDISKCNT -ne $VMDISK ];do
                 VMDISKCNT=$((VMDISKCNT +1))
