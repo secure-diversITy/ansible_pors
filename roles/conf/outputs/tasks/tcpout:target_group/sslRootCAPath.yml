@@ -26,6 +26,6 @@
             state=absent
   when:
     - splunk_outputs_conf.tcpout.target_group[item.key] is defined
-    - splunk_outputs_conf.tcpout.target_group[item.key].sslRootCAPath" is undefined
+    - splunk_outputs_conf.tcpout.target_group[item.key].sslRootCAPath is undefined
   with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
   notify: splunk restart

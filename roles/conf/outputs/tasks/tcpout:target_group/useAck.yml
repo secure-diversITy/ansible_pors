@@ -29,5 +29,5 @@
   with_dict: "{{ splunk_outputs_conf.tcpout.target_group }}"
   when:
     - splunk_outputs_conf.tcpout.target_group[item.key] is defined
-    - splunk_outputs_conf.tcpout.target_group[item.key].useACK is undefined or splunk_outputs_conf.tcpout.target_group[item.key].useACK = false
+    - splunk_outputs_conf.tcpout.target_group[item.key].useACK is undefined or splunk_outputs_conf.tcpout.target_group[item.key].useACK == false
   notify: splunk restart
