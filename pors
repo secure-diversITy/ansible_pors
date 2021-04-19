@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC2
-VERSIONNUM="4.0-48"
+VERSIONNUM="4.0-49"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5078,7 +5078,9 @@ F_STARTVMDEP(){
             F_ADDSERVICEUSER "${VMHOSTF}"
             F_DIAERR $? "Adding linux service account: $OS_SERVICE_USER"
         fi
+        [ $? -eq 0 ] && F_MSG "\n\nCongratulations! Your VM has been successfully deployed and is ready to use now."
     fi
+
     if [ "$IACKEEP" -ne 1 ];then
         F_LOG $FUNCNAME "deleting IaC file due to a previous error/abort"
         rm $TMPHWPROFILE
@@ -5089,7 +5091,6 @@ F_STARTVMDEP(){
     # close function when aborted
     [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "closing func due to abort state" && return 3
 
-    F_MSG "\n\nCongratulations! Your VM has been successfully deployed and is ready to use now."
     F_LOG $FUNCNAME ended
 }
 
