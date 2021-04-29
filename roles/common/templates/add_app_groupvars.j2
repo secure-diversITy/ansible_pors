@@ -11,7 +11,7 @@
     clean_install: false
     delete: false
 {% if filename is defined and filename != "" %}
-    bundle_dir: {{ splunk_repository.repository_root }}/apps{{ app_type }}
+    bundle_dir: {{ splunk_repository.repository_root }}/apps/{{ app_type }}
     bundle: {{ filename }}
 {% else %}
     git_repo: {{ git_url }}

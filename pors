@@ -35,8 +35,8 @@
 ## https://github.com/secure-diversITy/ansible_pors/wiki
 ##<br>
 ###############################################################################################################
-VERSIONTYPE=RC2
-VERSIONNUM="4.0-49"
+VERSIONTYPE=RC
+VERSIONNUM="4.0-52"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -144,7 +144,7 @@ chmod 700 $WORKDIR
 ## @showinitializer
 ## @details the PORS install dir. can be overwritten in ~/.pors/vars 
 [ -z "$ADIR" ] && \
-declare ADIR="${0%/*}"
+declare ADIR="/opt/pors"
 
 ## @var DATADIR
 ## @brief the PORS data directory 
@@ -161,6 +161,11 @@ declare DATADIR="/opt/pors_data"
 ## also includes app links etc. should be overwritten in ~/.pors/vars for production use.
 [ -z "$AINVENTORY" ] && \
 declare AINVENTORY="$DATADIR/inventories"
+
+## @var DEFAULTSYML
+## @brief full path to roles/defaults/main.yml
+## @showinitializer
+declare DEFAULTSYML=${ADIR}/roles/defaults/main.yml
 
 ## @var KICKUSER
 ## @brief Default setting for overtaken a running session
@@ -1524,6 +1529,9 @@ F_SETREPODIR(){
 
     # extract repo dir for apps
     REPODIR="$(grep ^repo_base $REPODEF|cut -d ":" -f 2|tr -d " ")"
+    if [ -z "$REPODIR" ];then
+        REPODIR="$(grep ^repo_base $DEFAULTSYML |cut -d ":" -f 2|tr -d " ")"
+    fi
     REPODIRS="${REPODIR}/${TARGETENV}/apps/splunk ${REPODIR}/${TARGETENV}/apps/other"
     for d in $REPODIRS;do [ ! -d "$d" ] && mkdir -p $d;done
 
@@ -1598,13 +1606,14 @@ F_ENAPP(){
 				    fi
 				    for tgroup in $HOSTSELECTION;do
 					    F_GVARDIR $tgroup
-					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR\":\n" >>$LOG
+                                            F_APPTPLUPDATE "${ROLEDIR}/apps/app.template" "$DATADIR/custom/roles/apps" "$app_name"
+					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR\":\n" >>$LOG
 					    $ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR" 2>> $LOG 1>> /dev/null
 					    [ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				    done
 			    done
 			    F_ERRLOG 0 "Linking apps finished" "$LOG"
-            fi
+                        fi
 			;;
                         github|gitlab)
                         unset SELAPPS CSELAPPS OPTIONS PREAPPS RMAPPS LAPPS GITAPP
@@ -2260,11 +2269,11 @@ F_SPLACT(){
         done
 
         unset PBH
-        for i in ${SELHOSTS/:*};do 
+        for i in ${SELHOSTS};do 
             if [ -z "$PBH" ];then
-                PBH="$i"
+                PBH="${i/:*}"
             else
-                PBH="$PBH:$i"
+                PBH="$PBH:${i/:*}"
             fi  
         done
         PBARGS="--limit $PBH"
