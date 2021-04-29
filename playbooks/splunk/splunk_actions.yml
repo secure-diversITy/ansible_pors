@@ -3,7 +3,7 @@
   hosts: "*"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
-  become_user: root
+  become_user: "{{ splunk_install_user }}"
   no_log: false 
   gather_facts: False
 
