@@ -48,11 +48,12 @@
 # the username for that. When deploying apps PORS connects
 # to the target system and executes a:
 # git clone/pull <local_gituser>@<git_server>
-remote_system:
-    local_gituser: git
+#remote_system:
+#    local_gituser: git
 
 # PORS supports only token based authentication for accessing git
 # the user here does not need write access
-tokenauth:
-    git_ro_user: "{{ vault_git_ro_user }}"
-    git_ro_token: "{{ vault_git_ro_token }}"
+#tokenauth:
+#    git_ro_user: "{{ vault_git_ro_user }}"
+#    git_ro_token: "{{ vault_git_ro_token }}"
+

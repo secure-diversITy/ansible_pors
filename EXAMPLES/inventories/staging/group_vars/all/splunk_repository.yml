@@ -3,9 +3,9 @@
 # Repository Variables
 #####################################################################################################################
 
-repo_base: /opt/pors_repo
+#repo_base: /opt/pors_repo
 
-splunk_repository:
-    repository_root: "{{ repo_base }}/{{ target_env }}"
-    repository_owner: "{{ pors_user }}"
-    repository_group: "{{ pors_group }}"
+#splunk_repository:
+#    repository_root: "{{ repo_base }}/{{ target_env }}"
+#    repository_owner: "{{ pors_user }}"
+#    repository_group: "{{ pors_group }}"

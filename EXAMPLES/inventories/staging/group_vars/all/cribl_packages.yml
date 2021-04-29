@@ -3,9 +3,9 @@
 # Package Variables
 #####################################################################################################################
 
-logstream_packages:
-  linux_64_tgz:
-    package:
-      version: "{{ logstream_globversion }}"
-      url: 'https://cdn.cribl.io/dl/{{ logstream_globversion }}/{{ logstream_tgzname }}'
-      # https://cdn.cribl.io/dl/2.0.2/cribl-2.0.2-0b96f829-linux-x64.tgz
+#logstream_packages:
+#  linux_64_tgz:
+#    package:
+#      version: "{{ logstream_globversion }}"
+#      url: 'https://cdn.cribl.io/dl/{{ logstream_globversion }}/{{ logstream_tgzname }}'
+#      # https://cdn.cribl.io/dl/2.0.2/cribl-2.0.2-0b96f829-linux-x64.tgz

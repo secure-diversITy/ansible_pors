@@ -4,7 +4,7 @@
 ####################################################################################################################
 
 # usually should not touched
-splunk_distsearch_conf:
-    distributedSearch:
-      servers: 
-        - "{{ groups.peernode }}"
+#splunk_distsearch_conf:
+#    distributedSearch:
+#      servers: 
+#        - "{{ groups.peernode }}"

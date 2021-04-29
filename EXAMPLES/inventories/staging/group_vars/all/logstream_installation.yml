@@ -14,11 +14,8 @@ logstream_versionnum: "{{ logstream_globversion | replace('.','') | int }}"
 # https://cdn.cribl.io/dl/2.0.2/cribl-2.0.2-0b96f829-linux-x64.tgz
 logstream_tgzname: "cribl-{{ logstream_globversion }}-{{ logstream_globhash }}-linux-x64.tgz"
 
-logstream_root_path: /opt
+#logstream_root_path: /opt
 
-# ulimits are defined in
-# roles/install/defaults/main.yml
-# but can be overwritten here:
 #logstream_ulimit_nofile_soft: 65536
 #logstream_ulimit_nofile_hard: 65536
 #logstream_ulimit_nproc_soft: 16000

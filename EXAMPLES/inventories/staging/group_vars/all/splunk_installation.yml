@@ -15,9 +15,6 @@ splunkversionnum: "{{ globversion | replace('.','') | int }}"
 # construct the full file name
 tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
 
-# ulimits are defined in
-# roles/install/defaults/main.yml
-# but can be overwritten here:
 #splunk_ulimit_nofile_soft: 65536
 #splunk_ulimit_nofile_hard: 65536
 #splunk_ulimit_nproc_soft: 16000

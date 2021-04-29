@@ -1,0 +1,126 @@
+---
+#####################################################################################################################
+# Default Variables
+# Can be overwritten in your inventories/group_vars/all
+#####################################################################################################################
+
+###### pors.yml ######
+
+pors_user: pors
+pors_group: pors
+base_install_dir: /opt/pors
+pors_ssh_user: ansible
+pors_temp_dir: /tmp/pors
+
+###### splunk_repository.yml #######
+
+repo_base: /opt/pors_repo
+splunk_repository:
+    repository_root: "{{ repo_base }}/{{ target_env }}"
+    repository_owner: "{{ pors_user }}"
+    repository_group: "{{ pors_group }}"
+
+####### git.yml ########
+
+remote_system:
+    local_gituser: "{{ pors_ssh_user }}"
+
+tokenauth:
+    git_ro_user: "{{ vault_git_ro_user }}"
+    git_ro_token: "{{ vault_git_ro_token }}"
+
+####### custom_tasks.yml ########
+
+custom:
+    system_tasks: False
+    post_install_splunk: False
+
+####### cribl_configuration.yml ######
+
+cribl_ssh_user: ansible
+cribl_install_user: clintsharp
+cribl_install_group: clintsharp
+cribl_optimize:
+    initd: true
+
+####### cribl_packages.yml ########
+
+logstream_packages:
+  linux_64_tgz:
+    package:
+      version: "{{ logstream_globversion }}"
+      url: 'https://cdn.cribl.io/dl/{{ logstream_globversion }}/{{ logstream_tgzname }}'
+
+###### deployment.yml ########
+
+deployment:
+    dir: apps
+
+###### distsearch.conf.yml ########
+
+splunk_distsearch_conf:
+    distributedSearch:
+      servers: 
+        - "{{ groups.peernode }}"
+
+###### idx_clustering.yml #######
+
+idx_cluster_available_sites: site1
+idx_cluster_replicationfactor: 1
+idx_cluster_searchfactor: 1
+idx_cluster_site_replicationfactor: "origin:1,total:1"
+idx_cluster_site_searchfactor: "origin:1,total:1"
+
+###### logstream_installation.yml #######
+
+logstream_root_path: /opt
+logstream_ulimit_nofile_softhard: 65536
+logstream_ulimit_nproc_soft: 16000
+logstream_ulimit_nproc_hard: 16000
+logstream_ulimit_fsize_soft: unlimited
+logstream_ulimit_fsize_hard: unlimited
+logstream_ulimit_data_soft: unlimited
+logstream_ulimit_data_hard: unlimited
+
+####### splunk_auth.yml #######
+
+splunk_auth:
+  admin_password: "{{ vault_splunk_admin_password }}"
+  splunk_secret: "{{ vault_splunk_secret }}"
+
+###### splunk_configuration.yml ########
+
+splunk_conf_path: /opt/splunk/etc/system/local
+splunk_install_user: splunk
+splunk_install_group: splunk
+lm_push_license: True
+
+
+####### splunk_installation.yml ########
+
+splunk_ulimit_nofile_softhard: 65536
+splunk_ulimit_nproc_soft: 16000
+splunk_ulimit_nproc_hard: 16000
+splunk_ulimit_fsize_soft: unlimited
+splunk_ulimit_fsize_hard: unlimited
+splunk_ulimit_data_soft: unlimited
+splunk_ulimit_data_hard: unlimited
+
+####### system_base.yml ########
+
+ntp_enabled: true
+ntp_timezone: Europe/Berlin
+ntp_manage_config: true
+ntp_servers:
+    - 0.de.pool.ntp.org iburst
+    - 1.de.pool.ntp.org iburst
+
+####### system_journald.yml #######
+
+systemd_journal_storage: persistent
+systemd_journal_compress: "yes"
+systemd_journal_system_max_use: 1G
+systemd_journal_system_max_file_size: 200M
+systemd_journal_restart_state: restarted
+
+

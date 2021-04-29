@@ -4,17 +4,17 @@
 ######################################################################
 
 # the user and group PORS is running as
-pors_user: pors
-pors_group: pors
+#pors_user: pors
+#pors_group: pors
 
 # PORS installation dir
-base_install_dir: /opt/pors
+#base_install_dir: /opt/pors
 
 # PORS remote SSH user (which connects to any managed system)
-pors_ssh_user: ansible
+#pors_ssh_user: ansible
 
 # TEMP directory for various tasks
-pors_temp_dir: /tmp/pors
+#pors_temp_dir: /tmp/pors
 
 # Set a name to identify this ansible instance
 # (deprecated but must be set atm, identifier for init lines and such

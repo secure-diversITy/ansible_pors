@@ -4,11 +4,11 @@
 #####################################################################################################################
 
 # directory of splunk's system/local
-splunk_conf_path: /opt/splunk/etc/system/local
+#splunk_conf_path: /opt/splunk/etc/system/local
 
 # user/group splunk should run as
-splunk_install_user: splunk
-splunk_install_group: splunk
+#splunk_install_user: splunk
+#splunk_install_group: splunk
 
 # Should PORS push local splunk license(s) to the LicenseMaster?
 # Licenses must be added to:
@@ -16,4 +16,4 @@ splunk_install_group: splunk
 # e.g: /opt/pors_repo/staging/licenses/enterprise/
 # (if using /opt/pors_repo and you are in the staging environment)
 # Possible values: True | False
-lm_push_license: True
+#lm_push_license: True

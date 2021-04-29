@@ -1,18 +1,18 @@
 ---
 # custom tasks definitions which can extend PORS actions
 
-custom:
+#custom:
     # custom tasks which will be run after a system has been deployed
     # and/or during a system upgrade.
     # custom roles must be added to:
     # <pors-data-dir>/custom/roles/custom_system/tasks/
     # -> main.yml will be included so ensure you set any dependencies here!
     # Possible values: True | False
-    system_tasks: False
+#    system_tasks: False
 
     # custom tasks which will be run after pure splunk has been installed
     # custom roles must be added to:
     # <pors-data-dir>/custom/roles/custom_post_install_splunk/tasks/
     # -> main.yml will be included so ensure you set any dependencies here!
     # Possible values: True | False
-    post_install_splunk: False
+#    post_install_splunk: False

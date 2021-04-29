@@ -4,6 +4,6 @@
 # should be set in your VAULT only. Check documentation.
 #####################################################################################################################
 
-splunk_auth:
-  admin_password: "{{ vault_splunk_admin_password }}"
-  splunk_secret: "{{ vault_splunk_secret }}"
+#splunk_auth:
+#  admin_password: "{{ vault_splunk_admin_password }}"
+#  splunk_secret: "{{ vault_splunk_secret }}"
