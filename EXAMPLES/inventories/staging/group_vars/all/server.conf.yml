@@ -11,3 +11,5 @@ splunk_server_conf:
   sslConfig:
     sslRootCAPath: $SPLUNK_HOME/etc/auth/cacert.pem
     sslPassword: "{{ vault_sslConfig_sslPassword }}"
+  indexer_discovery:
+    pass4SymmKey: "{{ vault_indexerdiscovery_pass4SymmKey }}"
