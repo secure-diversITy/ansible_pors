@@ -9,5 +9,4 @@
     parsed_groups: "{{ target_group }}"
 
   roles:
-    #- splunk_sites
     - group/searchhead 

@@ -63,6 +63,12 @@ splunklm01
 [masternode]
 splunkmn
 
+# Single/Standalone Searchhead
+[searchhead]
+
+# all splunk UF's regardless of a site
+[universal_forwarder]
+
 ########### Site1 Forwarders
 
 # classical Heavy forwarder(s)
@@ -120,9 +126,6 @@ site1_peernode
 
 # ...
 # [site63:children]
-
-# all splunk UF's regardless of the site
-[universal_forwarder]
 
 ########## CRIBL logstream
 
