@@ -1,6 +1,6 @@
 # About / README
 
-Playbooks-On-Rails for Splunk (PORS) is a wrapper and GUI (ncurses/dialog based) to execute several tasks with ansible
+PORS is a collection of [Ansible](www.ansible.com) playbooks, roles & tasks for installing, configuring & managing your whole Splunk infrastructure - including Apps using the Splunk deployment process. But the icing on the cake is that PORS comes with a terminal UI that does all this with the snap of a finger!
 
 
 ## Requirements
