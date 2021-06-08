@@ -10,7 +10,7 @@ cd ./docs
 cd ../github.io/pors/
 git checkout develop
 git status
-echo -e "\n\tcd github.io/pors/\n\tgit add .\n\tgit commit -a -m 'update documentation'"
+echo -e "\n\tcd ../github.io/pors/\n\tgit add .\n\tgit commit -a -m 'update documentation'"
 echo -e "\tgit checkout master"
 echo -e "\tgit merge develop"
 echo -e "\tgit push develop master"
