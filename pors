@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-52"
+VERSIONNUM="4.0-53"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5577,7 +5577,7 @@ F_MENUMAIN(){
 			'' '\Zb\ZuMAINTENANCE\ZB\ZU' \
 			"" "" \
                         "VM-Management" "Deploy and manage VMs" \
-			shelper	"Upgrade/Install/Exec shelper (reload,DEP/MN/DS apply bundles)" \
+			shelper	"Execute splunk reload, apply DEP/MN/DS bundles, ..." \
 			splunkd "splunk> daemon commands (restart, webrestart ,..)" \
 			Cluster "Indexer tasks" \
 			"" "" \
@@ -5590,9 +5590,10 @@ F_MENUMAIN(){
 			"" "" \
 			'' '\Zb\ZuUPGRADE\ZB\ZU' \
 			"" "" \
-			"Upgrade/stage splunk"	"Upgrade, download, stage splunk>" \
-			'Upgrade/stage splunkforwarder'      "Upgrade, download, stage splunk> Universal forwarder" \
-			"Upgrade/stage logstream"	"Upgrade, download, stage cribl logstream" \
+			"Upgrade/stage splunk"	"Download, upgrade, stage splunk>" \
+			"Upgrade/install splunkhelper"	"Upgrade or install splunkhelper" \
+			'Upgrade/stage splunkforwarder'      "Download, upgrade, stage splunk> Universal forwarder" \
+			"Upgrade/stage logstream"	"Download, upgrade, stage cribl logstream" \
 			"" "" \
 			'' '\Zb\Zusystem/local/*.conf\ZB\ZU'\
 			"" "" \
@@ -5643,6 +5644,10 @@ F_MENUMAIN(){
 			F_UPGRADEMENU splunk
                         F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
 			;;
+			"Upgrade splunkhelper")
+			F_SHUPGRADE
+                        F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
+			;;
 			"Upgrade/stage splunkforwarder")
 			F_UPGRADEMENU splunkforwarder
                         F_LOG $FUNCNAME "F_UPGRADEMENU ended with $?"
@@ -5656,8 +5661,8 @@ F_MENUMAIN(){
                         F_LOG $FUNCNAME "F_SPLACT ended with $?"
 			;;
 			shelper)
-			F_SHELPER
-                        F_LOG $FUNCNAME "F_SHELPER ended with $?"
+			F_SHEXEC
+                        F_LOG $FUNCNAME "F_SHEXEC ended with $?"
 			;;
 			'Install splunk')
 			F_INSTALLSPL
