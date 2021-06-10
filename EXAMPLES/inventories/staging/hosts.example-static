@@ -36,9 +36,9 @@ localhost       ansible_connection=local
 #               - monitoringconsole
 #               - licensemaster
 #               - masternode
-#               - heavyforwarder
 #               - activeinput
 #               - httpeventcollector
+#               - heavyforwarder ("siteX_" is mandatory)
 #               - deployer ("siteX_" is mandatory)
 #               - shcmember ("siteX_" is mandatory)
 #               - peernode ("siteX_" is mandatory)
