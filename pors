@@ -4172,7 +4172,7 @@ F_VAULTPW(){
                 "\nAnsible Vault is enabled (ENABLEVAULT variable).\nPlease type in the Vault password to unlock protected variables:\n" 10 80 0 \
                 "Password:" 1 1 '' 1 20 20 0 1 \
                  2>&1 >/dev/tty)
-        [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && clear && echo -e "\nsorry but no password - no cookies..\n" && F_EXIT 4
 
         # write the vault temp file
         echo "$FPW" > $VAULTTEMPFILE 2>> $LOG
