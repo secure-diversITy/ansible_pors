@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-53"
+VERSIONNUM="4.0-54"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5576,7 +5576,7 @@ F_MENUMAIN(){
 			"" "" \
 			'' '\Zb\ZuMAINTENANCE\ZB\ZU' \
 			"" "" \
-                        "VM-Management" "Deploy and manage VMs" \
+                        "VM-Management" "Deploy VMs on supported providers" \
 			shelper	"Execute splunk reload, apply DEP/MN/DS bundles, ..." \
 			splunkd "splunk> daemon commands (restart, webrestart ,..)" \
 			Cluster "Indexer tasks" \
@@ -5680,16 +5680,12 @@ F_MENUMAIN(){
 			F_CLUSTER
                         F_LOG $FUNCNAME "F_CLUSTER ended with $?"
 			;;
-                        VM-Deploy)
-                        F_DEPLOYVM
-                        F_LOG $FUNCNAME "F_DEPLOYVM ended with $?"
-                        ;;
                         Configure)
                         F_CONFMENU
                         F_LOG $FUNCNAME "F_CONFMENU ended with $?"
                         ;;
                         VM-Management)
-                        F_VMMENU
+                        F_DEPLOYVM
                         F_LOG $FUNCNAME "F_VMMENU ended with $?"
                         ;;
 		esac
