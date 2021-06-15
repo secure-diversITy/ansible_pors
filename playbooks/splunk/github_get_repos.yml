@@ -34,7 +34,6 @@
         headers:
             Authorization: "token {{ vault_git_ro_token }}"
         return_content: yes
-        body_format: json
       register: gh_out
       no_log: true
       loop: "{{ range(1, page_count|int+1)| list }}"
