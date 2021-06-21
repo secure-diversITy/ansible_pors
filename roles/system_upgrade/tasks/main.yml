@@ -1,6 +1,5 @@
 ---
 - include: update.yml
-  when: system.upgrade_os is defined and system.upgrade_os == True
 
 - name: Enable kernel as default on boot
   shell: "grub2-set-default {{ system_yum.elrepo.kernel.setboot }}"

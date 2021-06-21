@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-54"
+VERSIONNUM="4.0-59"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -277,6 +277,13 @@ declare PBDIRGOOGLECP="$PBDIR/googlecp"
 ## @showinitializer
 [ -z "$PBDIRPROXMOX" ] && \
 declare PBDIRPROXMOX="$PBDIR/proxmox"
+
+## @var PBDIRLOCAL
+## @brief playbooks for local (i.e. ansible) itself
+## @details The directory where all local playbooks (usually ansible related) are expected 
+## @showinitializer
+[ -z "$PBDIRLOCAL" ] && \
+declare PBDIRLOCAL="$PBDIR/local"
 
 ## @var ROLEDIR
 ## @brief The directory where all roles are expected
@@ -564,6 +571,11 @@ declare PBCREATEUSER="${PBDIRSYSTEM}/ae_create_useracc.yml"
 ## @brief Playbook for deploying a splunk pub key
 ## @showinitializer
 declare PBDEPLOYKEY="${PBDIRSPLUNK}/deploy_splunk_pubpem.yml"
+
+## @var PBLOCGETVAR
+## @brief Playbook for accessing a given ansible variable
+## @showinitializer
+declare PBLOCGETVAR="${PBDIRLOCAL}/get_ansible_var.yml"
 
 ## @var DEFSPLAPIADMIN
 ## @brief default splunk API (target:8089) admin account
@@ -3059,7 +3071,6 @@ F_UPGRADEMENU(){
                         "Stage ${MENUTYPE}" "Shows and sets a specific version for the upgrade tasks" \
                         "Upgrade ${MENUTYPE}" "upgrade without a specific order (if multiple targets: in parallel)" \
                         Guided-Upgrade "of splunk instance(s) in a specific order (sequentially)" \
-                        Upgrade-System "the operating system of a $MENUTYPE server" \
                         "" "" \
                         "" "" \
                         3>&1 1>&2 2>&3)
@@ -3107,11 +3118,7 @@ F_UPGRADEMENU(){
                 F_GUIDEDUPGRADE $MENUTYPE
                 F_UPGRADEMENU
             ;;
-            Upgrade-System)
-                F_SYSUPGRADE
-                F_UPGRADEMENU
-            ;;
-            *)
+           *)
                 return 3
             ;;
         esac
@@ -3190,6 +3197,14 @@ F_UPGRADE(){
 	            F_ABIN "$UTMPGRP" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit tmpupgrade" 
                     F_ERRLOG "${PIPESTATUS[0]}" "Upgrade $UPGTYPE to $STAGEDVER for:\n\n$UPGRADEHOSTST" "$LOG"
                 fi
+            fi
+            SHOWREBHINT=$(F_GETANSIBLEVAR "system.upgrade_os")
+            if [ $? -eq 0 ] && [ "$SHOWREBHINT" == "True" ];then
+                F_LOG $FUNCNAME "System packages or upgrade(s) have been installed for:\n$UPGRADEHOSTST\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
+                F_SYSREBOOT "$UPGRADEHOSTS"
+                LASTERR=$?
+            else
+                F_LOG $FUNCNAME "ERR: $? SHOWREBHINT: $SHOWREBHINT"
             fi
     else
             F_ABIN "$HOSTFILE" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
@@ -5481,16 +5496,13 @@ F_SYSUPGRADE(){
     if [ -z "$AUTOMODE" ];then
         SELHOSTS="$(F_SELHOST)"
         [ "$SELHOSTS" == ABORTED ] && return 4
-            CREDS=$(F_GETAPICREDS)
-            SPLUSR="${CREDS/:*}"
-            SPLPW="${CREDS/*:}"
     else
         SELHOSTS="$AUTOMODE"
     fi
 
     F_LOG $FUNCNAME "selected hosts for upgrade: $SELHOSTS"
 
-    [ -z "$SELHOSTS" ] && F_DIAERR 9 "missing param for $FUNCNAME" && break 99
+    [ -z "$SELHOSTS" ] && F_DIAERR 9 "missing param for $FUNCNAME" && return 3
 
     for uhost in $(echo "$SELHOSTS" |tr " " "\n" | cut -d ":" -f 1);do
         # check ssh first
@@ -5526,7 +5538,7 @@ F_SYSREBOOT(){
 
     for host in $REBHOSTS;do
         honly=${host/:*}
-        F_DIALOG --scrollbar --yesno "\n\nThe server $host requires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
+        F_DIALOG --scrollbar --yesno "\n\nThe server\n\n$host\n\nrequires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
         if [ $? -eq 0 ];then
             F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
         else
@@ -5557,6 +5569,26 @@ F_CHECKSSH(){
     F_LOG $FUNCNAME ended
 }
 
+## @fn F_GETANSIBLEVAR()
+## @brief request the value of an ansible variable
+## @param 1 required: the variable name you want to query
+## @param 2 optional: the full path to another hostfile
+## @details tbd
+F_GETANSIBLEVAR(){
+    F_LOG $FUNCNAME "started with $1"
+    REQVAR="$1"
+    VARTMP="/tmp/pors/ansible_${REQVAR}.var"
+
+    F_LOG $FUNCNAME "REQVAR=$REQVAR, VARTMP=$VARTMP"
+    [ -z "$REQVAR" ] && F_LOG $FUNCNAME "ERROR: missing required arg REQVAR" && return 3
+    F_ABIN $HOSTFILE $PBLOCGETVAR "requesting ansible variable ($REQVAR)" "-e {'varname':'$REQVAR'}" 2>> $LOG 1>> /dev/null
+    ERR=$?
+
+    F_LOG $FUNCNAME "ended with $ERR"
+    [ "$ERR" -eq 0 ] && echo "$(cat $VARTMP)"
+    return $ERR
+}
+
 ## @fn F_MENUMAIN()
 ## @brief the main menu window of PORS in regular mode
 F_MENUMAIN(){
@@ -5576,10 +5608,9 @@ F_MENUMAIN(){
 			"" "" \
 			'' '\Zb\ZuMAINTENANCE\ZB\ZU' \
 			"" "" \
-                        "VM-Management" "Deploy VMs on supported providers" \
+                        "VM-Management" "Deploy and manage VMs" \
 			shelper	"Execute splunk reload, apply DEP/MN/DS bundles, ..." \
 			splunkd "splunk> daemon commands (restart, webrestart ,..)" \
-			Cluster "Indexer tasks" \
 			"" "" \
 			'' '\Zb\ZuINSTALLATION / CONFIGURATION\ZB\ZU' \
 			"" "" \
@@ -5594,6 +5625,7 @@ F_MENUMAIN(){
 			"Upgrade/install splunkhelper"	"Upgrade or install splunkhelper" \
 			'Upgrade/stage splunkforwarder'      "Download, upgrade, stage splunk> Universal forwarder" \
 			"Upgrade/stage logstream"	"Download, upgrade, stage cribl logstream" \
+                        "Upgrade System" "the operating system of an ansible managed system" \
 			"" "" \
 			'' '\Zb\Zusystem/local/*.conf\ZB\ZU'\
 			"" "" \
@@ -5680,13 +5712,20 @@ F_MENUMAIN(){
 			F_CLUSTER
                         F_LOG $FUNCNAME "F_CLUSTER ended with $?"
 			;;
+                        VM-Deploy)
+                        F_DEPLOYVM
+                        F_LOG $FUNCNAME "F_DEPLOYVM ended with $?"
+                        ;;
                         Configure)
                         F_CONFMENU
                         F_LOG $FUNCNAME "F_CONFMENU ended with $?"
                         ;;
                         VM-Management)
-                        F_DEPLOYVM
+                        F_VMMENU
                         F_LOG $FUNCNAME "F_VMMENU ended with $?"
+                        ;;
+                        "Upgrade System")
+                        F_SYSUPGRADE
                         ;;
 		esac
 	     done

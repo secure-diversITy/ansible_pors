@@ -15,9 +15,7 @@
             option=site_replication_factor
             value="{{ splunk_server_conf.clustering.site_replication_factor }}"
             state=present
-  when: splunk_server_conf.clustering.mode == "slave" and
-        (splunk_server_conf.clustering.site_replication_factor is defined and
-        splunk_server_conf.clustering.site_replication_factor != "origin:2, total:3")
+  when: splunk_server_conf.clustering.site_replication_factor is defined
   notify: splunk restart
 
 - name: "Configure server.conf [clustering] - site_replication_factor state=absent (default)"
@@ -25,8 +23,6 @@
             section=clustering
             option=site_replication_factor
             state=absent
-  when: splunk_server_conf.clustering.mode == "slave" and
-        (splunk_server_conf.clustering.site_replication_factor is undefined or
-        splunk_server_conf.clustering.site_replication_factor == "origin:2, total:3")
+  when: splunk_server_conf.clustering.site_replication_factor is undefined
   notify: splunk restart
 

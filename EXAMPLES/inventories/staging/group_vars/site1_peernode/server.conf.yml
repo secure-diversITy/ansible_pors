@@ -21,7 +21,7 @@ splunk_server_conf:
     cluster_label: "{{ target_env }}"
     replication_factor: "{{ idx_cluster_replicationfactor }}"
     search_factor: "{{ idx_cluster_searchfactor }}"
-    site_replication_factor: "{{ idx_cluster_site_searchfactor }}"
+    site_replication_factor: "{{ idx_cluster_site_replicationfactor }}"
     site_search_factor: "{{ idx_cluster_site_searchfactor }}"
   replication_port_ssl:
     port: 9888

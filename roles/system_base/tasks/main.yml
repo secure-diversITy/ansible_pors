@@ -22,6 +22,11 @@
     - (system.add_custom_tasks is defined and system.add_custom_tasks == True)
       or (custom.system_tasks is defined and custom.system_tasks == True)
 
+- name: Upgrade system
+  include_role:
+    name: system_upgrade
+  when: system.upgrade_os is defined and system.upgrade_os == True 
+
 - include_tasks: software.yml
 
 - include_tasks: ../../system_optimize/tasks/optimize_selinux.yml

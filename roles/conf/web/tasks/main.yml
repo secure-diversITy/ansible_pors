@@ -8,4 +8,4 @@
 - include: settings/privKeyPath.yml
 - include: settings/startwebserver.yml
 - include: settings/updateCheckerBaseURL.yml  
-
+- include: settings/enable_insecure_pdfgen.yml

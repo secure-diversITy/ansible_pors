@@ -12,7 +12,7 @@ splunk_server_conf:
     available_sites: "{{ idx_cluster_available_sites }}"
     replication_factor: "{{ idx_cluster_replicationfactor }}"
     search_factor: "{{ idx_cluster_searchfactor }}"
-    site_replication_factor: "{{ idx_cluster_site_searchfactor }}"
+    site_replication_factor: "{{ idx_cluster_site_replicationfactor }}"
     site_search_factor: "{{ idx_cluster_site_searchfactor }}"
   general:
     pass4SymmKey: "{{ vault_general_pass4SymmKey }}"
