@@ -1,0 +1,21 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# shortcut for viewing a specific vault
+vault-show(){
+    [ -z "$1" ] && echo -e "\npls specify the environment e.g.\n\n\tview-vault production\n" && return 4
+    ansible-vault view /opt/pors_data/inventories/$1/group_vars/all/vault.yml
+}
+
+# shortcut for editing a specific vault
+vault-edit(){
+    [ -z "$1" ] && echo -e "\npls specify the environment e.g.\n\n\tview-vault production\n" && return 4
+    ansible-vault edit /opt/pors_data/inventories/$1/group_vars/all/vault.yml
+}
+
+# auto change dir to the PORS install directory
+cd /opt/pors
