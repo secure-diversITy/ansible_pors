@@ -13,10 +13,10 @@ echo "Creating ansible user ($ANSIBLEUSR):"
 
 useradd $ANSIBLEUSR -U -m -G wheel
 
-echo -e "# Ansible management for the splunk> platform\nansible\tALL=(ALL)\tNOPASSWD: ALL\n" > /etc/sudoers.d/ansible-admin-root
+echo -e "# Ansible management for the splunk> platform\n$ANSIBLEUSR\tALL=(ALL)\tNOPASSWD: ALL\n" > /etc/sudoers.d/ansible-admin-root
 chmod 440 /etc/sudoers.d/ansible-admin-root
 
-mkdir /home/ansible/.ssh
+mkdir /home/$ANSIBLEUSR/.ssh
 
 read -p "now paste in (press i before) the ansible pub key in the next step" ENTER
 vim /home/$ANSIBLEUSR/.ssh/authorized_keys
