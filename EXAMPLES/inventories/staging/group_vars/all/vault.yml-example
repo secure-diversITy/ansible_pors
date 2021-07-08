@@ -14,6 +14,7 @@
 ###################################
 
 # admin account on your splunk instances
+# strongly recommended to AVOID all special charactes other then: +@%=-_., <-- these should be considered as "save to use"
 vault_splunk_admin_user: "admin"
 vault_splunk_admin_password: "abcdefg4321"
 
@@ -22,6 +23,7 @@ vault_splunk_admin_password: "abcdefg4321"
 # It is recommended to not use the default splunk admin account
 # for splunk tasks. here you can define a custom user account instead.
 # this will be used to create a user during splunk installation
+# strongly recommended to AVOID all special charactes other then: +@%=-_., <-- these should be considered as "save to use"
 vault_splunk_ae_user: ansible_pors
 vault_splunk_ae_password: "4321abcdefg"
 # set a role for the above account (usually admin but any role which exists
@@ -30,7 +32,9 @@ vault_splunk_ae_role: admin
 
 # the splunk secret.
 # it will be set on all new instances during splunk installation/configuration.
-vault_splunk_secret: "asdjhasdlhaslgfjg-Looooooooooooong-KEY-here"
+# MANDATORY to set. Best way to generate is installating and starting splunk on
+# any local machine and grab etc/splunk.secret from there.
+#vault_splunk_secret: ""
 
 ###################################
 # SSH

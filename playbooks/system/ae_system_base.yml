@@ -6,9 +6,8 @@
   strategy: free
 
   roles:
-    - system_upgrade
-      when: system.upgrade_os is defined and system.upgrade_os == True
-    - system_kernel
+    - { role: system_upgrade, when: system.upgrade_os is defined and system.upgrade_os == True }
+    - { role: system_kernel, when: system_yum.elrepo.kernel.setup is defined and system_yum.elrepo.kernel.setup == "yes" }
     - system_base
     - system_optimize
     - system_ntp

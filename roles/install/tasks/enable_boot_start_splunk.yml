@@ -24,12 +24,12 @@
     msg: "splunk version is: >{{ splunkversionnum }}<"
     
 - name: Remove an existing systemd script 
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start -user splunk --answer-yes --accept-license --no-prompt -systemd-managed 1"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start -user {{ splunk_install_user }} --answer-yes --accept-license --no-prompt -systemd-managed 1"
   when: splunk_upgrade == True and splunkversion_majorminor|int > 70
 
 # IMPORTANT for 7.1 + 7.2 installs as those defaults to systemd!! (which is CRAPLY implemented by splunk)
 - name: Enable Splunk boot-start (when >= 7.x enforce non-systemd)
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user splunk --answer-yes --accept-license --no-prompt -systemd-managed 0"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user {{ splunk_install_user }} --answer-yes --accept-license --no-prompt -systemd-managed 0"
   when: splunkversion_majorminor|int >= 70
   register: enableinit
   failed_when: enableinit.rc != 0 and enableinit.rc != 8

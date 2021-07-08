@@ -1,15 +1,17 @@
 ---
 - name: Create Splunk unix group
-  group: name=splunk
-         state=present
+  group:
+    name: "{{ splunk_install_group }}"
+    state: present
   when: splunk_installation.package_format != "rpm"
 
 - name: Create Splunk unix user
-  user: name=splunk 
-        group=splunk
-        state=present
-        comment="Splunk"
-        shell="/bin/bash"
-        home="{{ splunk_installation.splunk_home_path }}"
-        password="!!"
+  user:
+    name: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_group }}"
+    comment: "Splunk"
+    shell: "/bin/bash"
+    home: "{{ splunk_installation.splunk_home_path }}"
+    password: "!!"
+    state: present
   when: splunk_installation.package_format != "rpm"

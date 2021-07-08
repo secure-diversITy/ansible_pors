@@ -1,17 +1,19 @@
 ---
 - name: Create Splunk unix group
-  group: name=splunk
-         state=present
+  group:
+    name: "{{ splunk_install_group }}"
+    state: present
   when: splunk_installation.package_format != "rpm"
 
 - name: Create Splunk unix user
-  user: name=splunk 
-        group=splunk
-        state=present
-        comment="Splunk Server"
-        shell="/bin/bash"
-        home="/opt/splunk"
-        password="!!"
+  user:
+    name: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_group }}"
+    comment: "Splunk Server"
+    shell: "/bin/bash"
+    home: "/opt/splunk"
+    password: "!!"
+    state: present
   when: splunk_installation.package_format != "rpm"
 
 - name: Install Splunk package from rpm
@@ -30,8 +32,9 @@
   when: splunk_installation.delete_package_after_install != false
 
 - name: Set permissions for $SPLUNK_HOME 
-  file: path="{{ splunk_installation.splunk_home_path }}" 
-        owner=splunk
-        group=splunk
-        recurse=yes
+  file:
+    path: "{{ splunk_installation.splunk_home_path }}" 
+    owner: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_group }}"
+    recurse: yes
   when: splunk_installation.package_format == "tgz"

@@ -6,9 +6,10 @@
 # touch 
 
 - name: "Touch outputs.conf"
-  file: path={{ splunk_conf_path }}/outputs.conf
-        owner=splunk
-        group=splunk
-        mode=600 
-        state=touch
+  file:
+    path: "{{ splunk_conf_path }}/outputs.conf"
+    owner: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_group }}"
+    mode: 600 
+    state: touch
   changed_when: false
