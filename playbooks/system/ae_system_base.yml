@@ -1,3 +1,4 @@
+---
 - name: Settle up the base
   hosts: "*:!pors_server"
   remote_user: "{{ pors_ssh_user }}"
