@@ -11,6 +11,8 @@ pors_group: pors
 base_install_dir: /opt/pors
 pors_ssh_user: ansible
 pors_temp_dir: /tmp/pors
+pors_data_dir: /opt/pors_data
+custom_playbook_dir: "{{ pors_data_dir }}/custom/playbooks"
 
 ###### splunk_repository.yml #######
 
@@ -29,7 +31,11 @@ tokenauth:
     git_ro_user: "{{ vault_git_ro_user }}"
     git_ro_token: "{{ vault_git_ro_token }}"
 
-####### custom_tasks.yml ########
+####### hooks.yml ########
+
+hook_system_playbook: False
+hook_system_tasks: False
+hook_post_install_splunk: False
 
 custom:
     system_tasks: False

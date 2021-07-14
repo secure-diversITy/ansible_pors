@@ -1,4 +1,11 @@
 ---
+####################################################################################################################
+#
+# ALL OUTCOMMENTED KEY:VALUES (IF ANY) YOU SEE HERE ARE THE DEFINED DEFAULT VALUES
+# i.e. there is no need to enable them if you like the shown default value
+#
+####################################################################################################################
+
 ######################################################################
 # Configure PORS
 ######################################################################
@@ -15,6 +22,13 @@
 
 # TEMP directory for various tasks
 #pors_temp_dir: /tmp/pors
+
+# PORS data directory. Changing this might require other changes as well (e.g. ~/.pors/vars)
+# It is NOT recommended to change the default value.
+#pors_data_dir: /opt/pors_data
+
+# custom directory for playbooks
+#custom_playbook_dir: "{{ pors_data_dir }}/custom/playbooks"
 
 # Set a name to identify this ansible instance
 # (deprecated but must be set atm, identifier for init lines and such
