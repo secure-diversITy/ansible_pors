@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-62"
+VERSIONNUM="4.0-63"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5495,7 +5495,7 @@ F_BASEINSTALL(){
         F_ABIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost $ABINARGS"
     done
     LERR=$?
-    F_DIAERR $LERR "Base install on:\n\n$SELHOSTS\n\n"
+    [ "$LERR" -ne 0 ] && F_DIAERR $LERR "Base install on:\n\n$SELHOSTS\n\n"
     return $LERR
 
     F_LOG $FUNCNAME ended
