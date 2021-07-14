@@ -7,7 +7,7 @@
     api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
     api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
     api_host: "{{ proxmox.node[px_var].api_host }}"
-    name: "splunkmc.splunkd.local"
+    name: "{{ server_hostname }}"
     state: current
   register: vm
   ignore_errors: yes
@@ -31,4 +31,4 @@
 
 - name: give PVE enough time to write the config
   pause:
-    seconds: 5
+    seconds: 10
