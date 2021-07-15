@@ -1,0 +1,17 @@
+---
+
+# normal user creation
+- include: create.yml
+- include: ssh_authorized_keys.yml
+- include: login_test.yml
+  when: test_shared_service_account is defined and test_shared_service_account == True
+
+# admin without a password prompt
+- include: nopass_sudoers.yml
+  when: shared_service_account_as_root is defined and shared_service_account_as_root == True
+
+- include: become_root_test.yml
+  when:
+    - shared_service_account_as_root is defined
+    - shared_service_account_as_root == True
+    - test_shared_service_account is defined and test_shared_service_account == True

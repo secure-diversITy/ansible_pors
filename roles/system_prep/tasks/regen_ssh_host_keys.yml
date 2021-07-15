@@ -1,0 +1,19 @@
+---
+
+- file:
+    state: absent
+    path: "{{item}}"
+  loop:
+  - /etc/ssh/ssh_host_rsa_key
+  - /etc/ssh/ssh_host_dsa_key
+  - /etc/ssh/ssh_host_ecdsa_key
+
+- name: Regenerate host SSH key (RSA)
+  shell: ssh-keygen -q -b 8192 -t rsa -f /etc/ssh/ssh_host_rsa_key -C "" -N ""
+
+- name: Regenerate host SSH key (DSA)
+  shell: ssh-keygen -q -t dsa -f /etc/ssh/ssh_host_dsa_key -C "" -N ""
+
+- name: Regenerate host SSH key (ECDSA)
+  shell: ssh-keygen -q -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -C "" -N ""
+

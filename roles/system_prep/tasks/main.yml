@@ -1,0 +1,10 @@
+---
+
+# general tasks
+- include: regen_ssh_host_keys.yml
+- include: regen_machine_id.yml
+- include: regen_initrd.yml
+
+# distro specific tasks
+- include: update_rhsm.yml
+  when: ansible_facts['os_family'] == "RedHat"

@@ -14,8 +14,6 @@
     update=yes
     force=yes
     accept_hostkey=yes
-  become: yes
-  become_user: "{{ remote_system.local_gituser }}"
   when: "splunk_optimize.install_tuned_git == true and
          splunk_optimize.tuned_git_url is defined"
 

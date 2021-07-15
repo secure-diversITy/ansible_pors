@@ -10,6 +10,30 @@
 # Basic server system configuration
 ##################################################################
 
+# a (possibly shared or simply a second) user account which exists 
+# besides the regular ansible remote ssh user {{ pors_ssh_user }}
+# PORS will create that account and also configure authorized_keys
+# if /opt/pors_repo/authorized_keys_{{ shared_service_account }}
+# exists.
+# Possible values: <unset> | <username>
+#system_shared_service_account:
+
+# should that user have full root permissions?
+# Possible values: True | False
+#shared_service_account_as_root: False
+
+# should we try to test logging in with that account?
+# (requires the private ssh key of that user, of course)
+# Possible values: True | False
+#test_shared_service_account: False
+
+# When cloning from a template important settings will be identical
+# across all clones, e.g. the SSH host key. To avoid this it is
+# highly recommended to run the PORS sysprep tool which regenerates
+# all needed settings, files etc after deploying a VM.
+# Possible values: True | False
+#system_enable_sysprep: True
+
 system:
     # Configures SELinux. Possible values: enabled | disabled
     selinux: disabled
@@ -20,13 +44,6 @@ system:
 
     # set the hostname explicitly
     set_hostname: False
-
-    # a (possibly shared or simply a second) user account which exists 
-    # besides the regular ansible remote ssh user {{ pors_ssh_user }}
-    # PORS will create that account and also configure authorized_keys
-    # if /opt/pors_repo/authorized_keys_{{ shared_service_account }}
-    # exists.
-    #shared_service_account:
 
     # additional OS packages to be installed during
     # - VM deploy

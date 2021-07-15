@@ -1,0 +1,4 @@
+---
+
+- name: "Regenerate initrd image to apply the current hostname"
+  shell: dracut --no-hostonly --force

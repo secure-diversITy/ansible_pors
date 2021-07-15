@@ -1,0 +1,7 @@
+---
+
+- name: "Test getting root permissions with user: {{ user_name }}"
+  become: yes
+  become_user: root
+  remote_user: "{{ user_name }}"
+  shell: whoami

@@ -1,0 +1,13 @@
+---
+- name: Check if RHSM is configured
+  stat:
+    path: /etc/rhsm/facts/fqdn.facts
+  register: stat_rhsm_file
+
+- name: Update RH Satellite facts
+  lineinfile:
+    path: /etc/rhsm/facts/fqdn.facts
+    backrefs: yes
+    regex: '({"network.hostname": ")(.*)("})'
+    line: '\1{{ inventory_hostname }}\3'
+  when: stat_rhsm_file.stat.exists is defined and stat_rhsm_file.stat.exists == True

@@ -1,0 +1,17 @@
+---
+
+- name: "Allow {{ user_name }} to have passwordless sudo"
+  lineinfile:
+    dest: /etc/sudoers.d/ansible_admin
+    state: present
+    regexp: '^{{ user_name }}'
+    line: '{{ user_name }}    ALL=(ALL)    NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+    create: yes
+
+- name: Set proper sudoers file permissions
+  file:
+    path: /etc/sudoers.d/ansible_admin
+    modification_time: preserve
+    access_time: preserve
+    mode: 0440

@@ -1,0 +1,15 @@
+---
+- name: "Test ssh-key login as user: {{ user_name }}"
+  become: no
+  remote_user: "{{ user_name }}"
+  shell: whoami
+  when: authkey.stat.exists == True
+ 
+
+- name: "Test password-based login as user: {{ user_name }}"
+  become: no
+  remote_user: "{{ user_name }}"
+  vars:
+    ansible_ssh_pass: "{{ user_pass }}"
+  shell: whoami
+  when: authkey.stat.exists == False

@@ -1,0 +1,15 @@
+---
+
+- stat:
+    path: '{{ repo_base }}/common/ssh/authorized_keys_{{ user_name }}'
+  connection: local
+  become: no
+  register: authkey
+  run_once: True
+
+- name: Set authorized keys for {{ user_name }}
+  authorized_key:
+        user: "{{ user_name }}"
+        state: present
+        key: "{{ lookup('file', '{{ repo_base }}/common/ssh/authorized_keys_{{ user_name }}') }}"
+  when: authkey.stat.exists == True

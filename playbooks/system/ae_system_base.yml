@@ -9,6 +9,7 @@
   roles:
     - { role: system_upgrade, when: system.upgrade_os is defined and system.upgrade_os == True }
     - { role: system_kernel, when: system_yum.elrepo.kernel.setup is defined and system_yum.elrepo.kernel.setup == "yes" }
+    - system_prep
     - system_base
     - system_optimize
     - system_ntp

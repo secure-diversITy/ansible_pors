@@ -1,0 +1,9 @@
+---
+- name: Remove old machine-id
+  file:
+    path: /etc/machine-id
+    state: absent
+
+- name: Regenerate machine-id
+  shell: systemd-machine-id-setup
+

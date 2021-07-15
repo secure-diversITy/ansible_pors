@@ -1,7 +1,11 @@
 ---
 #####################################################################################################################
 # Default Variables
-# Can be overwritten in your inventories/group_vars/all
+#
+# !! WARNING: DO NOT TOUCH ANYTHING HERE !! Otherwise you won't be able to update PORS anymore.
+#
+# Instead:
+# overwrite them in your inventories/group_vars/all/xxx.yml
 #####################################################################################################################
 
 ###### pors.yml ######
@@ -114,6 +118,10 @@ splunk_ulimit_data_hard: unlimited
 
 ####### system_base.yml ########
 
+shared_service_account_as_root: False
+test_shared_service_account: False
+system_enable_sysprep: True
+
 ntp_enabled: true
 ntp_timezone: Europe/Berlin
 ntp_manage_config: true
@@ -128,5 +136,3 @@ systemd_journal_compress: "yes"
 systemd_journal_system_max_use: 1G
 systemd_journal_system_max_file_size: 200M
 systemd_journal_restart_state: restarted
-
-
