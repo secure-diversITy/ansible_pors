@@ -13,7 +13,12 @@
     - set_fact:
         generated_shcmember: "{{ query('inventory_hostnames', '{{ shc_site }}_shcmember') | first }}"
         generated_deployer: "{{ query('inventory_hostnames', '{{ shc_site }}_deployer') | first }}"
-      when: shc_site is defined and shc_site != '' and shc_site != 'none'
+      when:
+        - shc_site is defined
+        - shc_site != ''
+        - shc_site != 'none'
+        - "{{ shc_site }}_shcmember is defined or {{ shc_site }}_deployer is defined"
+        - "inventory_hostname in {{ shc_site }}_shcmember or inventory_hostname in {{ shc_site }}_deployer"
 
   tasks:
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
