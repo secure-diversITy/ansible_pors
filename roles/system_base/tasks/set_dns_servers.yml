@@ -7,3 +7,5 @@
 
 - name: update /etc/resolv.conf
   shell: 'netconfig update -f'
+  register: netconfig
+  failed_when: "netconfig.rc not in [ 0, 1 ]"
