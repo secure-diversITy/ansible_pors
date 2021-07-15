@@ -2400,8 +2400,8 @@ F_SHEXEC(){
     ARGS="{'target':'$LIMITLIST','shelper_action':'$SHEXE','shelper_custom':'$SHCUST','shc_site':'$SITESEL'}"
     F_ABIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
     AERR=$?
-    [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST" "$LOG"
-    [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for:\n\n$UPGRADEHOSTST"
+    [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$SHOSTST" "$LOG"
+    [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for:\n\n$SHOSTST"
 #    [ $RUNMODE != "batch" ] && F_MENUMAIN
     return $AERR
 }
