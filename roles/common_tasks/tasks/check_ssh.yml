@@ -1,0 +1,11 @@
+- name: check SSH connectivity
+  wait_for:
+    port: 22
+    host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+    search_regex: OpenSSH
+    delay: 2
+    timeout: 14
+  connection: local
+  ignore_errors: True
+  register: ssh_avail
+  tags: check_ssh

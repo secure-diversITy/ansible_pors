@@ -1,0 +1,8 @@
+---
+
+- include: check_ssh.yml
+
+- include: gather_facts.yml
+  tags: task_gather_facts
+  when:
+    - ssh_avail is defined

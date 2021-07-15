@@ -1,0 +1,8 @@
+---
+
+- name: "(Re-)gathering facts"
+  setup:
+  when: ssh_avail.failed == False
+  ignore_unreachable: True
+  ignore_errors: True
+  register: facts
