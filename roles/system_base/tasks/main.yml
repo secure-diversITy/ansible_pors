@@ -20,7 +20,7 @@
     name: custom_system
   when:
     - (system.add_custom_tasks is defined and system.add_custom_tasks == True)
-      or (custom.system_tasks is defined and custom.system_tasks == True)
+      or (hook_system_tasks is defined and hook_system_tasks == True)
 
 - name: Upgrade system
   include_role:
