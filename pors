@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-64"
+VERSIONNUM="4.0-67"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -214,6 +214,16 @@ declare MAXLOG=3
 ## @details can be sourced like: source $AEUSRHOSTFILE - will set HOSTFILE=
 ## @showinitializer
 declare AEUSRHOSTFILE=${WORKDIR}/ae_current_hostfile
+
+## @var PLAYNOISE
+## @brief Verbosity level of playbooks
+## @details By default only basic output will be shown which can be increased by
+## starting PORS with --verbose (equals to -vvv) or --debug (equals to -vvvv)
+## Do not change this value here. If you want to override the default setting here
+## adjust the ~/.pors/vars file instead
+## @showinitializer
+[ -z "$PLAYNOISE" ] && \
+declare PLAYNOISE="-vv"
 
 ## @var EDITBIN
 ## @brief The editor which will be used e.g. when editing system/local files
@@ -849,15 +859,15 @@ F_ABIN(){
             if [ "$RUNMODE" == "interactive" ];then
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
-                    F_LOG $FUNCNAME "Will execute:\n$ABIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                    F_LOG $FUNCNAME "Will execute:\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
                 else
-                    F_LOG $FUNCNAME "Will execute:\n$ABIN -vvv -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN -v -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                    F_LOG $FUNCNAME "Will execute:\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
-                $ABIN -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
+                $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
 	        A2ERR="${PIPESTATUS[0]}"
             fi
         fi
@@ -892,11 +902,15 @@ cat <<_EOHELP
     --advanced                                  Will enable/show advanced option menu
     --testing                                   Unfinished menu options
     -i|--inventory <hosts-file>                 The full path to your hosts filename
-
+    --verbose                                   will execute all playbook commands with -vvv
+    --debug                                     will execute all playbook commands with -vvvv
 
     Batch / API mode: !!!WORK-IN-PROGRESS!!!
     ------------------------------------------
     Enables full automated way of using PORS
+
+    --verbose                                   will execute all playbook commands with -vvv
+    --debug                                     will execute all playbook commands with -vvvv
 
     --batch
 
@@ -2362,6 +2376,7 @@ F_SHEXEC(){
 
     if [ $RUNMODE == "batch" ];then
         TMPGRP=$BTARGET
+        SITESEL=$TARGETSITE
     else
         if [ "$TMPGRP" == "deployer" ];then
             ASITES=$(F_GETSITES)
@@ -2377,7 +2392,7 @@ F_SHEXEC(){
     if [ -z "$TMPGRP" ];then
         SHOSTS=$(LISTTYPE=checklist F_SELHOST)
     else
-        SHOSTS="$(F_EXPANDHOSTS $TMPGRP)"
+        SHOSTS=$(F_EXPANDHOSTS $TMPGRP)
     fi
     [ "$SHOSTS" == ABORTED ] && return 4
 
@@ -2394,8 +2409,10 @@ F_SHEXEC(){
         fi
     fi
 
-    [ $RUNMODE != "batch" ] && F_DIALOG --colors --yesno "\nWill ${SHEXE}${SHCUST} on\n\n  \Zb$LIMITLIST\ZB\n\nOk?" 20 50
-    [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+    if [ $RUNMODE != "batch" ];then
+        F_DIALOG --colors --yesno "\nWill ${SHEXE}${SHCUST} on\n\n  \Zb$LIMITLIST\ZB\n\nOk?" 20 50
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+    fi
 
     ARGS="{'target':'$LIMITLIST','shelper_action':'$SHEXE','shelper_custom':'$SHCUST','shc_site':'$SITESEL'}"
     F_ABIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
@@ -4417,7 +4434,7 @@ F_VSPHERE_DEPLOY(){
     fi
 
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\nPORS is about to provision a VM with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t'"$VMCPU\n    RAM:"$'\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t'"$VMGW\n    DNS servers:"$'\t'"$VMDNS1, $VMDNS2\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n    Network:"$'\t\t'"$VCNET\n\nDo you want to continue?\n" 50 80
+    F_DIALOG --no-collapse --colors --yesno "\n\ZbPORS is about to provision a VM with the following details:\ZB\n\n    vCenter:"$'\t\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t\t'"$VCHOST\n\n    Hostname:"$'\t\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t\t'"$VMCPU\n    RAM:"$'\t\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t\t'"$VMGW\n    DNS servers:"$'\t\t'"$VMDNS1, $VMDNS2\n    Datacenter (OS disk):"$'\t'"$VCDC\n    Datastorage (OS disk):"$'\t'"$VCDS\n    Network:"$'\t\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
@@ -4447,34 +4464,13 @@ F_VSPHERE_DEPLOY(){
             VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
             VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
             VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+            VMDISKDS="VMDISK${VMDISKCNT}DS"
+            VMDISKDC="VMDISK${VMDISKCNT}DC"
 
             F_LOG $FUNCNAME "adding $VMDISKMNTP"
-
-# TODO: either remove or add an option to set DS per Disk
-            # Target Datastore name
-#            FINISHED=0
-#            while [ $FINISHED -eq 0 ];do        
-#                OPTIONS=($(for i in $(tail -n +2 $VCDSLIST);do free_gb=$((${i/*;}/1024/1024/1024)) ; echo "${i/;*}" "Free=${free_gb}GB" off;done))
-#                VCDS=$(F_DIALOG --colors --radiolist \
-#                "\nThe following Datastorages are handled by the choosen vCenter ($VCENTER)\n\nWhich one of the following should be used for\n\n  \Zb${!VMDISKDEV} - ${!VMDISKMNTP} (${!VMDISKSIZEGB} GB)\ZB\n\n(space-bar selects)?\n" \
-#                100 80 100 \
-#                "${OPTIONS[@]}" \
-#                2>&1 >/dev/tty)
-#                [ $? -ne 0 ] && F_DIAERR $? "Aborted by user" && break 99
-#                F_LOG $FUNCNAME "Choosen: $VCDS"
-#                [ ! -z "$VCDS" ] && FINISHED=1
-#            done
-
-            # sum up (makes uses of real tab spaces in dialog):
-#            F_DIALOG --no-collapse --colors --yesno "\nPORS is about to add a new disk to VM $VMHOST with the following details:\n\n    vCenter:"$'\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t'"$VCHOST\n\n    Hostname:"$'\t\t'"${VMHOST}.${VMSDOMAIN}\n    Disk path:"$'\t'"${!VMDISKDEV}\n    Size (GB):"$'\t'"${!VMDISKSIZEGB}\n    Filesystem:"$'\t'"${!VMDISKFS}\n    Type:"$'\t\t'"${!VMDISKTYPE}\n    Mountpoint:"$'\t'"${!VMDISKMNTP}\n    Mount options:"$'\t'"${!VMDISKOPTS}\n    LVM VG name: "$'\t'"${!VMDISKLVMVG}\n    LVM LV name: "$'\t'"${!VMDISKLVMLV}\n    Datacenter:"$'\t'"$VCDC\n    Datastorage:"$'\t'"$VCDS\n\nDo you want to continue?\n" 50 80
-#            DEPLOYIT=$?
-
-#            [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 99
-
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
-            #F_LOG $FUNCNAME "will call $PBVMNEWDISK with: 'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'"
 
-            F_ABIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
+            F_ABIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
@@ -4493,8 +4489,10 @@ F_VSPHERE_DEPLOY(){
             VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
             VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
             VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-   
-            F_ABIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','vsphere_datastore':'$VCDS','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            VMDISKDS="VMDISK${VMDISKCNT}DS"
+            VMDISKDC="VMDISK${VMDISKCNT}DC"
+
+            F_ABIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
             ERR=$?
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
             
@@ -4875,12 +4873,12 @@ F_STARTVMDEP(){
             echo -e "\n\n# The following are user defined values which might override the above defaults\n" >> $TMPHWPROFILE
             case $VM_PROVIDER in
                 vsphere|vmware)
-                    PROVOUT=$(F_DIALOG --form "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
-                                "vCenter" 1 1 "$VM_VSPHERE_VCENTER" 1 20 27 28 \
-                                "ESXi host" 2 1 "$VM_VSPHERE_ESX" 2 20 27 28 \
-                                "Datastore" 3 1 "$VM_VSPHERE_DS" 3 20 70 60  \
-                                "Datacenter" 4 1 "$VM_VSPHERE_DC" 4 20 70 60  \
-                                "Network Name" 5 1 "$VM_VSPHERE_NETNAME" 5 20 70 60  \
+                    PROVOUT=$(F_DIALOG --colors --form "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)\n\n\ZbNote:\ZB\nDatastore and Datacenter defaults can be overwritten per disk within the hardware profile by specifying VMDISKxDS and VMDISKxDC variables.\n" 30 100 20  \
+                                "vCenter" 1 1 "$VM_VSPHERE_VCENTER" 1 22 60 70 \
+                                "ESXi host" 2 1 "$VM_VSPHERE_ESX" 2 22 60 70 \
+                                "Datastore (OS disk)" 3 1 "$VM_VSPHERE_DS" 3 22 60 70  \
+                                "Datacenter (OS disk)" 4 1 "$VM_VSPHERE_DC" 4 22 60 70  \
+                                "Network Name" 5 1 "$VM_VSPHERE_NETNAME" 5 22 60 70 \
                                 3>&1 1>&2 2>&3)
                     VMERR=$?
                     # normalize the output so it can be parsed correctly
@@ -4990,7 +4988,26 @@ F_STARTVMDEP(){
                 VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
                 VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
-                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 40 100 30  \
+                case $VM_PROVIDER in
+                    vsphere|vmware)
+                        VMDISKDS="VMDISK${VMDISKCNT}DS"
+                        VMDISKDC="VMDISK${VMDISKCNT}DC"
+                        if [ -z "${!VMDISKDS}" ];then
+                            VMDISKDS=$VM_VSPHERE_DS
+                        else
+                            VMDISKDS=${!VMDISKDS}
+                        fi
+                        if [ -z "${!VMDISKDC}" ];then
+                            VMDISKDC=$VM_VSPHERE_DC
+                        else
+                            VMDISKDC=${!VMDISKDC}
+                        fi
+                        DISKEXTRAARGS="vSphere_Datacenter 13 1 ${VMDISKDC} 13 42 40 40 vSphere_Datastorage 14 1 ${VMDISKDS} 14 42 40 40"
+                    ;;
+                    *) unset DISKEXTRAARGS ;;
+                esac
+
+                DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 25 100 18\
                             "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
                             "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
                             "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
@@ -5003,6 +5020,7 @@ F_STARTVMDEP(){
                             "Auto delete" 10 1 "${!VMDISKDEVAUTODEL}" 10 42 40 40 \
                             "Disk extra name" 11 1 "${!VMDISKEXTRANAME}" 11 42 40 40 \
                             "Copy existing" 12 1 "${!VMDISKFSMOVE}" 12 42 40 40 \
+                            $DISKEXTRAARGS \
                             3>&1 1>&2 2>&3)
                 [ $? -ne 0 ] && F_LOG $FUNCNAME "ABORTED BY USER IN DISK DIALOG" && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 99
 
@@ -5021,6 +5039,8 @@ F_STARTVMDEP(){
                 UVMDISKDEVAUTODEL=$(echo "$NDIAOUT" | cut -d "|" -f 10 | tr -d " ")
                 UVMDISKEXTRANAME=$(echo "$NDIAOUT" | cut -d "|" -f 11 | tr -d " ")
                 UVMDISKFSMOVE=$(echo "$NDIAOUT" | cut -d "|" -f 12 | tr -d " ")
+                UVMDISKDC=$(echo "$NDIAOUT" | cut -d "|" -f 13 | tr -d " ")
+                UVMDISKDS=$(echo "$NDIAOUT" | cut -d "|" -f 14 | tr -d " ")
 
                 echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}FS=${UVMDISKFS}" >> $TMPHWPROFILE
@@ -5034,6 +5054,8 @@ F_STARTVMDEP(){
                 echo "VMDISK${VMDISKCNT}MNTP=${UVMDISKMNTP}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}LVMVG=${UVMDISKLVMVG}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}DC=${UVMDISKDC}" >> $TMPHWPROFILE
+                echo "VMDISK${VMDISKCNT}DS=${UVMDISKDS}" >> $TMPHWPROFILE
 
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}SIZEGB=${UVMDISKSIZEGB}"
@@ -5047,6 +5069,8 @@ F_STARTVMDEP(){
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEVBOOT=${UVMDISKDEVBOOT}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DEVAUTODEL=${UVMDISKDEVAUTODEL}"
                 F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}EXTRANAME=${UVMDISKEXTRANAME}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DS=${UVMDISKDS}"
+                F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}DC=${UVMDISKDC}"
  
                 F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
             done
@@ -5102,7 +5126,7 @@ F_STARTVMDEP(){
             F_ADDSERVICEUSER "${VMHOSTF}"
             F_DIAERR $? "Adding linux service account: $OS_SERVICE_USER"
         fi
-        [ $? -eq 0 ] && F_MSG "\n\nCongratulations! Your VM has been successfully deployed and is ready to use now."
+        [ $? -eq 0 ] && F_MSG "\n\nCongratulations!\n\n$VMHOSTF\n\nhas been successfully deployed and is ready to use now."
 
         [ -f "$TMPHWPROFILE" ] && F_DIALOG --yesno "\nDo you want to save the hardware profile for\n\n    $VMHOST\n\nas an IaC (Infrastructure as Code) profile?\n\nWhen you select 'yes' you can re-deploy with the same settings when choosing the 'IaC' folder next time." 16 100
         if [ $? -eq 1 ];then
@@ -5110,6 +5134,8 @@ F_STARTVMDEP(){
         else
             IACKEEP=1
         fi
+    else
+        F_ERRLOG $VMERR "VM deploying"
     fi
 
     if [ "$IACKEEP" -ne 1 ];then
@@ -5856,7 +5882,7 @@ cd $ADIR
 echo "$@" |egrep -q "(noninteractive|batch)"
 if [ $? -eq 0 ];then
    # enter non-interactive/batch mode
-    export LOG=$WORKDIR/${BIN}_batchmode.log
+    export LOG=$WORKDIR/logs/${BIN}_batchmode.log
     F_LOGROTATE
     # reset any previous set user host file
     > $AEUSRHOSTFILE
@@ -5878,6 +5904,7 @@ if [ $? -eq 0 ];then
 	    -t|--target) BTARGET="$2"; shift 2;;
             -i|--inventory) export HOSTFILE="$2"; export SHOSTFILE="$HOSTFILE"; FORCEDHOSTFILE="$2"; shift 2;;
             --env) TARGETENV=$2; shift 2 ;;
+            --site) TARGETSITE="$2"; shift 2 ;;
             --deployapp)
             export BDEPAPP="$2"
             export BDEPAPPSUBSET=1
@@ -5899,6 +5926,14 @@ if [ $? -eq 0 ];then
             -pa|--post-action)
             export BATCHACT="$2"
             shift 2
+            ;;
+            --verbose)
+            export PLAYNOISE="-vvv"
+            shift
+            ;;
+            --debug)
+            export PLAYNOISE="-vvvv"
+            shift
             ;;
 	    *) echo -e "ERROR unknown argument: $1\n"; F_EXIT ;;
         esac
@@ -5933,7 +5968,7 @@ if [ $? -eq 0 ];then
    # run
     if [ "$BPLAY" ];then
         F_LOG MAIN "$ABIN -i $HOSTFILE $BPLAY -e \"target=$BTARGET accept_hostkey=true $BPLAYARGS\""
-        $ABIN -i $HOSTFILE $BPLAY -e "target=$BTARGET accept_hostkey=true $BPLAYARGS" -vvvv
+        $ABIN -i $HOSTFILE $BPLAY -e "target=$BTARGET accept_hostkey=true $BPLAYARGS $TARGETSITE" $PLAYNOISE >> $LOG 2>&1
     else
         if [ "$BFUNC" ];then
             F_LOG MAIN ".. will exec $BFUNC. Args: $BFUNCARGS"
@@ -5942,7 +5977,7 @@ if [ $? -eq 0 ];then
             case $BACT in
                 deploy)
                 export DEPLOYAPPSUBSET=$BDEPAPPSUBSET 
-                F_DEPLOYAPP
+                F_DEPLOYAPP >> $LOG 2>&1
                 DEPERR=$?
                 [ $DEPERR -ne 0 ] && F_LOG MAIN "deploying ended with $DEPERR" && F_EXIT $DEPERR
                 [ ! -z $"BATCHACT" ] && F_LOG "$BIN" "activating changes..." && F_SHEXEC
@@ -5988,6 +6023,14 @@ else
         ;;
         --stealth)
         export STEALTHMODE=1
+        shift
+        ;;
+        --verbose)
+        export PLAYNOISE="-vvv"
+        shift
+        ;;
+        --debug)
+        export PLAYNOISE="-vvvv"
         shift
         ;;
 	*)

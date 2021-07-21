@@ -17,21 +17,23 @@
         - shc_site is defined
         - shc_site != ''
         - shc_site != 'none'
-        - "{{ shc_site }}_shcmember is defined or {{ shc_site }}_deployer is defined"
-        - "inventory_hostname in {{ shc_site }}_shcmember or inventory_hostname in {{ shc_site }}_deployer"
+        - "'{{ shc_site }}_shcmember' in group_names or '{{ shc_site }}_deployer' in group_names"
 
   tasks:
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
       debug:
         msg: "Please be patient! {{ shelper_action }} in progress"
+      when: generated_shcmember is defined and generated_deployer is defined
 
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
       shell: echo "... please be patient." 
       register: actionresult
       notify: "shelper {{ shelper_action }}"
+      when: generated_shcmember is defined and generated_deployer is defined
 
     - meta: flush_handlers
 
     - name: Print result
       debug: 
         msg: "{{ shelper_result.stdout_lines }}"
+      when: generated_shcmember is defined and generated_deployer is defined

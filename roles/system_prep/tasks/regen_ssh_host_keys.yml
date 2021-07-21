@@ -7,6 +7,7 @@
   - /etc/ssh/ssh_host_rsa_key
   - /etc/ssh/ssh_host_dsa_key
   - /etc/ssh/ssh_host_ecdsa_key
+  - /etc/ssh/ssh_host_ed25519_key
 
 - name: Regenerate host SSH key (RSA)
   shell: ssh-keygen -q -b 8192 -t rsa -f /etc/ssh/ssh_host_rsa_key -C "" -N ""
@@ -17,3 +18,5 @@
 - name: Regenerate host SSH key (ECDSA)
   shell: ssh-keygen -q -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -C "" -N ""
 
+- name: Regenerate host SSH key (ED25519)
+  shell: ssh-keygen -q -t ed25519 -a 100 -f /etc/ssh/ssh_host_ed25519_key -C "" -N ""

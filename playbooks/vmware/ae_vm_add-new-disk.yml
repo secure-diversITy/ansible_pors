@@ -16,7 +16,7 @@
 
     - name: debug out
       debug: msg="disk facts:{{vgf}}"
-#      when: debug_on is defined
+      when: debug_on is defined
 
     - name: Shutdown {{ server_hostname }} if needed
       vmware_guest:
@@ -33,11 +33,11 @@
       command: sleep 1m
       when: vgf.instance['hw_power_status'] != 'poweredOff'
 
-    - name: Add additional disk to {{ server_hostname }} - hint
-      debug: msg="You have selected {{ server_disk_type }} - Please be patient as this can take a while. Watch the vCenter for the progress."
-      when: server_disk_type != "thin"
-       
-    - name: Add additional disk to {{ server_hostname }}
+    - name: "Hint: disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }}"
+      debug: msg="You have selected {{ server_disk_type }} - Please be patient as this might take a while and can even timeout on large disks (e.g. > 50 TB). If that happens you have to increase the 'async' value within 'playbooks/vmware/ae_vm_add-new-disk.yml'. Watch the vCenter for the progress."
+      when: server_disk_type == "eagerzeroedthick"
+
+    - name: "Add disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (full wipe --> long wait timeout)"
       vmware_guest_disk:
             hostname: '{{ vsphere.host[vsphere_var].dest }}'
             username: '{{ vsphere.host[vsphere_var].user }}'
@@ -52,3 +52,23 @@
               unit_number: "{{ server_disk_num | int + 1 | abs }}"
               datastore: "{{ vsphere_datastore }}"
               type: "{{ server_disk_type }}"
+      async: 28800
+      poll: 20
+      when: server_disk_type == "eagerzeroedthick"
+       
+    - name: "Add  disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (normal provisioning)"
+      vmware_guest_disk:
+            hostname: '{{ vsphere.host[vsphere_var].dest }}'
+            username: '{{ vsphere.host[vsphere_var].user }}'
+            password: '{{ vsphere.host[vsphere_var].password }}'
+            validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+            datacenter: "{{ vsphere_datacenter }}"
+            name: '{{ server_hostname }}'
+            folder: "/{{ vsphere_datacenter }}/vm"
+            disk: 
+            - size_gb: "{{ server_disk_sizegb }}"
+              scsi_controller: "{{ server_scsi_controller }}"
+              unit_number: "{{ server_disk_num | int + 1 | abs }}"
+              datastore: "{{ vsphere_datastore }}"
+              type: "{{ server_disk_type }}"
+      when: server_disk_type != "eagerzeroedthick"
