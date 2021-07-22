@@ -4,31 +4,6 @@
   gather_facts: false
   connection: local
 
-  tasks:
-    - name: Ensure temp dir is there
-      file:
-        path: "{{ pors_temp_dir }}"
-        state: directory
+  roles:
+    - local_tmpdir
 
-    - name: Clean old var file
-      file:
-        path: "{{ pors_temp_dir }}/ansible_{{ varname }}.var"
-        state: absent
-
-    - name: Fill template
-      template:
-        src: getvar.yml.j2
-        dest: "{{ pors_temp_dir }}/getvar.yml"
-        mode: 0640
-
-    - include: "{{ pors_temp_dir }}/getvar.yml"
-
-    - name: Write variable
-      lineinfile:
-        path: "{{ pors_temp_dir }}/ansible_{{ varname }}.var"
-        line: "{{ item.value }}"
-        create: yes
-      loop: "{{ lookup('dict',parsed_var) }}"
-      when:
-        - item.key != "changed"
-        - item.key != "failed"
