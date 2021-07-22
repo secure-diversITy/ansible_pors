@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-67"
+VERSIONNUM="4.0-68"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1725,13 +1725,20 @@ F_FETCHGITREPOS(){
 ## @fn F_MSG()
 ## @brief Just showing a simple message box
 ## param 1: required: message to show
+## param 2: optional: window width
+## param 3: optional: window height
 F_MSG(){
-	echo "$FUNCNAME started" >> $LOG
-	# required arg: message
+        F_LOG $FUNCNAME "started with $1, $2, $3"
+        unset MSG MSGWIDTH MSGHEIGHT
 	MSG="$1"
+        MSGHEIGHT=$2
+        MSGWIDTH=$3
+        [ -z $MSGWIDTH ] && MSGWIDTH=100
+        [ -z $MSGHEIGHT ] && MSGHEIGHT=10
+
 	[ -z "$MSG" ]&& echo "FATAL: missing req arg in $FUNCNAME! ABORTED!" && F_EXIT
-	F_DIALOG --msgbox "$MSG" 10 100
-	echo "$FUNCNAME finished" >> $LOG
+	F_DIALOG --msgbox "$MSG" $MSGHEIGHT $MSGWIDTH
+	F_LOG $FUNCNAME "finished"
 }
 
 ## @fn F_TPLUPDATE()
@@ -4657,7 +4664,7 @@ F_DEPLOYVM(){
 
     unset PROVIDER RECIPES
 
-    RECIPES=$(find $DATADIR/vm_recipes -type d -maxdepth 1 -mindepth 1)
+    RECIPES=$(find $DATADIR/vm_recipes -type d -maxdepth 1 -mindepth 1 | sort)
 
     while [ -z "$PROVIDER" ];do
         OPTIONS=($(for i in $RECIPES;do echo "${i/*\/}" "$i" off;done))
@@ -4750,9 +4757,17 @@ F_STARTVMDEP(){
     IACKEEP=0
 
     PROVIDERDIR="$1"
+    SELDIR=${PROVIDERDIR/*\/}
+    F_LOG $FUNCNAME "IaC SELDIR: $SELDIR"
 
     HWCONFIG="$PROVIDERDIR/pors_hardware-config_"
-    IACDIR="${PROVIDERDIR}/../IaC"
+    if [[ $SELDIR =~ .*IaC ]];then
+        IACDIR="${PROVIDERDIR}"
+    else
+        IACDIR="${PROVIDERDIR}/../${SELDIR}_IaC"
+    fi
+    F_LOG $FUNCNAME "IaC DIR: $IACDIR"
+    IACDIRSHORT=${IACDIR/*\/}
     IACDIRTMP="$WORKDIR/IaC"
 
     [ ! -d "$PROVIDERDIR" ] && F_ERRLOG 3 "ERROR: cannot find the path specified: $PROVIDER" $LOG && return 3
@@ -4766,7 +4781,7 @@ F_STARTVMDEP(){
     F_LOG $FUNCNAME "Detected hardware profiles: $SROLE"
     
     while [ $FINISHED -eq 0 ];do
-        OPTIONS=($(for i in $SROLE;do echo "$i" "$i" off;done))
+        OPTIONS=($(for i in $SROLE;do echo "$i" "$i" off;done|sort))
         HWPROFILE=$(F_DIALOG --colors --radiolist \
             "\nAvailable PORS hardware profiles will be listed here.\nSelect (space-bar) any or choose 'Empty' \nif you want to start with an empty template:\n" \
             50 100 250 \
@@ -5126,9 +5141,9 @@ F_STARTVMDEP(){
             F_ADDSERVICEUSER "${VMHOSTF}"
             F_DIAERR $? "Adding linux service account: $OS_SERVICE_USER"
         fi
-        [ $? -eq 0 ] && F_MSG "\n\nCongratulations!\n\n$VMHOSTF\n\nhas been successfully deployed and is ready to use now."
+        [ $? -eq 0 ] && F_MSG "\n\nCongratulations!\n\n$VMHOSTF\n\nhas been successfully deployed and is ready to use now." 15
 
-        [ -f "$TMPHWPROFILE" ] && F_DIALOG --yesno "\nDo you want to save the hardware profile for\n\n    $VMHOST\n\nas an IaC (Infrastructure as Code) profile?\n\nWhen you select 'yes' you can re-deploy with the same settings when choosing the 'IaC' folder next time." 16 100
+        [ -f "$TMPHWPROFILE" ] && F_DIALOG --yesno "\nDo you want to save the hardware profile for\n\n    $VMHOST\n\nas an IaC (Infrastructure as Code) profile?\n\nWhen you select 'yes' you can re-deploy with the same settings when choosing the '$IACDIRSHORT' folder next time." 16 100
         if [ $? -eq 1 ];then
             IACKEEP=0 
         else
