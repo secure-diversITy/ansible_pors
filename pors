@@ -5849,7 +5849,7 @@ fi
 
 if [ "$ME" != "$AEUSER" ] || [ -z "$CALLUSR" ];then
     echo "Thanks for choosing PORS $ME, starting PORS now ($@) ..."
-    sudo -i -u $AEUSER /usr/bin/env CALLUSR=$ME $0 $@
+    sudo -u $AEUSER /usr/bin/env CALLUSR=$ME $0 $@
     F_EXITUNCLEAN $?
 fi
 
