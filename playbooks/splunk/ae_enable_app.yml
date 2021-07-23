@@ -7,6 +7,7 @@
     inventory_dir: "{{ pors_data_dir }}/inventories/{{ target_env }}"
 
   pre_tasks:
+    - include_vars: "{{ base_install_dir }}/roles/defaults/main.yml"
     - include_vars: "{{ inventory_dir }}/group_vars/all/splunk_repository.yml"
     - include_vars: "{{ inventory_dir }}/group_vars/{{ app2group }}/deployment.yml"
 
@@ -25,14 +26,6 @@
     debug: 
        var: fqfilename.stat.path, fqfilename.stat.size
     when: fqfilename is defined
-
-#  - name: Check user input
-#    fail: msg="A required value is empty or wrong ==> '{{ item }}' <===. Please restart and ensure all mandatory fields are set!"
-#    with_items: [ app_name, app2group, filename ]
-#    when: "(item == 'filename' and {{ item }} !='' and (fqfilename.stat.exists != true or fqfilename.stat.isreg != true or fqfilename.stat.size < 100))
-#          or (item is not defined and item != 'filename') 
-#          or (item is defined and {{ item }} == '' and item != 'filename')"
-
 
   - name: Convert to ansible friendly name
     set_fact:

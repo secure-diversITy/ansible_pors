@@ -17,6 +17,7 @@ pors_ssh_user: ansible
 pors_temp_dir: /tmp/pors
 pors_data_dir: /opt/pors_data
 custom_playbook_dir: "{{ pors_data_dir }}/custom/playbooks"
+git_pors_data_push: no
 
 ###### splunk_repository.yml #######
 

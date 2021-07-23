@@ -122,7 +122,7 @@ vault_indexerdiscovery_pass4SymmKey: "idxdisco1234"
 
 # replication ssl password in:
 # server.conf [replication_port_ssl]
-# No default! so set this only when using own certs.
+# do not change when using splunk default certificates!
 vault_replication_port_sslPassword: password
 
 # the ssl password in:

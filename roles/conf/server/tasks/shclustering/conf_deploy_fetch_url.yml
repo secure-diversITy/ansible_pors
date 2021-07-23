@@ -17,7 +17,7 @@
     value: "https://{{ query('inventory_hostnames', '{{ shc_site }}_deployer') | join(' ') }}:8089"
     state: present
   when: 
-    - splunk_server_conf.shclustering.disabled == False
+    - (splunk_server_conf.shclustering.disabled is defined and splunk_server_conf.shclustering.disabled == False)
     - splunk_server_conf.shclustering.conf_deploy_fetch_url is defined
     - splunk_server_conf.shclustering.conf_deploy_fetch_url == "dynamic"
   notify: splunk restart
@@ -28,9 +28,10 @@
             option=conf_deploy_fetch_url
             value="{{ splunk_server_conf.shclustering.conf_deploy_fetch_url }}"
             state=present
-  when: splunk_server_conf.shclustering.disabled == False and
-        splunk_server_conf.shclustering.conf_deploy_fetch_url is defined and
-        splunk_server_conf.shclustering.conf_deploy_fetch_url != "dynamic"
+  when: 
+    - (splunk_server_conf.shclustering.disabled is defined and splunk_server_conf.shclustering.disabled == False)
+    - splunk_server_conf.shclustering.conf_deploy_fetch_url is defined
+    - splunk_server_conf.shclustering.conf_deploy_fetch_url != "dynamic"
   notify: splunk restart
 
 - name: "Configure server.conf [shclustering] - shclustering conf_deploy_fetch_url state=absent"

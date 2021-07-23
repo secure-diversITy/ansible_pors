@@ -18,6 +18,8 @@ splunk_server_conf:
   shclustering:
     shcluster_label: "shc_{{ target_env }}"
     pass4SymmKey: "{{ vault_shclustering_pass4SymmKey }}"
+    disabled: False
+    mode: searchhead
   sslConfig:
     sslRootCAPath: $SPLUNK_HOME/etc/auth/cacert.pem
     sslPassword: "{{ vault_sslConfig_sslPassword }}"

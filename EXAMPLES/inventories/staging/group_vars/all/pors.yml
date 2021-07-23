@@ -30,6 +30,18 @@
 # custom directory for playbooks
 #custom_playbook_dir: "{{ pors_data_dir }}/custom/playbooks"
 
+# PORS expects the data directory to be a git repo as all changes will be tracked
+# and commited. Besides that you can specify to push changes to the configured
+# git server automatically which is HIGHLY recommended. This way you have a backup
+# of all the important custom changes and the whole environment.
+# You have to init the directory with your git server and remote repo manually:
+# <create a pors_data repo in your git server>
+# cd /opt/pors_data
+# git init
+# git branch -m main
+# git remote add origin <REPO-URL>
+#git_pors_data_push: no
+
 # Set a name to identify this ansible instance
 # (deprecated but must be set atm, identifier for init lines and such
 # can be anything you like to identify this PORS server)

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-68"
+VERSIONNUM="4.0-70"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -135,7 +135,7 @@ fi
 ## @details Every user has its own temp directory accessible only by the PORS user
 ## @showinitializer
 declare WORKDIR="$MYHOME"
-[ ! -d "$WORKDIR" ]&& mkdir -p $WORKDIR
+[ ! -d "$WORKDIR" ] && mkdir -p $WORKDIR
 chown $USER $WORKDIR
 chmod 700 $WORKDIR  
 
@@ -147,11 +147,25 @@ chmod 700 $WORKDIR
 declare ADIR="/opt/pors"
 
 ## @var DATADIR
-## @brief the PORS data directory 
+## @brief the PORS data directory
 ## @showinitializer
 ## @details the PORS data dir. can be overwritten in ~/.pors/vars
 [ -z "$DATADIR" ] && \
 declare DATADIR="/opt/pors_data"
+
+## @var ALOG
+## @brief The PORS action log tracks any actions taken
+## @showinitializer
+## @details PORS action log. can be overwritten in ~/.pors/vars
+[ -z "$ALOG" ] && \
+declare ALOG="$DATADIR/audit/action.log"
+
+## @var ALOGMAXMB
+## @brief The PORS action log max size in MB before rotating
+## @showinitializer
+## @details can be overwritten in ~/.pors/vars
+[ -z "$ALOGMAXMB" ] && \
+declare ALOGMAXMB=10
 
 ## @var AINVENTORY
 ## @brief Ansible inventories directory
@@ -596,6 +610,7 @@ declare PBLOCGETVAR="${PBDIRLOCAL}/get_ansible_var.yml"
 ## - rest_properties_get
 ## - rest_properties_set
 ## - restart_splunkd
+## FIXME: DEPRECATED -> handled by vault now
 ## @showinitializer
 [ -z "$DEFSPLAPIADMIN" ] && \
 declare DEFSPLAPIADMIN=admin
@@ -724,7 +739,32 @@ F_LOGROTATE(){
     done
 
     echo "Starting new log - $(date +%Y-%m-%d_%T) - version: $VERSION" > $LOG
-    F_LOG $FUNCNAME "log has been rotated: $ROTATE"
+    F_LOG $FUNCNAME "main log has been rotated: $ROTATE"
+    F_LOGROTATESIZE "$ALOG" "$ALOGMAXMB"
+}
+
+## @fn F_LOGROTATESIZE()
+## @brief Rotates the PORS log by size
+## @details Rotates the PORS log by a given max size
+F_LOGROTATESIZE(){
+    F_LOG $FUNCNAME "started with $1, $2"
+
+    RLOG="$1"
+    RLOGSIZE="$2"
+    RLOGMAX=$((RLOGSIZE * 1024 * 1024))
+
+    [ -z "$RLOGMAX" ] && F_LOG $FUNCNAME "Error occured: max size not specified for $RLOG" && return 3
+    if [ -f "$RLOG" ];then
+        CSIZE=$(stat --printf=%s $RLOG)
+
+        if [ $CSIZE -ge $RLOGMAX ];then
+            NLOG=$(date +%s)
+            mv $RLOG ${RLOG}.${NLOG} && F_LOG $FUNCNAME "$RLOG rotated to ${RLOG}.${NLOG} successfully"
+        else
+            F_LOG $FUNCNAME ".. skipping log rotate for $RLOG as $CSIZE bytes is less then its limit ($RLOGMAX bytes)"
+        fi
+    fi
+    F_LOG $FUNCNAME finished
 }
 
 ## @fn F_RMVAULTPW()
@@ -766,6 +806,7 @@ F_EXIT(){
     ERRCODE=$1
 
     F_ENDSESS
+
     # finally terminate
     F_LOG $FUNCNAME "ended with code $ERRCODE" 
     exit $ERRCODE
@@ -1075,7 +1116,7 @@ F_RMAPP(){
             done
         ;;
     esac
-
+    F_PORSACTION "$SELECTION app(s)" "$SELECTION on $HOSTSELECTION:  $RMAPPS"
     F_DIAERR $RMERR "$SELECTION $RMAPPS"
     F_LOG $FUNCNAME ended
 }
@@ -1526,6 +1567,7 @@ F_ERRLOG(){
 
 ## @fn F_WAITBOX()
 ## @brief display a wait box (very useful when something is done in the background)
+## @param 1: a short message to display
 ## @details allows a 1-line (!) message where the wait box width gets sized dynamically based on the text length
 F_WAITBOX(){
         unset MSG
@@ -1684,6 +1726,7 @@ F_ENAPP(){
                                 done
                             done
                             F_ERRLOG 0 "linking $GITAPP to $tgroup\n\n" "$LOG"
+                            F_PORSACTION "linking app(s)" "linked $GITAPP to $tgroup"
                         else
                             F_DIAERR 4 "Aborted by user"
                         fi
@@ -1799,13 +1842,18 @@ F_APPTPLUPDATE(){
                 tasks)
                     [ -L "$LINKDIR" ] && F_LOG "$FUNCNAME" "link to $LINKDIR already set" && continue
                     [ -d "$LINKDIR" ] && F_LOG "$FUNCNAME" "removing deprecated dir: $LINKDIR as we are using links now" && rm -rvf "$LINKDIR" >> $LOG 2>&1
-                    ln -vsf $d $LINKDIR >> $LOG 2>&1
+                    ln -vsf $d $LINKDIR >> $LOG 2>&1 && F_LOG $FUNCNAME "link from $d to $LINKDIR created"
                 ;;
                 *)
                     [ -d "$LINKDIR" ] && F_LOG "$FUNCNAME" "clean dir: $LINKDIR" && rm -rvf "$LINKDIR" >> $LOG 2>&1
                     cp -avf $d $LINKDIR 1> /dev/null 2>> $LOG ;;
             esac
         done
+        if [ -L "$TROLEPATH/defaults" ];then
+            F_LOG "$FUNCNAME" "link to $TROLEPATH/defaults already set"
+        else
+            ln -fvs $ADIR/roles/defaults $TROLEPATH >> $LOG 2>&1 && F_LOG $FUNCNAME "created roles/defaults in $TROLEPATH dir"
+        fi
         [ $? -ne 0 ] && F_LOG $FUNCNAME "FATAL: Cannot link template to $ROLEPATH !" && return 3
         F_LOG "$FUNCNAME" "finished"
 }
@@ -2344,9 +2392,10 @@ F_SHEXEC(){
 			DS-reload "reloads the serverclass on a DS (deploymentserver)" off \
 			SHC-apply-cb "apply cluster-bundle on a DEP (deployer)" off \
 			MN-apply-cb "apply cluster-bundle on a MN (masternode)" off \
-			custom-reload "define your own reload command" off \
 			2>&1 >/dev/tty)
 		ERR=$?
+		#FIXME: disabled as it is nothing a regular user want to do actually:
+                #	custom-reload "define your own reload command" off \
 		echo "$FUNCNAME: err was $ERR" >> $LOG
 		if [ $ERR -ne 0 ];then
 			echo "$FUNCNAME: err was $ERR" >> $LOG
@@ -3485,33 +3534,38 @@ F_DEPLOYAPP(){
             [ -z "$DEPAPPS" ] && F_LOG $FUNCNAME "ERROR: No app found for deployment" && return 99
             F_LOG $FUNCNAME "Will deploy these apps on $HOSTSELECTION:\n$DEPAPPS"
 
-            [ "$RUNMODE" == "interactive" ] && F_DIALOG --scrollbar --colors --yesno "PORS will deploy on\Zb\Z1\n\n   $HOSTSELECTION\n\n\Znthe following apps (use Page-up/-down to scroll, select <yes> to proceed):\Zb\Z4\n$DEPAPPS\n\n\ZnAre you sure?" 40 100
-            if [ $? -eq 0 ]||[ "$RUNMODE" == "batch" ];then
+            [ "$RUNMODE" == "interactive" ] && F_DIALOG --scrollbar --colors --yesno "PORS will process on\Zb\Z1\n\n   $HOSTSELECTION\n\n\Znthe following apps (use Page-up/-down to scroll, select <yes> to proceed):\Zb\Z4\n$DEPAPPS\n\n\ZnAre you sure?" 40 100
+            LASTERR=$?
+            if [ $LASTERR -eq 0 ]||[ "$RUNMODE" == "batch" ];then
 		    for tgroup in $HOSTSELECTION;do
-			# CHECK first!
 			F_LOG $FUNCNAME "will exec: $ABIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
-			#$ABIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup | tee -a $LOG
-			#$ABIN -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e "target=$tgroup accept_hostkey=true" --tags $tgroup 2>&1 | tee -a $LOG
-			F_ABIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Deploying <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
-                        ERRCODE=$?
-                        F_LOG $FUNCNAME "deploying\n\n$DEPAPPS\n\nto $tgroup ended with $ERRCODE"
-                        if [ $ERRCODE -eq 0 ];then    
+			F_ABIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Processing <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
+                        for ad in $(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2 | tr -d '$');do
+                            if [ -L "$DATADIR/custom/roles/apps/$ad/defaults" ];then 
+                                F_LOG "$FUNCNAME" "link to $DATADIR/custom/roles/apps/$ad/defaults already set" 
+                            else
+                                ln -fvs $ADIR/roles/defaults $DATADIR/custom/roles/apps/$ad/ >> $LOG 2>&1 && F_LOG $FUNCNAME "created roles/defaults in $DATADIR/custom/roles/apps/$ad dir" 
+                            fi
+                        done
+                        LASTERR=$?
+                        F_LOG $FUNCNAME "Processing\n\n$DEPAPPS\n\nto $tgroup ended with $LASTERR"
+                        if [ $LASTERR -eq 0 ];then    
                             for app in $(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2 | tr -d '$');do
                                 APPP="$AINVENTORY/$TARGETENV/group_vars/$tgroup/$app"
                                 egrep -ql "^\s*delete:\s*[Tt]rue" $APPP && F_LOG $FUNCNAME "$app has been removed on $tgroup. removing local link..." && rm -vf $APPP 2>&1 >> $LOG
                             done
-		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$ERRCODE" "<deploying apps to $tgroup>" "$LOG"
+		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<deploying apps to $tgroup>" "$LOG"
                             # always end with errcode 0
                             true
                         else
-		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$ERRCODE" "<deploying apps to $tgroup>" "$LOG"
+		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<deploying apps to $tgroup>" "$LOG"
                         fi
 		    done
+                    F_PORSACTION "processing apps" "processed these apps on $HOSTSELECTION: $DEPAPPS"
             else
                 F_ERRLOG 3 "Aborted by user\n" "$LOG"
             fi
 	fi
-        LASTERR=$?
         F_LOG $FUNCNAME "ended with $LASTERR"
         return $LASTERR
 }
@@ -5656,6 +5710,151 @@ F_GETANSIBLEVAR(){
     return $ERR
 }
 
+## @fn F_PORSACTION()
+## @brief Do internal PORS actions when triggered
+## @param 1 required: title
+## @param 2 required: msg
+## @details Examples: writing action log, committing pors_data changes
+F_PORSACTION(){
+    F_LOG $FUNCNAME "started with $1, $2"
+    ATITLE="$1"
+    AMSG=$(echo "$2" | tr "\n" " " | sed 's/\\n/ /g')
+
+    [ -z "$ATITLE" ] && F_LOG $FUNCNAME "ERROR: missing action title!" && return 3
+    [ -z "$AMSG" ] && F_LOG $FUNCNAME "ERROR: missing action message!" && return 3
+
+    F_WAITBOX "... saving changes"
+
+    # write action log
+    PREFIX="$(date '+%F_%T') | $TARGETENV | $CALLUSR"
+    echo -e "$PREFIX | $ATITLE | $AMSG" >> $ALOG 
+
+    # commit any changes in pors_data
+    F_DATACOMMIT "$ATITLE" "$AMSG"
+
+    F_LOG $FUNCNAME "finished"
+}
+
+## @fn F_DATAGIT()
+## @brief Check pors_data directory -> git connection
+## @details tbd
+F_DATAGIT(){
+    F_LOG $FUNCNAME "started with $1"
+
+    F_LOG $FUNCNAME "Checking git init"
+    [ ! -d "$DATADIR/.git" ] && cd $DATADIR && git init 2>&1 >> $LOG && git branch -m main 2>&1 >> $LOG && F_LOG $FUNCNAME "$DATADIR is a git repo now!"
+    [ ! -f "$DATADIR/.gitignore" ] && cat >$DATADIR/.gitignore << _EOIGN
+*.pyc
+F_*
+ae_deploy_apps.yml
+*.retry
+_EOIGN
+    cd $ADIR
+    F_LOG $FUNCNAME "finished"
+}
+
+## @fn F_DATACHANGED()
+## @brief Check if pors_data directory contain changes
+## @return 0: no changes
+## @return 1: changes exists
+## @details tbd
+F_DATACHANGED(){
+    F_LOG $FUNCNAME "started with $1"
+    cd $DATADIR
+    git add -A . 2>&1 >> $LOG
+    F_LOG $FUNCNAME "The following is the output of git diff:"
+    git diff --cached --exit-code 2>&1 >> $LOG
+    GERR=$?
+    cd $ADIR
+    F_LOG $FUNCNAME "finished"
+    return $GERR
+}
+
+## @fn F_DATACOMMIT()
+## @brief Commit changes within pors_data directory
+## @param 1 required: a commit title (will be shorten to 50 chars)
+## @param 2 required: a commit msg (will be split every 72 chars)
+## @return exitcode for commit action (should be 0)
+## @details When triggered by a function in PORS the current changes get committed
+## and optionally pushed to a remote git repo.
+F_DATACOMMIT(){
+    F_LOG $FUNCNAME "started with $1, $2"
+    unset CMSG CUSER CTITLE CNEED NEXT GARGS
+
+    # shorten the title to 52 chars
+    CTITLERAW="$1"
+    CTITLE="${CTITLERAW:0:51}"
+    CMSG=$(echo "$2" | tr "\n" " ")
+    #declare -a GARGS=()
+
+    [ -z "$CTITLE" ] && F_LOG $FUNCNAME "ERROR: missing commit title!" && return 3
+    [ -z "$CMSG" ] && F_LOG $FUNCNAME "ERROR: missing commit message!" && return 3
+
+
+    F_LOG $FUNCNAME "CTITLE: $CTITLE | CMSG: $CMSG"
+    F_DATACHANGED
+    CNEED=$?
+    if [ $CNEED -eq 1 ];then
+        # split long commit messages first
+        NSPLIT=${#CMSG}
+        if [ $NSPLIT -gt 72 ];then
+            F_LOG $FUNCNAME "CMSG needs exceeds 72 chars so will be split now.."
+            GARGS="-m 'the following changes have been applied by $CALLUSR:' -m '${CMSG:0:71}'"
+            NEXT=${CMSG:72:2000}
+            while [ "${#NEXT}" -gt 0 ]; do
+                GARGS="$GARGS -m '${NEXT:0:71}'"
+                NEXT=${NEXT:72:2000}
+            done
+        else
+            F_LOG $FUNCNAME "CMSG shorter then 72 chars - using it as it is"
+            GARGS="-m 'the following changes have been applied by $CALLUSR:' -m '$CMSG'"
+        fi
+        cd $DATADIR
+        F_LOG $FUNCNAME "committing the following changes:"
+        git status --porcelain 2>&1 >> $LOG
+        F_LOG $FUNCNAME "Will use this git command:\ngit commit -m \"$CUSER: $CTITLE\" $GARGS\n"
+        eval git commit -m "'$TARGETENV: $CTITLE'" ${GARGS} >> $LOG 2>&1
+        GAERR=$?
+        if [ $GAERR -ne 0 ];then
+            F_LOG $FUNCNAME "Error >$GAERR< occured while committing changes!"
+        else
+            F_LOG $FUNCNAME "The following commit has been created:"
+            git log -1 >> $LOG 2>&1 
+        fi
+    else
+        F_LOG $FUNCNAME "no changes so no commit needed"
+        GAERR=0
+    fi
+    cd $ADIR
+
+    F_LOG $FUNCNAME "finished"
+    return $GAERR
+}
+
+## @fn F_DATAPUSH()
+## @brief Push committed pors_data changes (if enabled)
+## @return Exit code for pushing the changes
+## @details tbd
+F_DATAPUSH(){
+    F_LOG $FUNCNAME "started with $1"
+    F_WAITBOX " ... checking if PORS data dir should be pushed"
+    GITON=$(F_GETANSIBLEVAR git_pors_data_push)
+    PERR=0
+
+    if [ "$GITON" == "yes" ];then
+        F_WAITBOX " ... pushing PORS data dir changes "
+        F_LOG $FUNCNAME "pushing data dir to git is enabled"
+        cd $DATADIR
+        git push 2>&1 >> $LOG
+        PERR=$?
+        cd $ADIR
+    else
+        F_LOG $FUNCNAME "skipping data dir push because it is disabled. Consider setting 'git_pors_data_push: yes' in pors.yml"
+    fi
+    F_LOG $FUNCNAME "finished"
+    return $PERR
+}
+
 ## @fn F_MENUMAIN()
 ## @brief the main menu window of PORS in regular mode
 F_MENUMAIN(){
@@ -5702,9 +5901,8 @@ F_MENUMAIN(){
 			"" "" \
 			3>&1 1>&2 2>&3)
 
-			#UpgradeCluster "Upgrade a splunk> cluster (SH / IX)" \
-
 		if [ $? -ne 0 ]; then
+                    [ -f "$VAULTTEMPFILE" ] && F_DATAPUSH
                     clear
 		    echo -e "$0 closed on user request.. see you next time ;)\n"
                     F_LOG MAIN "$0 closed on user request"
@@ -5876,6 +6074,9 @@ echo "starting PORS as user $ME"
 
 [ ! -f $HOME/.ansible.cfg ] && echo -e "\nERROR: missing $HOME/.ansible.cfg. Please ensure you have copied it from EXAMPLES/ansible.cfg\n\ne.g: cp EXAMPLES/ansible.cfg $HOME/.ansible.cfg\n" && exit 4
 
+# ensure audit log dir exists
+[ ! -d "$DATADIR/audit" ] && mkdir -p $DATADIR/audit
+
 # check ansible version
 unset AVERSF AVERS A2VERSF A2VERS
 MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
@@ -5980,6 +6181,9 @@ if [ $? -eq 0 ];then
     ## @showinitializer
     declare PORS_TEMPDIR=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
 
+    # check uncommitted changes & commit if needed
+    F_DATACOMMIT "manual changes" "data directory has been altered outside of PORS - committed the current state before actually starting.."
+
    # run
     if [ "$BPLAY" ];then
         F_LOG MAIN "$ABIN -i $HOSTFILE $BPLAY -e \"target=$BTARGET accept_hostkey=true $BPLAYARGS\""
@@ -6077,6 +6281,8 @@ else
         echo KICK: $KICKUSER
         [ -f "$EXECBIT" ]&&[ "$KICKUSER" != "y" ] && F_EXITUNCLEAN
         echo "$CALLUSR" > $EXECBIT && chmod 777 $EXECBIT
+        # check uncommitted changes & commit if needed
+        F_DATACOMMIT "manual changes" "data directory has been altered outside of PORS - committed the current state before actually starting.."
     else
         F_LOG START "running in STEALTH MODE!!!"
         declare LOG="${WORKDIR}/${BIN}-stealthmode.log"
@@ -6097,6 +6303,7 @@ else
     # pre-setup DATADIR
     DATADIRS="$DATADIR/custom/roles $DATADIR/custom/playbooks"
     for d in $DATADIRS;do [ ! -d "$d" ] && mkdir -p $d;done
+    [ ! -d "$DATADIR/custom/roles/defaults" ] && ln -s $ADIR/roles/defaults $DATADIR/custom/roles/ && F_LOG $FUNCNAME "created roles/defaults in data dir"
 
     END=0
     while [ $END -eq 0 ];do
