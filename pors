@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-70"
+VERSIONNUM="4.0-71"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -670,7 +670,7 @@ declare DEFAULTVAULT=$AINVENTORY/$TARGETENV/group_vars/all/vault.yml
 ## @var VALIDROLES
 ## @brief Valid Splunk Server Role names
 ## @details these are in use everwhere in PORS, i.e. in playbooks, target groups as well. Fully static. do NOT touch these.
-declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_masternode logstream_worker masternode monitoringconsole peernode searchhead shcmember"
+declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_leader logstream_worker masternode monitoringconsole peernode searchhead shcmember"
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
@@ -1405,6 +1405,7 @@ F_DIMPORT(){
 
 	# return errorcode to calling function
 	echo $?
+        F_PORSACTION "pulled system/local" "($FUNCNAME) fetched system/local confs from ${SSHHOST}"
 
 #	SIMP=$(F_DIALOG --inputbox "$TPLMSG\nNow initialize the deployment directory by copying your initial config files you want to deploy.\n\n\nWhere should I copy the initial configs from:" 15 80 2>&1 >/dev/tty)
 	echo "$FUNCNAME finished" >> $LOG
@@ -1854,6 +1855,7 @@ F_APPTPLUPDATE(){
         else
             ln -fvs $ADIR/roles/defaults $TROLEPATH >> $LOG 2>&1 && F_LOG $FUNCNAME "created roles/defaults in $TROLEPATH dir"
         fi
+        F_PORSACTION "app template enrolled" "($FUNCNAME) app template enrolled to $TROLEPATH"
         [ $? -ne 0 ] && F_LOG $FUNCNAME "FATAL: Cannot link template to $ROLEPATH !" && return 3
         F_LOG "$FUNCNAME" "finished"
 }
@@ -2092,6 +2094,7 @@ F_EDITSYSC(){
 						echo -e "** Go back by typing <exit> or <CTRL+D>"
 						echo -e "***********************************************************************\n"
 						bash --rcfile <(echo "PS1=\"$EDITHOST/system/local \$>\";cd $SYSDIR/ && ls -la")
+                                                F_PORSACTION "system/local changed" "($FUNCNAME) - system/local changed on $EDITHOST"
 					else
 						if [ -z "$FTARGET" ];then
                	           		      F_DIALOG --msgbox "ERROR: no selection made. Choose a file." 10 30
@@ -2106,6 +2109,7 @@ F_EDITSYSC(){
 				if [ "$ABORTED" -eq 0 ]&&[ -z "$DIROPENED" ]&&[ "$HABORTED" -ne 1 ];then
 					if [ -f $SYSDIR/${FTARGET} ];then
 						$EDITBIN $SYSDIR/${FTARGET}
+                                                F_PORSACTION "system/local changed" "($FUNCNAME) - $EDITHOST -> $SYSDIR/${FTARGET} changed"
 					else
 						F_DIALOG --msgbox "NO FILES THERE?! Directory seems to be empty try a pull first" 10 30
 						break
@@ -2371,6 +2375,7 @@ F_SPLACT(){
         LASTERR=$?
         F_ERRLOG "$LASTERR" "splunk <${SPLEXE}> ${ECUST} for:\n\n$SELHOSTS" "$LOG"
 	F_LOG $FUNCNAME "ended with $LASTERR"
+        F_PORSACTION "nogit" "($FUNCNAME) - executed splunk $SPLEXE on $SELHOSTS"
         return $LASTERR
 }
 
@@ -2475,7 +2480,7 @@ F_SHEXEC(){
     AERR=$?
     [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$SHOSTST" "$LOG"
     [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for:\n\n$SHOSTST"
-#    [ $RUNMODE != "batch" ] && F_MENUMAIN
+    F_PORSACTION "nogit" "($FUNCNAME) - executed splunk $SHEXE on $SHOSTS"
     return $AERR
 }
 
@@ -2544,6 +2549,7 @@ F_SHUPGRADE(){
 	# do it
 	F_ABIN "$UTMPGRP" "$PBSHINSTALL" "\Za\Z1UPGRADING/INSTALLING ...\Z\n" "--limit tmpshmaint" 
         F_ERRLOG "${PIPESTATUS[0]}" "shelper upgrade/install for:\n\n$UPGRADEHOSTST" "$LOG"
+        F_PORSACTION "nogit" "($FUNCNAME) - upgraded/installed splunk on $UPGRADEHOSTS"
 }
 
 ## @fn F_GETAPICREDS()
@@ -2632,7 +2638,7 @@ F_DLSPLUNK() {
     F_RMVAULTPW
     F_DIAERR $ERR "Downloading splunk version: $NVER"
     [ $ERR -eq 0 ] && F_DIALOG --infobox "\nSplunk $NVER has been staged automatically." 5 80
-    
+    F_PORSACTION "nogit" "($FUNCNAME) - downloaded splunk version $NVER - $NHASH"
     F_LOG $FUNCNAME ended
 }
 
@@ -2710,6 +2716,7 @@ F_STAGESPL(){
     [ -z "$AUTOVER" ] && F_DIAERR $? "Staging splunk (VER: $VER, VERHASH: $VERHASH)"
 
     F_LOG $FUNCNAME "staged version: $SELECTION (FVER: $FVER, VER: $VER, VERHASH: $VERHASH)"
+    F_PORSACTION "staged splunk $VER" "($FUNCNAME) - staged splunk version $VER - $VERHASH"
     F_LOG $FUNCNAME ended
 }
 
@@ -2807,7 +2814,7 @@ F_DLLOGSTREAM() {
     F_RMVAULTPW
     F_DIAERR $ERR "Downloading cribl logstream version: $NVER"
     [ $ERR -eq 0 ] && F_DIALOG --infobox "\ncribl logstream $NVER has been staged automatically." 5 80
-    
+    F_PORSACTION "nogit" "($FUNCNAME) - downloaded cribl logstream version $NVER - $NHASH"    
     F_LOG $FUNCNAME ended
 }
 
@@ -2877,6 +2884,7 @@ F_STAGELS(){
     [ -z "$AUTOVER" ] && F_DIAERR $? "Staging splunk (VER: $VER, VERHASH: $VERHASH)"
 
     F_LOG $FUNCNAME "staged version: $SELECTION (FVER: $FVER, VER: $VER, VERHASH: $VERHASH)"
+    F_PORSACTION "staged logstream $VER" "($FUNCNAME) - staged cribl logstream version $VER - $VERHASH"
     F_LOG $FUNCNAME ended
 }
 
@@ -3004,6 +3012,7 @@ F_INSTALLSPL(){
     # doit
     F_ABIN "$HOSTFILE" "$PBINSTALL" "\Za\Z1Installing $SPLTYPE ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','splunk_type':'$SPLTYPE'}"
     F_ERRLOG $? "Installing splunk on:\n\n$SHOSTST" "$LOG"
+    F_PORSACTION "nogit" "($FUNCNAME) - installed $SPLTYPE v${CURVER} on $SHOSTS"
 
     # cleanup
     [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
@@ -3029,7 +3038,8 @@ F_INSTALLLOGSTREAM(){
 
     F_WAITBOX "Collecting hostnames ..."
 
-    SHOSTS="$(LISTTYPE=checklist F_EXPANDHOSTS logstream_worker $ITMPGRP clean)"
+    SHOSTS="$(LISTTYPE=checklist F_EXPANDHOSTS logstream_all $ITMPGRP clean)"
+
     [ $? -eq 4 ] && return 4
     SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
 
@@ -3071,6 +3081,7 @@ F_INSTALLLOGSTREAM(){
     # doit
     F_ABIN "$HOSTFILE" "$PBINSTALLLOGSTREAM" "\Za\Z1Installing cribl logstream ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG $? "Installing cribl logstream on:\n\n$HOSTSELECTION" "$LOG"
+    F_PORSACTION "nogit" "($FUNCNAME) - installed cribl logstream v${CURVER} on $HOSTSELECTION"
 
     # cleanup
     [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
@@ -3098,6 +3109,7 @@ F_ADDSERVICEUSER(){
     if [ ! -z "$OS_SERVICE_USER" ];then
         [ ! -z $OS_SERVICE_USER_EXTRAGROUPS ] && _GRP="$OS_SERVICE_USER_EXTRAGROUPS"
         F_ADDSYSUSER "$_HOST" "$OS_SERVICE_USER" "$OS_SERVICE_USER_EXTRAGROUPS"
+        F_PORSACTION "nogit" "($FUNCNAME) - OS service account $OS_SERVICE_USER created on $HOST"
         return $?
     else
         F_LOG $FUNCNAME "SKIPPING: No OS_SERVICE_USER specified"
@@ -3126,7 +3138,9 @@ F_ADDSYSUSER(){
     fi
 
     F_ABIN $HOSTFILE $PBCREATEUSER "\Za\Z1Adding Linux user ($_USER) ...\Z\n" "--limit $_HOST -e {'target':'$_HOST','user_name':'$_USER','user_pass':'$_PASS','appadm':'$_GRP'}"
-    return $?
+    CERR=$?
+    F_PORSACTION "nogit" "($FUNCNAME) - linux user $_USER created on $_HOST"
+    return $CERR
 }
 
 ## @fn F_UPGRADEMENU()
@@ -3274,6 +3288,7 @@ F_UPGRADE(){
 	            # upgrade
 	            F_ABIN "$UTMPGRP" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit tmpupgrade" 
                     F_ERRLOG "${PIPESTATUS[0]}" "Upgrade $UPGTYPE to $STAGEDVER for:\n\n$UPGRADEHOSTST" "$LOG"
+                    F_PORSACTION "nogit" "($FUNCNAME) - upgraded $UPGTYPE to $STAGEDVER on $UPGRADEHOSTST"
                 fi
             fi
             SHOWREBHINT=$(F_GETANSIBLEVAR "system.upgrade_os")
@@ -3288,6 +3303,7 @@ F_UPGRADE(){
             F_ABIN "$HOSTFILE" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit $AUTOMODE -e {'splunk_user':'$SPLUSR','splunk_password':'$SPLPW'}"
             UPERR=${PIPESTATUS[0]}
             F_LOG $FUNCNAME "Upgrade $UPGTYPE for:\n\n$UPGRADEHOSTST ended with: $UPERR"
+            F_PORSACTION "nogit" "($FUNCNAME) - upgraded $UPGTYPE to $STAGEDVER on $UPGRADEHOSTST"
             return $UPERR
     fi
     F_LOG $FUNCNAME ended
@@ -3561,7 +3577,7 @@ F_DEPLOYAPP(){
 		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<deploying apps to $tgroup>" "$LOG"
                         fi
 		    done
-                    F_PORSACTION "processing apps" "processed these apps on $HOSTSELECTION: $DEPAPPS"
+                    F_PORSACTION "nogit" "processed these apps on $HOSTSELECTION: $DEPAPPS"
             else
                 F_ERRLOG 3 "Aborted by user\n" "$LOG"
             fi
@@ -3694,7 +3710,7 @@ F_CONFMENU(){
 }
 
 ## @fn F_DEPLOYKEY()
-## @brief Deploy a key to one or multiple targets
+## @brief Deploy a splunk server key to one or multiple targets
 ## @param1 source hostname (as in ansible hosts file)
 ## @param2 destination target group
 ## @exception ..
@@ -3715,7 +3731,7 @@ F_DEPLOYKEY(){
     F_ABIN "$HOSTFILE" "$PBDEPLOYKEY" "\Za\Z1Key deployment running ...\Z\n" "-e {'target_group':'$DESTGRP'} --limit $SRCNAME"
     LERR="${PIPESTATUS[0]}"
     [ $LERR -ne 0 ] && F_ERRLOG "$LERR" "Deploying key of: $SRCNAME" "$LOG" && return $LERR
-
+    F_PORSACTION "nogit" "($FUNCNAME) - deployed splunk key of $SRCNAME to $DESTGRP"
     F_LOG $FUNCNAME ended
 } 
 
@@ -3767,6 +3783,7 @@ F_ADDDEP(){
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFDEP" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration SHC Deployer on:\n\n$SHOSTST" "$LOG"
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as SHC deployer"
 
     F_LOG $FUNCNAME ended
 }
@@ -3826,6 +3843,7 @@ F_ADDLM(){
 #    for p in $PEERS;do F_DEPLOYKEY ${SHOSTST/:*/} ${p/:*/} ; done
     #F_ERRLOG "$LERR" "configuration LicenseMaster on:\n\n$SHOSTST" "$LOG"
 
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as LicenseMaster"
     unset LISTTYPE
     F_LOG $FUNCNAME ended
 }
@@ -3879,6 +3897,7 @@ F_ADDMN(){
     #PEERS=$(F_EXPANDHOSTS peernode $ITMPGRP | sed 's/site._.*//g')
     #for p in $PEERS;do F_DEPLOYKEY $SHOSTST $p ; done
 
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as Indexer MasterNode"
     unset LISTTYPE
     F_LOG $FUNCNAME ended
 }
@@ -4004,7 +4023,7 @@ F_ADDMC(){
     fi
     
     F_ERRLOG $? "configuration as $WHAT on:\n\n$SHOSTST" "$LOG"
-
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as $WHAT"
     F_LOG $FUNCNAME ended
 }
 
@@ -4065,7 +4084,7 @@ F_ADDDS(){
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFDS" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "$?" "configuration as Deploymentserver on:\n\n$SHOSTST" "$LOG"
-
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as DeploymentServer"
     F_LOG $FUNCNAME ended
 }
 
@@ -4119,7 +4138,7 @@ F_ADDSHCMEMBER(){
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','shc_site':'${SITESEL}'}"
     F_ERRLOG "$?" "configuration as SHC member on:\n\n$SHOSTST" "$LOG"
-
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as SHC member"
     F_LOG $FUNCNAME ended
 }
 
@@ -4165,7 +4184,7 @@ F_ADDPEER(){
         # doit
         F_ABIN "$HOSTFILE" "$PBCONFPEER" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
         F_ERRLOG "${PIPESTATUS[0]}" "configuration as indexer peernode on:\n\n$SHOSTST" "$LOG"
-
+        F_PORSACTION "nogit" "($FUNCNAME) - configured $HOSTSELECTION as indexer peernode"
         F_LOG $FUNCNAME ended	
 }
 
@@ -4206,7 +4225,7 @@ F_ADDSH(){
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFSH" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as SearchHead on:\n\n$SHOSTST" "$LOG"
-
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $SHOSTS as SearchHead"
     F_LOG $FUNCNAME ended
 }
 
@@ -4244,7 +4263,7 @@ F_ADDHF(){
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFHF" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
     F_ERRLOG "${PIPESTATUS[0]}" "configuration as Heavy Forwarder on:\n\n$SHOSTST" "$LOG"
-
+    F_PORSACTION "nogit" "($FUNCNAME) - configured $SHOSTS as HeavyForwarder"      
     F_LOG $FUNCNAME ended
 }
 
@@ -4594,7 +4613,7 @@ F_VSPHERE_DISKADD(){
 
         VCDS=$(F_VSPHERE_SELDS)
 
-        DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST- Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
+        DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
                             "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
                             "Disk size in GB" 2 1 "${!VMDISKSIZEGB}" 2 42 40 20 \
                             "Disk type (thin|eagerzeroedthick|thick)" 3 1 "${!VMDISKTYPE}" 3 42 40 16 \
@@ -4618,6 +4637,7 @@ F_VSPHERE_DISKADD(){
         F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}VCDS=${VCDS}"
 
         F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
+        F_PORSACTION "hw profile updated" "($FUNCNAME) - added ${!VMDISKDEV} to $VMHOST"
     done
     VMERR=$?
 
@@ -4660,7 +4680,7 @@ F_VSPHERE_DISKSETUP(){
         VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
         VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
 
-        DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST- Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
+        DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 20 100 10  \
                             "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
                             "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
                             "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
@@ -4702,6 +4722,7 @@ F_VSPHERE_DISKSETUP(){
         F_LOG $FUNCNAME "added VMDISK${VMDISKCNT}LVMLV=${UVMDISKLVMLV}"
 
         F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
+        F_PORSACTION "hw profile updated" "($FUNCNAME) - added ${!VMDISKDEV} to $VMHOST"
     done
     VMERR=$?
 
@@ -5212,12 +5233,12 @@ F_STARTVMDEP(){
         rm -vf $TMPHWPROFILE >> $LOG 2>&1
     else
         mv $TMPHWPROFILE $IACDIR/
+        F_PORSACTION "new IaC profile in $IACDIRSHORT" "new profile for $VMHOSTF stored in $IACDIRSHORT ($IACDIR)"
     fi
     
+    F_LOG $FUNCNAME ended
     # close function when aborted
     [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "closing func due to abort state" && return 3
-
-    F_LOG $FUNCNAME ended
 }
 
 ## @fn F_GOOGLECP_DEPLOY()
@@ -5428,6 +5449,7 @@ F_FORMATDISK(){
             F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
         fi
         ERR=$?
+        F_PORSACTION "nogit" "($FUNCNAME) - format ${!VMDISKDEV} on $VMHOST (exit code: $ERR)"
         [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
 
         # FS move needed?
@@ -5526,7 +5548,8 @@ F_ADDDISK(){
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
-            F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
+            F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))"
+            F_PORSACTION "nogit" "($FUNCNAME) - added ${!VMDISKDEV} to $VMHOSTF"
     done
  
     F_LOG $FUNCNAME ended
@@ -5591,9 +5614,9 @@ F_BASEINSTALL(){
     done
     LERR=$?
     [ "$LERR" -ne 0 ] && F_DIAERR $LERR "Base install on:\n\n$SELHOSTS\n\n"
-    return $LERR
-
+    F_PORSACTION "nogit" "($FUNCNAME) - finished base install on $SELHOSTS"
     F_LOG $FUNCNAME ended
+    return $LERR
 }
 
 ## @fn F_SYSUPGRADE()
@@ -5638,6 +5661,7 @@ F_SYSUPGRADE(){
     else
         LASTERR=$FORERR
     fi
+    F_PORSACTION "nogit" "($FUNCNAME) - System packages or upgrade(s) have been installed for: $SELHOSTS"
     F_LOG $FUNCNAME "ended with $LASTERR"
     return $LASTERR
 }
@@ -5657,10 +5681,12 @@ F_SYSREBOOT(){
         honly=${host/:*}
         if [ $ASKUSER == "autoreboot" ];then
             F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
+            F_PORSACTION "nogit" "($FUNCNAME) - rebooted $honly"
         else
             F_DIALOG --scrollbar --yesno "\n\nThe server\n\n$host\n\nrequires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
             if [ $? -eq 0 ];then
                 F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
+                F_PORSACTION "nogit" "($FUNCNAME) - rebooted $honly"
             else
                 F_LOG "$FUNCNAME" "Skipped rebooting $honly"
             fi
@@ -5712,7 +5738,7 @@ F_GETANSIBLEVAR(){
 
 ## @fn F_PORSACTION()
 ## @brief Do internal PORS actions when triggered
-## @param 1 required: title
+## @param 1 required: title or "nogit" to skip git commit
 ## @param 2 required: msg
 ## @details Examples: writing action log, committing pors_data changes
 F_PORSACTION(){
@@ -5730,7 +5756,7 @@ F_PORSACTION(){
     echo -e "$PREFIX | $ATITLE | $AMSG" >> $ALOG 
 
     # commit any changes in pors_data
-    F_DATACOMMIT "$ATITLE" "$AMSG"
+    [ "$ATITLE" != "nogit" ] && F_DATACOMMIT "$ATITLE" "$AMSG"
 
     F_LOG $FUNCNAME "finished"
 }
