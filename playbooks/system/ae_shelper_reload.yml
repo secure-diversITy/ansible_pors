@@ -23,17 +23,14 @@
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
       debug:
         msg: "Please be patient! {{ shelper_action }} in progress"
-      when: generated_shcmember is defined and generated_deployer is defined
 
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
       shell: echo "... please be patient." 
       register: actionresult
       notify: "shelper {{ shelper_action }}"
-      when: generated_shcmember is defined and generated_deployer is defined
 
     - meta: flush_handlers
 
     - name: Print result
       debug: 
         msg: "{{ shelper_result.stdout_lines }}"
-      when: generated_shcmember is defined and generated_deployer is defined
