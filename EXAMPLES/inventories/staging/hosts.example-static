@@ -130,8 +130,13 @@ site1_peernode
 ########## CRIBL logstream
 
 # CRIBL logstream master node
-[logstream_mn]
+[logstream_leader]
 
 # CRIBL logstream worker
 [logstream_worker]
+
+
+[logstream_all:children]
+logstream_leader
+logstream_worker
 

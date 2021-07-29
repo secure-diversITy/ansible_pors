@@ -5,8 +5,15 @@ plugin: community.general.proxmox
 
 # target environment
 all:
+    # change this to your environment
     vars:
         target_env: "<production|staging|development>"
+    # do not touch the following
+    children:
+        logstream_all:
+            logstream_leader:
+            logstream_worker:
+
 
 # do not touch this
 pors_server:

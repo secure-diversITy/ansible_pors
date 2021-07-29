@@ -4,10 +4,16 @@
 ###############################################################
 plugin: gcp_compute
 
-# target environment
+# target environment and required group in group
 all:
+    # change this to your environment
     vars:
         target_env: "<production|staging|development>"
+    # do not touch the following
+    children:
+        logstream_all:
+            logstream_leader:
+            logstream_worker:
 
 # do not touch this
 pors_server:
@@ -55,8 +61,8 @@ groups:
     - monitoringconsole:          "'mc' in name"
     - deploymentserver:           "'ds' in name"
     - universal_forwarder:        "'fwd' in name"
-    - logstream_masternode:       "'criblmn' in name"
-    - logstream_worker:           "'cribl' in name"
+    - logstream_leader:           "'cribll' in name"
+    - logstream_worker:           "'criblw' in name"
 
 # A list of options that describe the ordering for which hostnames should be assigned. Currently supported hostnames are 'public_ip', 'private_ip', or 'name'.
 hostnames:
