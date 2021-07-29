@@ -11,7 +11,7 @@
     domain: "{{ cribl_install_user }}"
     limit_type: hard
     limit_item: nofile
-    value: "{{ logstream_ulimit_nofile_hard }}"
+    value: "{{ logstream_ulimit_nofile_softhard }}"
 
 - name: Set ulimit (nproc,soft)
   community.general.pam_limits:

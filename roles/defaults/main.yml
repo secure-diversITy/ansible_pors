@@ -48,7 +48,7 @@ custom:
 
 ####### cribl_configuration.yml ######
 
-cribl_ssh_user: ansible
+cribl_ssh_user: "{{ pors_ssh_user }}"
 cribl_install_user: clintsharp
 cribl_install_group: clintsharp
 cribl_optimize:
@@ -105,7 +105,6 @@ splunk_conf_path: /opt/splunk/etc/system/local
 splunk_install_user: splunk
 splunk_install_group: splunk
 lm_push_license: True
-
 
 ####### splunk_installation.yml ########
 

@@ -18,10 +18,9 @@
   when: initfile is defined and initfile.stat.exists
 
 - name: Install service (init)
-  shell: "cp {{ logstream_installation.home_path }}/bin/cribl.init.d.template /etc/init.d/cribl; chmod +x /etc/init.d/cribl"
+  shell: "{{ logstream_installation.home_path }}/bin/cribl boot-start enable -m initd -u {{ cribl_install_user }}"
   when: 
     - (initfile is not defined or initfile.stat.exists != true)
-    #- logstream_upgrade != true
 
 - name: Reload init.d conf
   shell: systemctl daemon-reload

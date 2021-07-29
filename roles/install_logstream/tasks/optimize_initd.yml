@@ -34,7 +34,7 @@
   blockinfile:
         dest: "/etc/init.d/cribl"
         marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS -->"
-        insertafter: 'FORCE_ARG=\"\"'
+        insertafter: '^esac$'
         block: |
             CRIBL_HOME={{ logstream_installation.home_path }}
             USER="{{ cribl_install_user }}"
