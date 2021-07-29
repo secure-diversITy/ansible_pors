@@ -14,6 +14,14 @@
     - logstream_upgrade == True
 
 - include: install.yml
+
+- name: "CUSTOM: post-install tasks (if defined)"
+  include_role:
+    name: custom_post_install_cribl
+  when:
+    - hook_post_install_cribl is defined and hook_post_install_cribl == True
+    - logstream_upgrade == False
+
 - include: service_enable.yml
 
 - include: optimize_ulimit.yml

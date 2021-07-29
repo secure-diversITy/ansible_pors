@@ -34,3 +34,10 @@
 # -> main.yml will be included so ensure you set any dependencies here!
 # Possible values: True | False
 #hook_post_install_splunk: False
+
+# custom tasks which will be run after pure cribl logstream has been installed
+# custom roles must be added to:
+# <pors-data-dir>/custom/roles/custom_post_install_cribl/tasks/
+# -> main.yml will be included so ensure you set any dependencies here!
+# Possible values: True | False
+#hook_post_install_cribl: False
