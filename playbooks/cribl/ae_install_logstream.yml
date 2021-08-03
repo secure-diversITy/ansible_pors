@@ -1,5 +1,5 @@
 - name: Install cribl logstream
-  hosts: "*:!pors_server"
+  hosts: "{{ target }}"
   remote_user: "{{ cribl_ssh_user }}"
   become: yes
   become_user: root
@@ -11,5 +11,3 @@
 
   roles:
     - install_logstream
-
-- include: ../system/ae_system_base.yml
