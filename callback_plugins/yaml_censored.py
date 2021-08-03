@@ -76,7 +76,7 @@ class CallbackModule(Default):
     Filter variable: HIDE_PARAM
     """
 
-    CALLBACK_VERSION = 2.0
+    CALLBACK_VERSION = 2.1
     CALLBACK_TYPE = 'stdout'
     CALLBACK_NAME = 'yaml_censored'
 
@@ -106,7 +106,7 @@ class CallbackModule(Default):
                         abridged_result['invocation']['module_args']['_raw_params'] = re.sub(pattern, HIDE_MSG, abridged_result['invocation']['module_args']['_raw_params'])
                     elif 'repo' in abridged_result['invocation']['module_args']:
                         abridged_result['invocation']['module_args']['repo'] = re.sub(pattern, HIDE_MSG, abridged_result['invocation']['module_args']['repo'])
-            if 'cmd' in abridged_result:
+            if 'cmd' in result:
                 if type(abridged_result['cmd']) == list:
                     cmd_str = ','.join(abridged_result['cmd'])
                     cmd_parsed = re.sub(pattern, HIDE_MSG, cmd_str)
@@ -115,6 +115,8 @@ class CallbackModule(Default):
                     abridged_result['cmd'] = re.sub(pattern, HIDE_MSG, abridged_result['cmd'])
             if 'stdout' in abridged_result:
                 abridged_result['stdout'] = re.sub(pattern, HIDE_MSG, abridged_result['stdout'])
+            if 'cmd' in result:
+                result['cmd'] = re.sub(pattern, HIDE_MSG, result['cmd'])
 
         # remove diff information from screen output
         if self._display.verbosity < 3 and 'diff' in result:
@@ -123,6 +125,9 @@ class CallbackModule(Default):
         # remove exception from screen output
         if 'exception' in abridged_result:
             del abridged_result['exception']
+
+        if 'cmd' in result:
+            del result['cmd']
 
         dumped = ''
 

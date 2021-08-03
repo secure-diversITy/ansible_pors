@@ -62,6 +62,7 @@ examples: >
     authtoken = f23blad6-5965-4537-bf69-5b5a545blabla88
 '''
 
+import re
 import json
 import uuid
 import socket
@@ -101,6 +102,23 @@ class SplunkHTTPCollectorSource(object):
         if 'args' in result._task_fields:
             del result._task_fields['args']
 
+        # Censor the log based on known splunk cmd's
+        HIDE_PARAM = ['-auth .*:.*','-password .*(\s|$)','(http|https|ssh|git)://(.*)@']
+        HIDE_MSG = "**CENSORED-BY-HIDE_PARAM**"
+        ansible_result = result._result
+
+        for pattern in HIDE_PARAM:
+            if 'cmd' in ansible_result:
+                ansible_result['cmd'] = re.sub(pattern, HIDE_MSG, result._result['cmd'])
+            if 'stdout' in ansible_result:
+                ansible_result['stdout'] = re.sub(pattern, HIDE_MSG, result._result['stdout'])
+            if 'invocation' in ansible_result:
+                if 'module_args' in ansible_result['invocation']:
+                    if '_raw_params' in ansible_result['invocation']['module_args']:
+                        ansible_result['invocation']['module_args']['_raw_params'] = re.sub(pattern, HIDE_MSG, ansible_result['invocation']['module_args']['_raw_params'])
+                    elif 'repo' in ansible_result['invocation']['module_args']:
+                        ansible_result['invocation']['module_args']['repo'] = re.sub(pattern, HIDE_MSG, ansible_result['invocation']['module_args']['repo'])
+
         data = {}
         data['uuid'] = result._task._uuid
         data['session'] = self.session
@@ -117,7 +135,7 @@ class SplunkHTTPCollectorSource(object):
         data['ansible_playbook'] = self.ansible_playbook
         data['ansible_role'] = ansible_role
         data['ansible_task'] = result._task_fields
-        data['ansible_result'] = result._result
+        data['ansible_result'] = ansible_result
         data['target_env'] = target_env
 
         # This wraps the json payload in and outer json event needed by Splunk
@@ -136,7 +154,7 @@ class SplunkHTTPCollectorSource(object):
 
 
 class CallbackModule(CallbackBase):
-    CALLBACK_VERSION = 2.0
+    CALLBACK_VERSION = 2.02
     CALLBACK_TYPE = 'aggregate'
     CALLBACK_NAME = 'splunkpors'
     CALLBACK_NEEDS_WHITELIST = True
