@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-71"
+VERSIONNUM="4.0-72"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -3075,11 +3075,11 @@ F_INSTALLLOGSTREAM(){
     [ $? -ne 0 ] && return $?
 
     # define a valid limit group depending on the user's selection
-    LIMITLIST=$(echo "$HOSTSELECTION" | tr "\n" : | sed 's/:$//g' )
+    LIMITLIST=$(echo "$HOSTSELECTION" | tr "\n" : | tr " " : | sed 's/:$//g' )
     [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
 
     # doit
-    F_ABIN "$HOSTFILE" "$PBINSTALLLOGSTREAM" "\Za\Z1Installing cribl logstream ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
+    F_ABIN "$HOSTFILE" "$PBINSTALLLOGSTREAM" "\Za\Z1Installing cribl logstream ...\Z\n" "-e target='$LIMITLIST'"
     F_ERRLOG $? "Installing cribl logstream on:\n\n$HOSTSELECTION" "$LOG"
     F_PORSACTION "nogit" "($FUNCNAME) - installed cribl logstream v${CURVER} on $HOSTSELECTION"
 
@@ -3570,14 +3570,14 @@ F_DEPLOYAPP(){
                                 APPP="$AINVENTORY/$TARGETENV/group_vars/$tgroup/$app"
                                 egrep -ql "^\s*delete:\s*[Tt]rue" $APPP && F_LOG $FUNCNAME "$app has been removed on $tgroup. removing local link..." && rm -vf $APPP 2>&1 >> $LOG
                             done
-		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<deploying apps to $tgroup>" "$LOG"
+		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<processing apps on $tgroup>" "$LOG"
                             # always end with errcode 0
                             true
                         else
-		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<deploying apps to $tgroup>" "$LOG"
+		            [ "$RUNMODE" == "interactive" ] && F_ERRLOG "$LASTERR" "<processing apps on $tgroup>" "$LOG"
                         fi
 		    done
-                    F_PORSACTION "nogit" "processed these apps on $HOSTSELECTION: $DEPAPPS"
+                    F_PORSACTION "nogit" "$FUNCNAME | deployed/removed/unlinked these apps on $HOSTSELECTION: $DEPAPPS"
             else
                 F_ERRLOG 3 "Aborted by user\n" "$LOG"
             fi
