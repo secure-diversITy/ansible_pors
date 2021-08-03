@@ -12,11 +12,15 @@
 
 pors_user: pors
 pors_group: pors
-base_install_dir: /opt/pors
+pors_install_dir: /opt/pors
+# support legacy var:
+base_install_dir: "{{ pors_install_dir }}"
+pors_data_dir: /opt/pors_data
 pors_ssh_user: ansible
 pors_temp_dir: /tmp/pors
-pors_data_dir: /opt/pors_data
-custom_playbook_dir: "{{ pors_data_dir }}/custom/playbooks"
+custom_data_dir: "{{ pors_data_dir }}/custom"
+custom_roles_dir: "{{ custom_data_dir }}/roles"
+custom_playbooks_dir: "{{ custom_data_dir }}/playbooks"
 git_pors_data_push: no
 
 ###### splunk_repository.yml #######

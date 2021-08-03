@@ -27,8 +27,11 @@
 # It is NOT recommended to change the default value.
 #pors_data_dir: /opt/pors_data
 
+# custom directory for roles
+#custom_roles_dir: "{{ custom_data_dir }}/roles"
+
 # custom directory for playbooks
-#custom_playbook_dir: "{{ pors_data_dir }}/custom/playbooks"
+#custom_playbooks_dir: "{{ custom_data_dir }}/playbooks"
 
 # PORS expects the data directory to be a git repo as all changes will be tracked
 # and commited. Besides that you can specify to push changes to the configured
