@@ -1,0 +1,4 @@
+---
+
+- include: tmplcheck.yml
+- include: enable.yml

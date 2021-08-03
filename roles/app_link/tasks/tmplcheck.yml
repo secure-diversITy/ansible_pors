@@ -1,0 +1,6 @@
+---
+
+- name: Check if custom template exists
+  stat:
+    path: "{{ custom_roles_dir }}/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2"
+  register: custom_templ
