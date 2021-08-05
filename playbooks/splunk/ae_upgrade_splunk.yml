@@ -5,16 +5,14 @@
   become: yes
   become_user: root
   strategy: free
-  #do NOT use no_log: True here as it will be effective for all sub tasks then
-  gather_facts: True
+  gather_facts: False
 
-  tasks:
-    - debug:
-        var: system.upgrade_os
-
-    - import_role:
-        name: system_base
+  pre_tasks:
+    - setup:
       when: system.upgrade_os is defined and system.upgrade_os == True
+
+  roles:
+    - { role: system_upgrade, when: system.upgrade_os is defined and system.upgrade_os == True }
 
 - name: Upgrade Splunk
   hosts: "*:!pors_server"
@@ -22,16 +20,20 @@
   become: yes
   become_user: root
   strategy: free
-  #do NOT use no_log: True here as it will be effective for all sub tasks then
-  gather_facts: True
+  gather_facts: False 
 
   vars:
     splunk_upgrade: True
     splunk_type: "splunk"
 
+  pre_tasks:
+    - setup:
+      when: system.upgrade_os is undefined or system.upgrade_os == False
+
   roles:
     - splunk_info
     - install
 
-- include: ../shelper/ae_install_shelper.yml
+- name: Upgrade Shelper
+  include: ../shelper/ae_install_shelper.yml
   when: shelper_installation.enabled
