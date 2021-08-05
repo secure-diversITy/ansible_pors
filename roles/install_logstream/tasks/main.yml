@@ -23,13 +23,7 @@
     - logstream_upgrade == False
 
 - include: service_enable.yml
-
 - include: optimize_ulimit.yml
-
-- include: configure_worker.yml
-  when: logstream_upgrade != True and logstream_worker is defined
-
 - include: optimize_initd.yml
 - include: service_start.yml
-
 - include: sudoperms.yml

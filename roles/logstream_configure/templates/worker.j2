@@ -3,9 +3,9 @@ distributed:
   group: {{ logstream_worker.group }}
   envRegex: {{ logstream_worker.envRegex }}
   master:
-    host: {{ groups['logstream_mn'] | first }}
+    host: {{ groups['logstream_leader'] | first }}
     port: {{ logstream_worker.port }}
-    authToken: {{ vault_logstream_master_authtoken }}
+    authToken: {{ vault_logstream_leader_authtoken }}
     compression: {{ logstream_worker.compression }}
     tls:
       disabled: {{ logstream_worker.disabledtls }}

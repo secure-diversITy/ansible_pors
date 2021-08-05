@@ -1,0 +1,9 @@
+# leader default config
+logstream_leader:
+    port: 4200
+    disabledtls: true
+    compression: none
+    group: default
+    envRegex: "/^CRIBL_/"
+    connectionTimeout: 5000
+    writeTimeout: 10000

@@ -1,3 +1,4 @@
 ---
 - include: splunkd.yml
+- include: cribl.yml
 - include: ../../shelper/handlers/main.yml

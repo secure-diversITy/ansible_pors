@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-72"
+VERSIONNUM="4.0-73"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -382,6 +382,12 @@ declare PBINSTALL=${PBDIRSPLUNK}/ae_install_splunk.yml
 ## @details Will install cribl logstream on a single host or group of hosts
 ## @showinitializer
 declare PBINSTALLLOGSTREAM=${PBDIRCRIBL}/ae_install_logstream.yml
+
+## @var PBCONFLOGSTREAM
+## @brief Configure cribl logstream
+## @details Will configure cribl logstream on a single host or group of hosts
+## @showinitializer
+declare PBCONFLOGSTREAM=${PBDIRCRIBL}/configure_logstream.yml
 
 ## @var PBUPGRADELOGSTREAM
 ## @brief Upgrade cribl logstream
@@ -3071,7 +3077,7 @@ F_INSTALLLOGSTREAM(){
     [ $ABORTED -eq 1 ] && return 4
 
     F_LOG "$FUNCNAME" "Will install cribl logstream on <$HOSTSELECTION>"
-    F_DIALOG --colors --scrollbar --yesno "Will install cribl logstream\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$HOSTSELECTION\ZB\n\nAre you sure?" 30 100
+    F_DIALOG --colors --scrollbar --yesno "\n\nWill install cribl logstream\n\n\Zbv${CURVER}\ZB\n\non these host(s):\n\n\Zb$HOSTSELECTION\ZB\n\nAre you sure?" 30 100
     [ $? -ne 0 ] && return $?
 
     # define a valid limit group depending on the user's selection
@@ -3086,6 +3092,77 @@ F_INSTALLLOGSTREAM(){
     # cleanup
     [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
 
+    F_LOG $FUNCNAME ended
+}
+
+## @fn F_CONFLOGSTREAM()
+## @brief Configures cribl logstream on ansible prepared servers
+## @param 1: type (leader | worker)
+## @exception on abort: return 4, on failure: F_ERRLOG dialog
+F_CONFLOGSTREAM(){
+    F_LOG $FUNCNAME started
+    unset HOSTSELECT HOSTSELECTION SHOSTS SHOSTST
+    ABORTED=0
+    LSTYPE=$1
+
+    [ -z "$LSTYPE" ] && F_LOG $FUNCNAME "ERROR: missing LSTYPE" && return 3
+
+    # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+    ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+    > $ITMPGRP
+
+    # force cleaning the temp hosts file in F_EXPANDHOSTS()
+    # must be explicitly unset for any subsequent tasks
+    export CLEANHOSTFILE=yes
+
+    F_WAITBOX "Collecting hostnames ..."
+
+    SHOSTS="$(LISTTYPE=checklist F_EXPANDHOSTS $LSTYPE $ITMPGRP clean)"
+
+    [ $? -eq 4 ] && return 4
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
+
+    if  [ -z "$SHOSTS" ] || [ -z "$SHOSTST" ];then
+        F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+        F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+        F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+    fi
+
+    while [ -z "$HOSTSELECT" ];do
+            OPTIONS=($(for i in $(echo "${SHOSTST}" );do echo ${i/:*} "(space_to_select)" off; done | sort -u ))
+            HOSTSELECTION=$(F_DIALOG --colors --checklist "\nPlease use the space-bar to make your selection to configure cribl logstream\n" 50 100 100 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+            [ $? -ne 0 ] && ABORTED=1
+            F_LOG $FUNCNAME "HOSTSELECTION=$HOSTSELECTION, ABORTED=$ABORTED"
+            if [ "$HOSTSELECTION" == "ABORTED" ]||[ $ABORTED -eq 1 ];then
+                ABORTED=1 && break
+            else
+                if [ -z "$HOSTSELECTION" ];then
+                    F_LOG $FUNCNAME "No selection made / HOSTSELECTION empty!"
+                    F_DIALOG --msgbox "ERROR: no selection made. Choose a target with space bar." 10 30
+                else
+                    HOSTSELECT=1
+                    ABORTED=0
+                fi
+            fi
+    done
+    [ $ABORTED -eq 1 ] && return 4
+
+    F_LOG "$FUNCNAME" "Will configure cribl logstream on <$HOSTSELECTION>"
+    F_DIALOG --colors --scrollbar --yesno "\n\nWill (re-)configure cribl logstream on these host(s):\n\n\Zb$HOSTSELECTION\ZB\n\nAre you sure?" 30 100
+    [ $? -ne 0 ] && return $?
+
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$HOSTSELECTION" | tr "\n" : | tr " " : | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+
+    # doit
+    F_ABIN "$HOSTFILE" "$PBCONFLOGSTREAM" "\Za\Z1Configuring cribl logstream ...\Z\n" "-e target='$LIMITLIST'"
+    F_ERRLOG $? "Configuring cribl logstream on:\n\n$HOSTSELECTION" "$LOG"
+    F_PORSACTION "nogit" "($FUNCNAME) - configured cribl logstream on $HOSTSELECTION"
+
+    # cleanup
+    [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
     F_LOG $FUNCNAME ended
 }
 
@@ -3685,6 +3762,11 @@ F_CONFMENU(){
                         SHCmember "(re-)apply SearchHead Cluster member configuration" \
                         MonitoringConsole "(re-)apply MonitoringConsole configuration" \
                         "" "" \
+                        '' '\Zb\ZuConfigure cribl logstream\ZB\ZU'\
+                        "" "" \
+                        LogstreamLeader "(re-)apply logstream leader configuration" \
+                        LogstreamWorker "(re-)apply logstream worker configuration" \
+                        "" "" \
                         "" "" \
                         3>&1 1>&2 2>&3)
 
@@ -3703,6 +3785,8 @@ F_CONFMENU(){
                         Deployer)          F_ADDDEP ;;
                         DeploymentServer)  F_ADDDS ;;
                         SHCmember)         F_ADDSHCMEMBER ;;
+                        LogstreamLeader)   F_CONFLOGSTREAM logstream_leader;;
+                        LogstreamWorker)   F_CONFLOGSTREAM logstream_worker;;
                         *) return 3;;
                 esac
         fi

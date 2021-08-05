@@ -1,0 +1,6 @@
+---
+- include: configure_leader.yml
+  when: logstream_upgrade != True and logstream_leader is defined
+
+- include: configure_worker.yml
+  when: logstream_upgrade != True and logstream_worker is defined

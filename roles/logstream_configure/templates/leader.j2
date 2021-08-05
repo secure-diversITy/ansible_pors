@@ -1,0 +1,10 @@
+distributed:
+  mode: master
+  master:
+    #host: {{ groups['logstream_leader'] | first }}
+    host: 0.0.0.0
+    port: {{ logstream_leader.port }}
+    ipWhitelistRegex: /.*/
+    authToken: {{ vault_logstream_leader_authtoken }}
+    tls:
+      disabled: {{ logstream_leader.disabledtls }}

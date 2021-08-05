@@ -1,0 +1,18 @@
+---
+- name: cribl start
+  service:
+    name: cribl
+    state: start
+  register: action_result
+
+- name: cribl stop
+  service:
+    name: cribl
+    state: stopped
+  register: action_result
+
+- name: cribl restart
+  service:
+    name: cribl
+    state: restarted
+  register: action_result

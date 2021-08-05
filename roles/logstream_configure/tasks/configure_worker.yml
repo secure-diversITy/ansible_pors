@@ -11,10 +11,11 @@
 - name: Create worker config
   template: src=worker.j2
             dest={{ logstream_installation.home_path }}/local/_system/instance.yml
-  when: logstream_upgrade != True and logstream_worker is defined
+  notify: cribl restart
 
 - name: Set permissions on config file
   file: path={{ logstream_installation.home_path }}/local/_system/instance.yml
         owner="{{ cribl_install_user }}"
         group="{{ cribl_install_group }}"
         mode=0660
+  notify: cribl restart

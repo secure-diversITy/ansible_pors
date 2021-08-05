@@ -191,7 +191,8 @@ vault_proxmox_kvm_ci_password: "abc123"
 ###################################
 
 # the CRIB logstream authentication token.
+# generate it e.g. with pwgen -1 80
 # will be added to the cribl instance in:
 # local/_system/instance.yml
-vault_logstream_master_authtoken: ""
+vault_logstream_leader_authtoken: ""
 
