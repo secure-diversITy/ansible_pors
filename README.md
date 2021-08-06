@@ -1,6 +1,6 @@
 # About / README
 
-PORS is a collection of [Ansible](www.ansible.com) playbooks, roles & tasks for installing, configuring & managing your whole Splunk infrastructure - including Apps using the Splunk deployment process. But the icing on the cake is that PORS comes with a terminal UI that does all this with the snap of a finger!
+PORS is a collection of [Ansible](https://www.ansible.com) playbooks, roles & tasks for installing, configuring & managing your whole Splunk infrastructure - including Apps using the Splunk deployment process. But the icing on the cake is that PORS comes with a terminal UI that does all this with the snap of a finger!
 
 
 ## Requirements
