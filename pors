@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-74"
+VERSIONNUM="4.0-75"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5951,15 +5951,16 @@ F_DATAPUSH(){
     GITON=$(F_GETANSIBLEVAR git_pors_data_push)
     PERR=0
 
-    if [ "$GITON" == "yes" ];then
-        F_WAITBOX " ... pushing PORS data dir changes "
+    if [ "$GITON" == "True" ];then
+        F_WAITBOX " ... pushing PORS data directory changes"
         F_LOG $FUNCNAME "pushing data dir to git is enabled"
         cd $DATADIR
-        git push 2>&1 >> $LOG
+        git push >> $LOG 2>&1
         PERR=$?
         cd $ADIR
+        F_PORSACTION "action log updated" "$FUNCNAME | pushed changes to remote git repo (ended with $PERR)"
     else
-        F_LOG $FUNCNAME "skipping data dir push because it is disabled. Consider setting 'git_pors_data_push: yes' in pors.yml"
+        F_LOG $FUNCNAME "skipping data dir push because it is set to ${GITON}. Consider setting 'git_pors_data_push: yes' in pors.yml"
     fi
     F_LOG $FUNCNAME "finished"
     return $PERR
