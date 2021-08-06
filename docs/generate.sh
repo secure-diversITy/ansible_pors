@@ -13,4 +13,5 @@ git status
 echo -e "\n\tcd ../github.io/pors/\n\tgit add .\n\tgit commit -a -m 'update documentation'"
 echo -e "\tgit checkout master"
 echo -e "\tgit merge develop"
-echo -e "\tgit push develop master"
+echo -e "\tgit checkout develop"
+echo -e "\tgit push develop master (do that in the UI to avoid user/pw issues)"
