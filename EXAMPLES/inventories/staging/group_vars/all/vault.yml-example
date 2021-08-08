@@ -41,6 +41,8 @@ vault_splunk_ae_role: admin
 ###################################
 
 # the PUBLIC key of the PORS user on the PORS system (i.e. the host where you are at currently)
+# will be added to .ssh/authorized_keys (Proxmox only - use the following steps and add this to
+# your VM template and/or any existing system which should be managed by PORS)
 # ed25519 is the recommended format these days.
 # If you haven't already generate a new key, e.g.:
 # 1. ssh-keygen -a 100 -t ed25519 -N '' -f ~/.ssh/id_ed25519 
@@ -54,10 +56,19 @@ vault_ssh_pubkey_pors: "ssh-ed25519 AAAACTE5AAAAIPy3FL+....."
 # note2: this is NOT the key to connect from the PORS server to any server!
 # e.g.:
 # 1. ssh-keygen -a 100 -t ed25519 -N '' -f privkey.pem
-# 2. cat privkey.pem | tr -d '\n' (set "vault_ssh_privkey" with this output)
-# 3. ssh-keygen -y -f privkey.pem (set "vault_ssh_pubkey" with this output)
-# 3. rm privkey.pem
-vault_ssh_privkey_splunk: "-----BEGIN OPENSSH PRIVATE KEY-----AAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZWQyNTUxOQAAACBYuKNv8RTKiDVU5ohHEP0BOo488jD6PyczeXQbVCsLmwAAAJB1+AACBYuKNv8RTKiDVU5ohHEP0BOo488jD6PyczeXQbVCsLmwAiwf5oHlVv0tLAAOLvmCRcG0sUFEDZvaVi4o2/b.......................................AAAADHRmaUBzZWRpYm9vawE=-----END OPENSSH PRIVATE KEY-----"
+# 2. cat privkey.pem | tr -d '\n' (set "vault_ssh_privkey_splunk" with this output)
+# 3. ssh-keygen -y -f privkey.pem (set "vault_ssh_pubkey_splunk" with this output)
+# 4. rm privkey.pem
+# The "|-" in the first line enables a multi line variable which is required for the private key -
+# just ensure having 2 or more white spaces before each line
+vault_ssh_privkey_splunk: |-
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  AAAAAAAAAABBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCDDDDDDDDDDD
+  AAAAAAAAAABBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCDDDDDDDDDDD
+  AAAAAAAAAABBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCDDDDDDDDDDD
+  AAAAAAAAAABBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCDDDDDDDDDDD
+  AAAAAAAABBBBCCCCDDDDDD
+  -----END OPENSSH PRIVATE KEY-----
 
 vault_ssh_pubkey_splunk:  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFi4o2/x.............5dBtUKwub splunk"
 #(the vault_ssh_privkey and pubkey above are just an example!
