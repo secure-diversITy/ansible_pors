@@ -1,0 +1,5 @@
+# Created by Ansible
+
+User_Alias      USERCRIBL=%cribladmin
+Cmnd_Alias      CMDCRIBL =/bin/su - clintsharp -c *, /bin/su - clintsharp,/usr/sbin/tcpdump *
+USERCRIBL       ALL =(root)      NOPASSWD: CMDCRIBL

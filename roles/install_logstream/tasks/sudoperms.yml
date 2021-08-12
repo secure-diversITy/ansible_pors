@@ -6,6 +6,6 @@
 
 - name: Add app config for sudo
   copy:
-    src: "{{ splunk_repository.repository_root }}/cribl/sudoers_conf"
+    src: "{{ splunk_repository.repository_root }}/common/sudo/cribl-admin"
     dest: /etc/sudoers.d/cribl-admin
     mode: 0600

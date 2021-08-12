@@ -1,0 +1,5 @@
+## Created by Ansible
+
+User_Alias              USERSPLUNKADMIN=%splunkadmin
+Cmnd_Alias              CMDSPLUNKADMIN =/bin/su - splunk -c *, /bin/su - splunk,/usr/sbin/tcpdump *
+USERSPLUNKADMIN         ALL =(root)      NOPASSWD: CMDSPLUNKADMIN
