@@ -80,7 +80,14 @@
 
 # ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
 - name: Re-Check Splunk Status
-  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol|ansible)' |grep splunkd"
+  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol|ansible)' |grep splunkd || true"
+  async: 1800
+  poll: 0
   register: splunk_laststate
-  failed_when: splunk_laststate.rc == 0
+#  failed_when: splunk_laststate.rc == 0
 
+- name: ... all Splunk processes stopped?
+  async_status: jid={{ splunk_laststate.ansible_job_id }}
+  register: splunk_allprocs_result
+  until: splunk_allprocs_result.finished
+  retries: 360
