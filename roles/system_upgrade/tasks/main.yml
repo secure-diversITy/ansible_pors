@@ -1,2 +1,6 @@
 ---
 - include: update.yml
+
+- include_role:
+    name: system_kernel
+
