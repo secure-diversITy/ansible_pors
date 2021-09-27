@@ -10,6 +10,7 @@
     splunk_shc_list: "{{ splunk_shc_list }} + ['https://{{ item }}:8089']"
   loop: "{{ query('inventory_hostnames', '{{ shc_site }}_shcmember') }}"
   run_once: true
+  when: inventory_hostname != item
 
 - name: Run bootstrap shcluster-captain
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk bootstrap shcluster-captain -servers_list {{ splunk_shc_list | join(',') }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
