@@ -2,6 +2,10 @@
 - hosts: pors_server
   gather_facts: False
   connection: local
- 
+
+  pre_tasks:
+    - include_vars: "{{ env_inventory_dir }}/group_vars/{{ app2group }}/deployment.yml"
+      ignore_errors: true
+
   roles:
     - app_link

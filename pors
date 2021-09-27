@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-75"
+VERSIONNUM="4.0-76"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1281,6 +1281,7 @@ F_TARGETS(){
 ## @brief group_vars dir check and initiate if needed
 F_GVARDIR(){
 	echo "$FUNCNAME started" >> $LOG
+        unset DEPL DEPLPARSED
 	INIT=0
 	TG=$1
 	TDIR=$AINVENTORY/$TARGETENV/group_vars/$TG
@@ -1300,14 +1301,14 @@ F_GVARDIR(){
 		mkdir $TDIR >>/dev/null 2>&1
 		ERRC=0
 		while [ -z "$DEPL" ]&&[ "$ERRC" -eq 0 ];do
-			DEPL=$(F_DIALOG --inputbox "Initializing of <$TDIR> required\nPlease type in where you want to deploy apps for >$TG<.\n\nJust type <apps>, <deployment_apps>,<shcluster_apps>, etc and not the full path:" 15 100 2>&1 >/dev/tty)
+			DEPL=$(F_DIALOG --inputbox "\nIt seems this is the first time you want to link an app to $TG (if not something is wrong).\nInitializing of:\n<$TDIR>\nis required.\n\nPlease type in where you want to deploy apps for >$TG<.\n\nValid paths are:\n - apps\n - deployment-apps\n - shcluster/apps\n - master-apps\n\n" 21 100 2>&1 >/dev/tty)
 			ERRC=$?
 		done
 		if [ $ERRC -eq 0 ];then
-                    DEPLPARSED=$(echo "${DEPL}" | sed 's:(-/):_:g')
-			echo "will create deployment file with: $DEPL ($DEPLPARSED) as target dir" >> $LOG
-			# creating deployment file:
-			cat >> $TDIR/deployment.yml <<EOF_DEPL
+                    DEPLPARSED=$(echo "${DEPL}" | sed -E 's:(-|/):_:g')
+		    echo "will create deployment file with: $DEPL ($DEPLPARSED) as target dir" >> $LOG
+		    # creating deployment file:
+		    cat >> $TDIR/deployment.yml <<EOF_DEPL
 ---
 #####################################################################################################################
 # Configurations for Splunk deployment directory

@@ -18,6 +18,7 @@ base_install_dir: "{{ pors_install_dir }}"
 pors_data_dir: /opt/pors_data
 pors_ssh_user: ansible
 pors_temp_dir: /tmp/pors
+env_inventory_dir: "{{ pors_data_dir }}/inventories/{{ target_env }}"
 custom_data_dir: "{{ pors_data_dir }}/custom"
 custom_roles_dir: "{{ custom_data_dir }}/roles"
 custom_playbooks_dir: "{{ custom_data_dir }}/playbooks"
