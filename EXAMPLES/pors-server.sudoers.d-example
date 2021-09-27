@@ -4,8 +4,11 @@
 # Change USERAE and add all user accounts and/or groups which should be able
 # to start PORS. Groups need the % sign as prefix, users not.
 
-User_Alias      USERAE = %wheel, foo, bar
-Cmnd_Alias      AECMD = /usr/bin/env CALLUSR=* /opt/pors/pors *,/usr/bin/env CALLUSR=* ./pors *,/usr/bin/env CALLUSR=* ./pors
+User_Alias      USERPORS = %wheel, foo, bar
+Cmnd_Alias      PORSCMD = /usr/bin/env CALLUSR=* /opt/pors/pors *,/usr/bin/env CALLUSR=* ./pors *,/usr/bin/env CALLUSR=* ./pors
 
 # change the user in ALL=(pors) depending on the variable AEUSER in PORS
-USERAE          ALL=(pors)      NOPASSWD: AECMD
+USERPORS          ALL=(pors)      NOPASSWD: PORSCMD
+
+# allow changing to user pors for all PORS users
+USERPORS          ALL=(root)      NOPASSWD: /bin/su - pors
