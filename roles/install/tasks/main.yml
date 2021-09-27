@@ -78,3 +78,5 @@
 
 - include: post_actions.yml
   when: splunk_upgrade == False
+
+- include: sudoperms.yml

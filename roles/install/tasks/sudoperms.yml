@@ -1,6 +1,6 @@
 ---
 - name: Add app config for sudo
   copy:
-    src: "{{ splunk_repository.repository_root }}/common/sudo/splunk-admin"
+    src: "{{ repo_base }}/common/sudo/splunk-admin"
     dest: /etc/sudoers.d/splunk-admin
     mode: 0600
