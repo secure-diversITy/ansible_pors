@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-76"
+VERSIONNUM="4.0-78"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -136,8 +136,8 @@ fi
 ## @showinitializer
 declare WORKDIR="$MYHOME"
 [ ! -d "$WORKDIR" ] && mkdir -p $WORKDIR
-chown $USER $WORKDIR
-chmod 700 $WORKDIR  
+chown ${USER} $WORKDIR
+chmod 755 $WORKDIR  
 
 ## @var ADIR
 ## @brief auto generate the path name of the bin
@@ -6170,7 +6170,7 @@ if [ "$ME" == "$AEUSER" -a -z "$CALLUSR" ];then
 else
     [ "$ME" == "root" ] && DENYSTART=1
 fi
-[ $DENYSTART -eq 1 ] && echo -e "\n\nERROR: Starting PORS as user $ME has been denied.\nPORS must be started as your REAL user since v2.3!\n\nSo .. login as your regular user and try again\n\n" && F_EXIT
+[ $DENYSTART -eq 1 ] && echo -e "\n\nERROR: Starting PORS as user $ME has been denied.\nPORS must be started as your REAL user since v2.3!\n\nSo .. login as your regular user and try again\n\n" && F_EXIT 4
 
 if [ "$ME" != "$AEUSER" ] || [ -z "$CALLUSR" ];then
     echo "Thanks for choosing PORS $ME, starting PORS now ($@) ..."
