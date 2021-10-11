@@ -51,7 +51,7 @@ custom:
     system_tasks: False
     post_install_splunk: False
 
-####### cribl_configuration.yml ######
+####### group_vars/logstream_all/cribl_configuration.yml ######
 
 cribl_ssh_user: "{{ pors_ssh_user }}"
 cribl_install_user: clintsharp

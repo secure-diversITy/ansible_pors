@@ -1,10 +1,10 @@
 - name: Upgrade cribl logstream
   hosts: "*:!pors_server"
-  remote_user: "{{ pors_ssh_user }}"
+  remote_user: "{{ cribl_ssh_user }}"
   become: yes
   become_user: root
   strategy: free
-  gather_facts: True
+  gather_facts: true
   #do NOT use "no_log: True" here as it will be effective for all sub tasks then
 
   vars:

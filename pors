@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-78"
+VERSIONNUM="4.0-79"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -3350,7 +3350,7 @@ F_UPGRADE(){
 	    if [ $? -ne 0 ];then
                 return $?
             else
-	        # create a temporary ansible group (must be in the correct env path! otherwise varibles cant be found)
+	        # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
 	        UTMPGRP=${AINVENTORY}/${TARGETENV}/upgrhosts
 
                 # target environment must be set always
@@ -3358,6 +3358,11 @@ F_UPGRADE(){
 
 	        echo '[tmpupgrade]' >> $UTMPGRP
 	        for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
+
+                # always set the logstream_all grp as otherwise vars will not load
+                if [ "$UPGTYPE" == "logstream" ];then
+                    echo -e '\n[logstream_all:children]\ntmpupgrade\n' >> $UTMPGRP
+                fi
 	        if [ $? -ne 0 ];then
                     F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
                     return 3

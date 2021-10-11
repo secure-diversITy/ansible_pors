@@ -1,2 +1,5 @@
 ---
+- set_fact:
+    remote_user: "{{ cribl_ssh_user }}"
+
 - include: installed_version.yml
