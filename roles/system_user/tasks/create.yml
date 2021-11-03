@@ -21,8 +21,7 @@
     append: yes
     comment: "created by Ansible"
     shell: "/bin/bash"
-    home: "/home/{{ user_name }}"
-    password: "{{ user_pass | password_hash('sha512', 'staticSaLt9991') }}"
+    password: "{{ user_pass | password_hash('sha512') }}"
     expires: -1
     state: present
 
