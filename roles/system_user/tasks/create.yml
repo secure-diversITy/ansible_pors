@@ -25,6 +25,9 @@
     expires: -1
     state: present
 
+- name: Disable password expiry for {{ user_name }}
+  shell: "passwd -x -1 {{ user_name }}"
+
 - name: Add { user_name }} to additional groups
   user:
     name: "{{ user_name }}"
@@ -32,3 +35,4 @@
     append: yes
     state: present
   loop: "{{ appadm.split(',') }}"
+  when: appadm is defined
