@@ -9,13 +9,13 @@
 
 - name: Clone repository 
   git: 
-    repo={{ item.value.git_repo | regex_replace('^https://', 'https://' + vault_git_ro_user + ':' + vault_git_ro_token + '@') }}
-    dest="{{ splunk_installation.splunk_home_path }}/etc/{{ item.key | replace('shcluster_apps', 'shcluster/apps') | replace('_', '-') }}/{{ app_name }}"
-    version={{ git_default_branch_override | default(item.value.git_version) }}
-    clone=yes
-    update=yes
-    force=yes
-    accept_hostkey=yes
+    repo: "{{ item.value.git_repo | regex_replace('^https://', 'https://' + vault_git_ro_user + ':' + vault_git_ro_token + '@') }}"
+    dest: "{{ splunk_installation.splunk_home_path }}/etc/{{ item.key | replace('shcluster_apps', 'shcluster/apps') | replace('_', '-') }}/{{ app_name }}"
+    version: "{{ git_default_branch_override | default(item.value.git_version) }}"
+    clone: yes
+    update: yes
+    force: yes
+    accept_hostkey: yes
   when: "item.value.install == true and
         item.value.git_repo is defined"
   with_dict: "{{ vars[app_variable] }}"
