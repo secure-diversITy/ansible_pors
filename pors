@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-80"
+VERSIONNUM="4.0-81"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -3639,6 +3639,8 @@ F_DEPLOYAPP(){
 		    for tgroup in $HOSTSELECTION;do
 			F_LOG $FUNCNAME "will exec: $ABIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
 			F_ABIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Processing <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
+                        LASTERR=$?
+                        [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
                         for ad in $(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2 | tr -d '$');do
                             if [ -L "$DATADIR/custom/roles/apps/$ad/defaults" ];then 
                                 F_LOG "$FUNCNAME" "link to $DATADIR/custom/roles/apps/$ad/defaults already set" 
