@@ -3,7 +3,7 @@
 ## @file	pors.sh
 ## @brief       PORS is an UI for managing your whole Splunk infrastructure with Ansible
 ## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
-## @date        2017-2021
+## @date        2017-2022
 ## @copyright	AGPL v3
 ## @details     
 ##    This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-82"
+VERSIONNUM="4.0-83"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -520,6 +520,12 @@ declare PBVCVMDEPLOY="${PBDIRVMWARE}/vcenter_deploy-vm.yml"
 ## @showinitializer
 declare PBVCSHOW="${PBDIRVMWARE}/vcenter_show-avail.yml"
 
+
+## @var PBVCVMPOWERON
+## @brief powers on a vSphere VM (without any conditions required) and wait until fully started
+## @showinitializer
+PBVCVMPOWERON="${PBDIRVMWARE}/vcenter_always_poweron-vm.yml"
+
 ## @var PBVMNEWDISK
 ## @brief Add an additional disk to an existing VM
 ## @details ..
@@ -676,7 +682,7 @@ declare DEFAULTVAULT=$AINVENTORY/$TARGETENV/group_vars/all/vault.yml
 ## @var VALIDROLES
 ## @brief Valid Splunk Server Role names
 ## @details these are in use everwhere in PORS, i.e. in playbooks, target groups as well. Fully static. do NOT touch these.
-declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_leader logstream_worker masternode monitoringconsole peernode searchhead shcmember"
+declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_leader logstream_worker masternode monitoringconsole peernode searchhead shcmember plainlinux"
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
@@ -3321,13 +3327,19 @@ F_UPGRADE(){
             STAGEDVER=$(F_GETSTAGEDLS)
             PLAYB=$PBUPGRADELOGSTREAM
         ;;
+        splunkforwarder)
+            STAGEDVER=$(F_GETSTAGEDSPL $UPGTYPE)
+            PLAYB=$PBUPGRADE
+        ;;
         *)
-        F_ERRLOG 3 "INTERNAL ERROR: no upgrade type specified" && return 3
+        F_ERRLOG 3 "INTERNAL ERROR: unknown or empty upgrade type specified ($UPGTYPE)" && return 3
         ;;
     esac
 
     if [ -z "$AUTOMODE" ];then
     	UPGRADEHOSTS="$(F_SELHOST)"
+        RET=$?
+        [ $RET -ne 0 ] && return $RET
         [ "$UPGRADEHOSTS" == ABORTED ] && return 4
     else
         UPGRADEHOSTS="$AUTOMODE"
@@ -3369,7 +3381,7 @@ F_UPGRADE(){
                 else
     	            F_LOG "$FUNCNAME" "Temporary upgrade group: $(cat $UTMPGRP)"
 	            # upgrade
-	            F_ABIN "$UTMPGRP" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit tmpupgrade" 
+	            F_ABIN "$UTMPGRP" "$PLAYB" "\Za\Z1UPGRADING $UPGTYPE ...\Z\n" "--limit tmpupgrade -e spltype=$UPGTYPE" 
                     F_ERRLOG "${PIPESTATUS[0]}" "Upgrade $UPGTYPE to $STAGEDVER for:\n\n$UPGRADEHOSTST" "$LOG"
                     F_PORSACTION "nogit" "$FUNCNAME | upgraded $UPGTYPE to $STAGEDVER on $UPGRADEHOSTST"
                 fi
@@ -4580,13 +4592,17 @@ F_VSPHERE_SELDS(){
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_VSPHERE_DEPLOY(){ 
     F_LOG $FUNCNAME started
-    
+    unset HWP
+ 
     HWP=$1
     if [ -z "$HWP" ] || [ ! -f "$HWP" ];then
         F_LOG $FUNCNAME "ERROR: missing hw profile! ABORTED" && return 3
     fi
     # make all user defined settings available here
     source $HWP
+
+    # allow empty domain
+    if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
     VCENTER="$VM_VSPHERE_VCENTER"
     VCHOST="$VM_VSPHERE_ESX"
@@ -4648,27 +4664,41 @@ F_VSPHERE_DEPLOY(){
 
             F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
         done
-        VMDISKCNT=0
-        while [ $VMDISKCNT -ne $VMDISK ];do
-            VMDISKCNT=$((VMDISKCNT +1))
-            
-            # dynamic variable names..
-            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-            VMDISKFS="VMDISK${VMDISKCNT}FS"
-            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-            VMDISKDS="VMDISK${VMDISKCNT}DS"
-            VMDISKDC="VMDISK${VMDISKCNT}DC"
+#        VMDISKCNT=0
+#        while [ $VMDISKCNT -ne $VMDISK ];do
+#            VMDISKCNT=$((VMDISKCNT +1))
+#            
+#            # dynamic variable names..
+#            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+#            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
+#            VMDISKFS="VMDISK${VMDISKCNT}FS"
+#            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
+#            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
+#            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
+#            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
+#            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
+#            VMDISKDS="VMDISK${VMDISKCNT}DS"
+#            VMDISKDC="VMDISK${VMDISKCNT}DC"
+#
+#            F_ABIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+#            ERR=$?
+#            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
+#            
+#       done
 
-            F_ABIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
-            ERR=$?
-            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
-            
-       done
+        F_ABIN $HOSTFILE $PBVCVMPOWERON "Powering on $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}'}"
+        ERR=$?
+        [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
+
+        if [ "$VMDISK" -ne 0 ];then
+            # format all specified disks
+            F_FORMATDISK $HWP
+            DEPERR=$?
+            [ $DEPERR -ne 0 ] && F_ERRLOG $DEPERR "issue occured while formatting disk(s)" $LOG && return $DEPERR
+        else
+            F_LOG $FUNCNAME "No additional disk config needed"
+        fi
+
     else
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
@@ -5201,7 +5231,7 @@ F_STARTVMDEP(){
                             "Boot device" 9 1 "${!VMDISKDEVBOOT}" 9 42 40 40 \
                             "Auto delete" 10 1 "${!VMDISKDEVAUTODEL}" 10 42 40 40 \
                             "Disk extra name" 11 1 "${!VMDISKEXTRANAME}" 11 42 40 40 \
-                            "Copy existing" 12 1 "${!VMDISKFSMOVE}" 12 42 40 40 \
+                            "Copy existing fs (true or false/empty)" 12 1 "${!VMDISKFSMOVE}" 12 42 40 40 \
                             $DISKEXTRAARGS \
                             3>&1 1>&2 2>&3)
                 [ $? -ne 0 ] && F_LOG $FUNCNAME "ABORTED BY USER IN DISK DIALOG" && $(rm -vf $TMPHWPROFILE >> $LOG 2>&1 &) return 99
@@ -5274,23 +5304,35 @@ F_STARTVMDEP(){
                     $EDITBIN $HOSTFILE
                 fi
             done
-            case $VM_PROVIDER in
-                vsphere|vmware)
-                    # switch to vCenter information and actions
-                    #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
-                    F_VSPHERE_DEPLOY "$TMPHWPROFILE"
-                    VMERR=$?
-                    ;;
-                proxmox|pve)
-                    F_PROXMOX_DEPLOY "$TMPHWPROFILE"
-                    VMERR=$?
-                    ;;
-                googlecp|gcp)
-                    F_GOOGLECP_DEPLOY "$TMPHWPROFILE"
-                    VMERR=$?
-                    ;;
+
+            # check if the target exists and offer config only if
+            if [ $VMIP == "dhcp" ];then
+                F_PING $VMHOST
+            else
+                F_PING $VMIP
+            fi
+            if [ $? -ne 0 ];then
+                case $VM_PROVIDER in
+                    vsphere|vmware)
+                        # switch to vCenter information and actions
+                        #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
+                        F_VSPHERE_DEPLOY "$TMPHWPROFILE"
+                        VMERR=$?
+                        ;;
+                    proxmox|pve)
+                        F_PROXMOX_DEPLOY "$TMPHWPROFILE"
+                        VMERR=$?
+                        ;;
+                    googlecp|gcp)
+                        F_GOOGLECP_DEPLOY "$TMPHWPROFILE"
+                        VMERR=$?
+                        ;;
                     *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
-            esac
+                esac
+            else
+                F_DIALOG --yes-label "(Re-)Configure" --no-label Cancel --yesno "\n\n\nThe server $VMHOST ($VMIP) is pingable!\nWe cannot deploy on this system but we can try to configure it.\nThat means all settings of the current selected hardware profile will be set/changed/removed to this system!\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to (re-)configure an existing VM?" 16 100
+                [ $? -eq 1 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+            fi
         else
             [ $? -eq 1 ] && IACKEEP=0 
         fi
@@ -5503,6 +5545,7 @@ F_FORMATDISK(){
     F_LOG $FUNCNAME started
     unset VMDISKCNT
 
+    TMPHWPROFILE="$1"
     VMDISKCNT="$2"
 
     # make all user defined settings available here
@@ -5533,12 +5576,12 @@ F_FORMATDISK(){
         # special default mount option for SWAP
         [ "${!VMDISKFS}" == "swap" ] && VMDISKOPTS="sw"
 
-        if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
-            F_LOG "$FUNCNAME" "Will configure without LVM.."
+        if [ -z "${!VMDISKLVMLV}" ]||[ "${!VMDISKLVMLV}" == "VMDISK${VMDISKCNT}LVMLV" ];then
+            F_LOG "$FUNCNAME" "Will configure without LVM.. (reason: >$VMDISKLVMLV<)"
             F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}'}"
         else
             F_LOG "$FUNCNAME" "Will configure with LVM.."
-            F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
+            F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}','format_disk_lvm':'true'}"
         fi
         ERR=$?
         F_PORSACTION "nogit" "$FUNCNAME | format ${!VMDISKDEV} on $VMHOST (exit code: $ERR)"
@@ -5547,11 +5590,12 @@ F_FORMATDISK(){
         # FS move needed?
         if [ "${!VMDISKFSMOVE}" == "true" ] ;then
             F_LOG $FUNCNAME "... moving filesystem needed!"
-            if [ -z "$VMDISKLVMLV" ]||[ "$VMDISKLVMLV" == "VMDISK${VMDISKCNT}LVMLV" ];then
+            if [ -z "${!VMDISKLVMLV}" ]||[ "${!VMDISKLVMLV}" == "VMDISK${VMDISKCNT}LVMLV" ];then
                 F_LOG "$FUNCNAME" "moving FS (no LVM, VMDISKLVMLV=$VMDISKLVMLV).."
                 F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true','format_disk':'false','server_disk_fs':'${!VMDISKFS}'}"
             else
                 F_LOG "$FUNCNAME" "moving FS (LVM).."
+                F_ABIN $HOSTFILE $PBSYSDISKFORMAT "Moving FS for \Zb${!VMDISKMNTP}\ZB on $VMHOST ..." "--limit ${VMHOSTF} -e {'server_hostname':'$VMHOSTF','server_tmp_mnt':'/mnt${!VMDISKMNTP}','server_disk_dev':'${!VMDISKDEV}','server_disk_mountpoint':'${!VMDISKMNTP}','server_fs_move':'true','format_disk':'false','server_disk_fs':'${!VMDISKFS}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}','format_disk_lvm':'true'}"
             fi
             ERR=$?
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
@@ -5973,6 +6017,30 @@ F_DATAPUSH(){
     F_LOG $FUNCNAME "finished"
     return $PERR
 }
+
+## @fn F_PING()
+## @brief Checks if a target answers to a ping
+## @param 1 : the hostname or IP to ping (required)
+## @return Exit code of the ping command (all non zero means the system cannot be reached)
+F_PING(){
+    F_LOG $FUNCNAME "started with $1"
+    unset T
+    T="$1"
+    [ -z "$T" ] && return 3
+
+    F_WAITBOX "... checking for $VMHOST ($VMIP)"
+
+    ping -c 3 -W 2 $T >> $LOG 2>&1
+    RET=$?
+    F_LOG $FUNCNAME "finished with $RET"
+    return $RET
+}
+
+
+
+########################################################################################################################################
+########################################################################################################################################
+########################################################################################################################################
 
 ## @fn F_MENUMAIN()
 ## @brief the main menu window of PORS in regular mode
