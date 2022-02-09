@@ -1,27 +1,58 @@
 ---
-- name: Create temp mount {{ server_tmp_mnt }}
+- name: "Create temp mount {{ server_tmp_mnt }}"
   file:
     path: "{{ server_tmp_mnt }}"
     state: directory
 
-- name: Mount new disk {{ server_disk_dev }} to temp mount {{ server_tmp_mnt }}
+- name: "Mount new disk {{ server_disk_dev }} to temp mount {{ server_tmp_mnt }} (no LVM)"
   mount:
     src: "{{ server_disk_dev }}1"
     path: "{{ server_tmp_mnt }}"
     fstype: "{{ server_disk_fs }}"
     state: mounted
+  when: server_lvm_lv is undefined
 
-- name: Copy content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}
-  synchronize:
+- name: "Mount new disk {{ server_lvm_vg }}-{{ server_lvm_lv }} to temp mount {{ server_tmp_mnt }} (LVM)"
+  mount:
+    src: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
+    path: "{{ server_tmp_mnt }}"
+    fstype: "{{ server_disk_fs }}"
+    state: mounted
+  when: server_lvm_lv is defined
+
+- name: "Copy content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}"
+  ansible.posix.synchronize:
     src: "{{ server_disk_mountpoint }}/"
     dest: "{{ server_tmp_mnt }}"
     recursive: yes
     owner: yes
     group: yes
+    delay_updates: no
+    rsync_opts:
+        - "--exclude=lastlog"
+  #      - "--exclude=/var/lib/sss"
   delegate_to: "{{ server_hostname }}" 
 
-- name: Unmount and remove temp mount {{ server_tmp_mnt }}
+- name: "Unmount and remove temp mount {{ server_tmp_mnt }}"
   mount:
-    src: "{{ server_disk_dev }}1"
     path: "{{ server_tmp_mnt }}"
     state: absent
+
+- name: "Update fstab -> {{ server_disk_dev }} (no LVM)"
+  mount:
+    src: "{{ server_disk_dev }}1"
+    path: "{{ server_disk_mountpoint }}"
+    fstype: "{{ server_disk_fs }}"
+    state: mounted
+  when: server_lvm_lv is undefined
+
+- name: "Update fstab -> {{ server_lvm_vg }}-{{ server_lvm_lv }} (LVM)"
+  mount:
+    src: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
+    path: "{{ server_disk_mountpoint }}"
+    fstype: "{{ server_disk_fs }}"
+    state: present
+  when: server_lvm_lv is defined
+
+#- fail:
+#    msg: DEBUG HERE
