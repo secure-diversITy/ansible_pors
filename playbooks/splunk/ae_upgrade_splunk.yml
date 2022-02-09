@@ -27,6 +27,13 @@
     splunk_type: "splunk"
 
   pre_tasks:
+    - include_vars: "{{ env_inventory_dir }}/group_vars/universal_forwarder/splunk_installation.yml"
+      when: spltype is defined and spltype == "splunkforwarder"
+
+    - set_fact:
+        splunk_type: spltype
+      when: spltype is defined
+
     - setup:
       when: system.upgrade_os is undefined or system.upgrade_os == False
 

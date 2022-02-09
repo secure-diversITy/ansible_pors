@@ -2,6 +2,10 @@
 - hosts: pors_server
   connection: local
 
+  pre_tasks:
+    - include_vars: "{{ env_inventory_dir }}/group_vars/universal_forwarder/splunk_installation.yml"
+      when: spltype == "splunkforwarder"
+  
   vars:
     tgzname: "{{ spltype }}-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
 
