@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-81"
+VERSIONNUM="4.0-82"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1250,7 +1250,7 @@ F_TARGETS(){
 	NIGRP="$2"
 	
 	#OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort))
-	OPTIONS=($(for i in $(egrep -v "(:vars)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g;s/:children//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort -u ))
+	OPTIONS=($(for i in $(egrep -v "(:vars|^#)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g;s/:children//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort -u ))
 	# OPTIONS EXPLANATION ABOVE
 
 	if [ -z "$1" ];then 
