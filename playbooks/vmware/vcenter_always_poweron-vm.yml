@@ -1,0 +1,11 @@
+---
+- hosts: '{{ server_hostname }}*'
+  gather_facts: false
+
+  tasks:
+    - name: start VM (this task will wait for IP)
+      include_tasks: vcenter_poweron-vm.yml
+
+    - name: include any system boot tasks
+      include_role:
+        name: system_boot
