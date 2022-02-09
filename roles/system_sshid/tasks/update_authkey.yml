@@ -3,7 +3,7 @@
   become: yes
   become_user: "{{ system_shared_service_account }}"
   stat:
-      path: "{{ splunk_repository.repository_root }}/authorized_keys_{{ system_shared_service_account }}"
+      path: "{{ repo_base }}/common/ssh/authorized_keys_{{ system_shared_service_account }}"
   register: stat_auth_file
   when: system_shared_service_account is defined
 
@@ -13,5 +13,5 @@
   authorized_key:
     user: "{{ system_shared_service_account }}"
     state: present
-    key: "{{ lookup('file', '{{ splunk_repository.repository_root }}/authorized_keys_{{ system_shared_service_account }}') }}"
+    key: "{{ lookup('file', '{{ repo_base }}/common/ssh/authorized_keys_{{ system_shared_service_account }}') }}"
   when: stat_auth_file.stat.exists is defined and system_shared_service_account is defined
