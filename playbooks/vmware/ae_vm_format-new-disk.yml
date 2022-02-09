@@ -7,16 +7,11 @@
       debug: msg="Please be patient as we wait until the VM is fully booted!"
 
     - name: Power on {{ server_hostname }}
-      connection: local
-      vmware_guest:
-        hostname: '{{ vsphere.host[vsphere_var].dest }}'
-        username: '{{ vsphere.host[vsphere_var].user }}'
-        password: '{{ vsphere.host[vsphere_var].password }}'
-        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
-        name: '{{ server_hostname }}'
-        esxi_hostname: "{{ vsphere_esx_host }}"
-        state: poweredon
-        wait_for_ip_address: true
+      include_tasks: vcenter_poweron-vm.yml
+
+    - name: include any system boot tasks
+      include_role:
+        name: system_boot
 
     - name: partitioning {{ server_disk_dev }}
       remote_user: "{{ pors_ssh_user }}"

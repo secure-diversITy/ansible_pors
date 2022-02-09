@@ -1,5 +1,6 @@
 ---
 - name: power on VM and wait for IP
+  connection: local
   vmware_guest:
       hostname: '{{ vsphere.host[vsphere_var].dest }}'
       username: '{{ vsphere.host[vsphere_var].user }}'
