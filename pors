@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-83"
+VERSIONNUM="4.0-84"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -682,7 +682,7 @@ declare DEFAULTVAULT=$AINVENTORY/$TARGETENV/group_vars/all/vault.yml
 ## @var VALIDROLES
 ## @brief Valid Splunk Server Role names
 ## @details these are in use everwhere in PORS, i.e. in playbooks, target groups as well. Fully static. do NOT touch these.
-declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_leader logstream_worker masternode monitoringconsole peernode searchhead shcmember plainlinux"
+declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_leader logstream_worker masternode monitoringconsole peernode searchhead shcmember universalforwarder"
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
@@ -4664,29 +4664,8 @@ F_VSPHERE_DEPLOY(){
 
             F_LOG $FUNCNAME "additional disk config needed. disks left: $(($VMDISK - $VMDISKCNT))" 
         done
-#        VMDISKCNT=0
-#        while [ $VMDISKCNT -ne $VMDISK ];do
-#            VMDISKCNT=$((VMDISKCNT +1))
-#            
-#            # dynamic variable names..
-#            VMDISKDEV="VMDISK${VMDISKCNT}DEV"
-#            VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
-#            VMDISKFS="VMDISK${VMDISKCNT}FS"
-#            VMDISKMNTP="VMDISK${VMDISKCNT}MNTP"
-#            VMDISKLVMVG="VMDISK${VMDISKCNT}LVMVG"
-#            VMDISKLVMLV="VMDISK${VMDISKCNT}LVMLV"
-#            VMDISKTYPE="VMDISK${VMDISKCNT}TYPE"
-#            VMDISKSIZEGB="VMDISK${VMDISKCNT}SIZEGB"
-#            VMDISKDS="VMDISK${VMDISKCNT}DS"
-#            VMDISKDC="VMDISK${VMDISKCNT}DC"
-#
-#            F_ABIN $HOSTFILE $PBVMDISKFORMAT "Formatting \Zb${!VMDISKDEV}\ZB on $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_mountopts':'${!VMDISKOPTS}','server_disk_dev':'${!VMDISKDEV}','server_disk_fs':'${!VMDISKFS}','server_disk_mountpoint':'${!VMDISKMNTP}','server_lvm_vg':'${!VMDISKLVMVG}','server_lvm_lv':'${!VMDISKLVMLV}'}"
-#            ERR=$?
-#            [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
-#            
-#       done
 
-        F_ABIN $HOSTFILE $PBVCVMPOWERON "Powering on $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}'}"
+        F_ABIN $HOSTFILE $PBVCVMPOWERON "Powering on $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOSTF','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}'}"
         ERR=$?
         [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
 
