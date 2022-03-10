@@ -10,6 +10,7 @@
         - unzip
         - make
         - xfsprogs
+        - rsync
     state: present
 
 - name: Install user-defined packages
