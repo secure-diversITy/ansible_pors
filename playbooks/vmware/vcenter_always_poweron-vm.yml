@@ -1,5 +1,5 @@
 ---
-- hosts: '{{ server_hostname }}*'
+- hosts: '{{ server_hostname }}'
   gather_facts: false
 
   tasks:
