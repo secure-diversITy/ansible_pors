@@ -11,6 +11,7 @@
         - make
         - xfsprogs
         - rsync
+        - net-tools
     state: present
 
 - name: Install user-defined packages
