@@ -1,4 +1,22 @@
 ---
-- include: splunk_stop.yml
+
+- set_fact:
+    openssl_cert_path: "{{ splunk_installation.splunk_home_path }}/etc/auth/server.pem"
+
+- include: check_certage.yml
+
 - include: renew_server_cert.yml
-- include: splunk_start.yml
+  when: cert_renew_required
+
+- include: check_web_enabled.yml
+
+- block:
+    - set_fact:
+        openssl_cert_path: "{{ splunk_installation.splunk_home_path }}/etc/auth/splunkweb/cert.pem"
+
+    - include: check_certage.yml
+
+    - include: renew_web_cert.yml
+      when:
+        - cert_renew_required
+  when: web_ssl_on.changed

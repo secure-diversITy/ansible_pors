@@ -1,0 +1,15 @@
+---
+
+- name: "Check if splunk web is enabled"
+  shell: '{{ splunk_installation.splunk_home_path }}/bin/splunk btool web list settings |grep startwebserver | egrep -io "true|1|yes|enabled"'
+  register: web_on
+  ignore_errors: true
+  changed_when: web_on.rc == 0
+
+
+- name: "Check if SSL is enabled on splunk web"
+  shell: '{{ splunk_installation.splunk_home_path }}/bin/splunk btool web list settings |grep enableSplunkWebSSL | egrep -io "true|1|yes|enabled"'
+  register: web_ssl_on
+  ignore_errors: true
+  changed_when: web_ssl_on.rc == 0
+  when: web_on.changed

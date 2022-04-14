@@ -1,0 +1,6 @@
+---
+- name: Renew splunk webserver certificate 
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk createssl web-cert -n $(hostname -f) -l 4096"
+  args:
+    chdir: "{{ splunk_installation.splunk_home_path }}/etc/auth/splunkweb"
+  notify: splunk restart

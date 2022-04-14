@@ -1,0 +1,20 @@
+- name: Renew splunk SSL certificates
+  hosts: all
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  vars:
+    splunk_restart: True
+
+  tasks:
+    - include_role:
+        name: system_splunkcert
+
+  handlers:
+    - include: ../../roles/common/handlers/splunkd.yml
+
+  # flush notify handlers to activate the splunk config
+#  post_tasks:
+#    - meta: flush_handlers
+

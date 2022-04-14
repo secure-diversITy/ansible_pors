@@ -1,8 +1,0 @@
-- name: Renew splunk server certificate
-  hosts: all
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
-  become_user: "{{ splunk_install_user }}"
-
-  roles:
-    - system_splunkcert 

@@ -1,0 +1,19 @@
+---
+- set_fact:
+    futuredate: "{{ ansible_date_time.year | int + 1 }}1231"
+    cert_renew_required: false
+  run_once: true
+
+- name: "Get current certificate age"
+  shell: 'date --date "$(openssl x509 -enddate -noout -in {{ openssl_cert_path }} | cut -d = -f2)" +%Y%m%d'
+  register: cert_current
+  changed_when: cert_current.rc != 0
+
+- name: Validate
+  set_fact:
+    cert_renew_required: true
+  when: cert_current.stdout | int <= futuredate | int
+#  when: "{{ cert_current.stdout | int }} <= {{ futuredate | int }}"
+
+- debug:
+    var: cert_renew_required
