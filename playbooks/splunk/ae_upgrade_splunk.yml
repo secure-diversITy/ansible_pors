@@ -31,7 +31,7 @@
       when: spltype is defined and spltype == "splunkforwarder"
 
     - set_fact:
-        splunk_type: spltype
+        splunk_type: "{{ spltype }}"
       when: spltype is defined
 
     - setup:
