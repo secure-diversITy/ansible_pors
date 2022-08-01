@@ -12,6 +12,7 @@
         - xfsprogs
         - rsync
         - net-tools
+        - telnet
     state: present
 
 - name: Install user-defined packages
@@ -24,8 +25,8 @@
 # possible ansible families:
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_conditionals.html#ansible-facts-os-family
 
-- name: SuSE requirements
-  zypper:
+- name: SuSE specific packages
+  package:
     name:
         - python-xml
         - systemd-sysvinit
@@ -35,10 +36,11 @@
     state: present
   when: ansible_facts['os_family'] == "Suse"
 
-- name: RHEL requirements
+- name: RHEL specific packages
   package:
     name:
         - libselinux-python
+        - nmap-ncat
   when: ansible_facts['os_family'] == "RedHat"
 
 - name: vSphere requirements (RHEL)
