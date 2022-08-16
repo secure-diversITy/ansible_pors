@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-86"
+VERSIONNUM="4.0-87"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -221,7 +221,7 @@ declare LOG=${LOGDIR}/$(date +%F_%H-%M)_${BIN}.log
 ## @brief How many log files are allowed before rotate starts
 ## @showinitializer
 [ -z "$MAXLOG" ] && \
-declare MAXLOG=3
+declare MAXLOG=7
 
 ## @var AEUSRHOSTFILE
 ## @brief the user choosen hostfile will be written into this file
@@ -5864,7 +5864,7 @@ F_PORSACTION(){
     [ -z "$ATITLE" ] && F_LOG $FUNCNAME "ERROR: missing action title!" && return 3
     [ -z "$AMSG" ] && F_LOG $FUNCNAME "ERROR: missing action message!" && return 3
 
-    F_WAITBOX "... saving changes"
+    [ $RUNMODE != "batch" ] && F_WAITBOX "... saving changes"
 
     # write action log
     PREFIX="$(date '+%F_%T') | $TARGETENV | $CALLUSR"
@@ -6261,10 +6261,12 @@ fi
 
 cd $ADIR
  
-echo "$@" |egrep -q "(noninteractive|batch)"
+echo "$@" | egrep -q "(noninteractive|batch)"
 if [ $? -eq 0 ];then
    # enter non-interactive/batch mode
-    export LOG=$WORKDIR/logs/${BIN}_batchmode.log
+    export LOG=$LOGDIR/$(date +%F_%H-%M)_${BIN}_batchmode.log
+    rm $LOGDIR/${BIN}_batchmode.log
+    ln -s $LOG $LOGDIR/${BIN}_batchmode.log
     F_LOGROTATE
     # reset any previous set user host file
     > $AEUSRHOSTFILE
@@ -6451,7 +6453,7 @@ else
         F_DATACOMMIT "manual changes" "data directory has been altered outside of PORS - committed the current state before actually starting.."
     else
         F_LOG START "running in STEALTH MODE!!!"
-        declare LOG="${WORKDIR}/${BIN}-stealthmode.log"
+        declare LOG="${WORKDIR}/$(date +%F_%H-%M)_${BIN}-stealthmode.log"
     fi
 
     ## @var DEFAULTVAULT
