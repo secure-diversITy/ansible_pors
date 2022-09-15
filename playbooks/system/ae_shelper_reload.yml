@@ -6,9 +6,6 @@
   become_user: "{{ splunk_install_user }}"
   gather_facts: False
 
-  handlers:
-    - include: ../../roles/shelper/handlers/main.yml
-
   pre_tasks:
     - set_fact:
         generated_shcmember: "{{ query('inventory_hostnames', '{{ shc_site }}_shcmember') | first }}"
@@ -24,13 +21,13 @@
       debug:
         msg: "Please be patient! {{ shelper_action }} in progress"
 
+    - include_role:
+        name: shelper
+        public: yes
+
     - name: "shelper {{ shelper_action }} (this can take some time before you see results here ...)"
       shell: echo "... please be patient." 
       register: actionresult
       notify: "shelper {{ shelper_action }}"
 
     - meta: flush_handlers
-
-    - name: Print result
-      debug: 
-        msg: "{{ shelper_result.stdout_lines }}"

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-87"
+VERSIONNUM="4.0-88"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -746,7 +746,7 @@ F_LOGROTATE(){
     while [ "$CURLOGCNT" -gt $MAXLOG ];do
         ROTATE=yes
         CURLOGCNT=$(find $LOGDIR -type f | wc -l)
-        OLDESTLOG=$(find $LOGDIR -type f -printf '%T+ %p\n' | sort | head -n 1)
+        OLDESTLOG=$(find $LOGDIR -type f -printf '%T+ %p\n' | sort | head -n 1 | cut -d " " -f 2)
         rm $OLDESTLOG 
     done
 
@@ -2492,7 +2492,7 @@ F_SHEXEC(){
     F_ABIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
     AERR=$?
     [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$SHOSTST" "$LOG"
-    [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for:\n\n$SHOSTST"
+    [ $RUNMODE == "batch" ] && F_ECHOLOG "$FUNCNAME" "$SHEXE $SHCUST for: $SHOSTST"
     F_PORSACTION "nogit" "$FUNCNAME | executed splunk $SHEXE on $SHOSTS"
     return $AERR
 }
@@ -3640,7 +3640,8 @@ F_DEPLOYAPP(){
 
 #            F_LOG $FUNCNAME "will exec: $ABIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
             F_ABIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE,'data_dir':'$DATADIR'}"
-		
+            LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
+
             DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 1-2 | egrep "($SUBSETAPPS)" | sed 's/^/\\n - /g')
             [ -z "$DEPAPPS" ] && F_LOG $FUNCNAME "ERROR: No app found for deployment" && return 99
             F_LOG $FUNCNAME "Will deploy these apps on $HOSTSELECTION:\n$DEPAPPS"
@@ -3651,8 +3652,7 @@ F_DEPLOYAPP(){
 		    for tgroup in $HOSTSELECTION;do
 			F_LOG $FUNCNAME "will exec: $ABIN --check -i $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP -e 'target=$tgroup accept_hostkey=true' --tags $tgroup"
 			F_ABIN $HOSTFILE $AINVENTORY/$TARGETENV/$PBDEPLAPP "Processing <$tgroup>..." "-e {'target':'$tgroup','accept_hostkey':'true'} --tags $tgroup"
-                        LASTERR=$?
-                        [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
+                        LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
                         for ad in $(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 2 | tr -d '$');do
                             if [ -L "$DATADIR/custom/roles/apps/$ad/defaults" ];then 
                                 F_LOG "$FUNCNAME" "link to $DATADIR/custom/roles/apps/$ad/defaults already set" 
@@ -3886,10 +3886,12 @@ F_ADDDEP(){
 
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFDEP" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
-    F_ERRLOG "$?" "configuration SHC Deployer on:\n\n$SHOSTST" "$LOG"
+    LASTERR=$?
+    F_ERRLOG "$LASTERR" "configuration SHC Deployer on:\n\n$SHOSTST" "$LOG"
     F_PORSACTION "nogit" "$FUNCNAME | configured $HOSTSELECTION as SHC deployer"
 
     F_LOG $FUNCNAME ended
+    return $LASTERR
 }
 
 ## @fn F_ADDLM()
@@ -3950,6 +3952,7 @@ F_ADDLM(){
     F_PORSACTION "nogit" "$FUNCNAME | configured $HOSTSELECTION as LicenseMaster"
     unset LISTTYPE
     F_LOG $FUNCNAME ended
+    return $LERR
 }
 
 ## @fn F_ADDMN()
@@ -4187,9 +4190,11 @@ F_ADDDS(){
 
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFDS" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e target='$LIMITLIST'"
-    F_ERRLOG "$?" "configuration as Deploymentserver on:\n\n$SHOSTST" "$LOG"
+    LASTERR=$?
+    F_ERRLOG "$LASTERR" "configuration as Deploymentserver on:\n\n$SHOSTST" "$LOG"
     F_PORSACTION "nogit" "$FUNCNAME | configured $HOSTSELECTION as DeploymentServer"
     F_LOG $FUNCNAME ended
+    return $LASTERR
 }
 
 ## @fn F_ADDSHCMEMBER()
@@ -4241,9 +4246,11 @@ F_ADDSHCMEMBER(){
   
     # doit
     F_ABIN "$HOSTFILE" "$PBCONFSHCM" "\Za\Z1Configure ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST','shc_site':'${SITESEL}'}"
-    F_ERRLOG "$?" "configuration as SHC member on:\n\n$SHOSTST" "$LOG"
+    LASTERR=$?
+    F_ERRLOG "$LASTERR" "configuration as SHC member on:\n\n$SHOSTST" "$LOG"
     F_PORSACTION "nogit" "$FUNCNAME | configured $HOSTSELECTION as SHC member"
     F_LOG $FUNCNAME ended
+    return $LASTERR
 }
 
 ## @fn F_ADDPEER()
@@ -4420,7 +4427,9 @@ F_VAULTPW(){
 F_VSPHERE_VCDEFS(){ 
     F_LOG $FUNCNAME started
     F_ABIN $HOSTFILE $PBVCSHOW "Collecting vCenter definitions..."
+    LASTERR=$?
     F_LOG $FUNCNAME ended
+    return $LASTERR
 }
 
 ## @fn F_VSPHERE_VCGETINFO()
@@ -4475,6 +4484,7 @@ F_VSPHERE_VCGETINFO(){
         F_LOG $FUNCNAME "Using cached vCenter lists but refreshing vhosts (always)"
         F_ABIN $HOSTFILE $PBVCGETVHOSTSTATES "Collecting vhosts states ..." "-e {'vsphere_var':'$VCENTER'}"
     fi
+    LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
 
     for list in $VCLIST $VCHOSTLIST $VCNETLIST $VCDCLIST $VCDSLIST; do
         LISTSAVAIL=0
@@ -5090,6 +5100,7 @@ F_STARTVMDEP(){
 		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
                     # collect available Nodes
                     F_ABIN $HOSTFILE $PBPVEGETNODES "Collecting Proxmox Nodes.." >> $LOG
+                    LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
                     VM_PVE_NODES=$(cat ${PORS_TEMPDIR}/pve_nodes.lst | tr '\n' ',' | sed 's/,$//g')
 
                     PROVOUT=$(F_DIALOG --mixedform "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 30 100 20  \
@@ -5107,6 +5118,7 @@ F_STARTVMDEP(){
                     # collect ansible config
 		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
                     F_ABIN $HOSTFILE $PBGCPGETIDS "Parsing ansible config ..." >> $LOG
+                    LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
                     VM_GOOGLECP_IDS=$(cat ${PORS_TEMPDIR}/googlecp.ids | tr '\n' ',' | sed 's/,$//g')
                     [ -z "$VM_GOOGLECP_MROLE" ] && VM_GOOGLECP_MROLE=$SERVER_ROLE
 
@@ -5827,6 +5839,7 @@ F_CHECKSSH(){
     [ -z "$DHOSTF" ] && DHOSTF="$HOSTFILE"
 
     F_ABIN $HOSTFILE $PBSSHCHK "checking $CHOST ..." "--limit $CHOST"
+    LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
 
     F_LOG $FUNCNAME ended
 }
@@ -6212,9 +6225,30 @@ F_MENUADVANCED(){
 	done	
 }
 
+## @fn F_CHECKVERSION()
+## @brief Checks for Ansible version and compares it with the required one
+## @return exitcode depending on success (0) or not (3)
+## @return output of detected Ansible version
+## SO DO NOT ECHO ANYTHING ELSE HERE
+F_CHECKVERSION(){
+    # check ansible version
+    unset AVERSF AVERS MAXAVERSION MREQAVERSION
+    MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
+    if [ -f "$ABIN" ];then
+        AVERSF=$(F_ABIN version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && AVERS=$(echo $AVERSF | tr -d ".")
+    else
+        F_LOG MAIN "ABIN: $ABIN missing!" && return 3
+    fi
+    F_LOG MAIN "Detected Ansible version: AVERS: $AVERS. Min required: $MREQAVERSION"
+
+    [ "$AVERS" -lt "$MREQAVERSION" ] && F_LOG MAIN "No suitable Ansible version found!!! Required: $REQAVERSION Found: $AVERSF" && return 3
+    MAXAVERSION=$AVERSF
+    echo "$MAXAVERSION"
+}
+
 # ugly but efficient
 echo "$@" | egrep -q "help"
-[ $? -eq 0 ]&& F_HELP && F_EXITUNCLEAN
+[ $? -eq 0 ] && F_HELP && F_EXITUNCLEAN
 
 # ensure we know the real user and deny starting PORS directly as SPLUSER or ROOT user
 ME=$(id -un)
@@ -6243,22 +6277,6 @@ echo "starting PORS as user $ME"
 # ensure audit log dir exists
 [ ! -d "$DATADIR/audit" ] && mkdir -p $DATADIR/audit
 
-# check ansible version
-unset AVERSF AVERS A2VERSF A2VERS
-MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
-AVERSF=$($ABIN --version | head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+")
-AVERS=$(echo $AVERSF | tr -d ".")
-[ -f "$ABIN" ] && A2VERSF=$(F_ABIN version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && A2VERS=$(echo $A2VERSF | tr -d ".")
-F_LOG MAIN "Detected Ansible version(s):\nAVERS: $AVERS\nA2VERS: $A2VERS\nMin required: $MREQAVERSION"
-
-if [ -z "$A2VERS" ];then
-   [ "$AVERS" -lt "$MREQAVERSION" ] && F_DIAERR 999 "No suitable Ansible version found!!!\nRequired: $REQAVERSION\nFound: $AVERSF" && F_EXIT
-    export MAXAVERSION=$AVERSF
-else
-   [ "$A2VERS" -lt "$MREQAVERSION" ] && F_DIAERR 999 "No suitable Ansible version found!!!\nRequired: $REQAVERSION\nFound: $A2VERSF" && F_EXIT
-    export MAXAVERSION=$A2VERSF
-fi
-
 cd $ADIR
  
 echo "$@" | egrep -q "(noninteractive|batch)"
@@ -6270,6 +6288,13 @@ if [ $? -eq 0 ];then
     F_LOGROTATE
     # reset any previous set user host file
     > $AEUSRHOSTFILE
+
+    # Ansible version check
+    export MAXAVERSION=$(F_CHECKVERSION)
+    LASTERR=$?
+    if [ $LASTERR -ne 0 ] || [ -z "$MAXAVERSION" ];then
+        F_LOG $FUNCNAME "ended with $LASTERR, detected Ansible version: >$MAXAVERSION<" && F_EXIT $LASTERR
+    fi
 
     export RUNMODE=batch
     export BDEPAPPSUBSET=0
@@ -6305,7 +6330,7 @@ if [ $? -eq 0 ];then
             declare ABIN="$ABIN ${A2VAULTARG}"
             declare VBINX=$VBIN
             declare VBIN="$VBIN ${A2VAULTARG}"
-            echo "$ABIN, $VBIN"
+            #echo "ABIN: $ABIN, VBIN: $VBIN"
             ;;
             -pa|--post-action)
             export BATCHACT="$2"
@@ -6326,11 +6351,11 @@ if [ $? -eq 0 ];then
    for f in $HOSTFILE $BPLAY; do
 	if [ ! -f $f ];then
 	  echo "ERROR missing file: >$f<"
-	  F_EXIT
+	  F_EXIT 4
 	fi
    done
-   [ -z "$BTARGET" -o -z "$HOSTFILE" ] && echo -e "ERROR: missing a required arg\n(target:$BTARGET,hosts:$HOSTFILE)!" && F_EXIT 
-   [ -z "$BACT" -a -z "$BPLAY" ] && echo -e "ERROR: Either action or play must be defined (action: $BACT, play: $BPLAY)!" && F_EXIT
+   [ -z "$BTARGET" -o -z "$HOSTFILE" ] && echo -e "ERROR: missing a required arg\n(target:$BTARGET,hosts:$HOSTFILE)!" && F_EXIT 4
+   [ -z "$BACT" -a -z "$BPLAY" ] && echo -e "ERROR: Either action or play must be defined (action: $BACT, play: $BPLAY)!" && F_EXIT 4
 
     ## @var EXECBIT
     ## @brief execution lock file based on the target environment
@@ -6340,7 +6365,7 @@ if [ $? -eq 0 ];then
     declare EXECBIT=/tmp/.pors_batch_${TARGETENV}.lock
 
    # detect running session and kill/ask
-   [ -f $EXECBIT ] && echo -e "\n\nWARNING: It seems PORS is already running by user: $(cat $EXECBIT)! ABORTED!" && F_LOG "$BIN" "PORS is already running by $(cat $EXECBIT). ABORTED!" && exit 99
+   [ -f $EXECBIT ] && echo -e "\n\nWARNING: It seems PORS is already running by user: $(cat $EXECBIT)! ABORTED!" && F_LOG "$BIN" "PORS is already running by $(cat $EXECBIT). ABORTED!" && F_EXIT 4
     echo "$CALLUSR" > $EXECBIT && chmod o+w $EXECBIT
 
     ## @var PORS_TEMPDIR
@@ -6367,7 +6392,11 @@ if [ $? -eq 0 ];then
                 F_DEPLOYAPP >> $LOG 2>&1
                 DEPERR=$?
                 [ $DEPERR -ne 0 ] && F_LOG MAIN "deploying ended with $DEPERR" && F_EXIT $DEPERR
-                [ ! -z $"BATCHACT" ] && F_LOG "$BIN" "activating changes..." && F_SHEXEC
+                if [ ! -z "$BATCHACT" ];then
+                    F_LOG "$BIN" "activating changes..."
+                    F_SHEXEC >> $LOG 2>&1
+                    F_EXIT $?
+                fi
                 ;;
                 *)
                 echo "ERROR: Action $BACT does not exists!"
@@ -6389,6 +6418,13 @@ else
     F_LOGROTATE
     # reset any previously set user host file
     > $AEUSRHOSTFILE
+
+    # Ansible version check
+    export MAXAVERSION=$(F_CHECKVERSION)
+    LASTERR=$?
+    if [ $LASTERR -ne 0 ] || [ -z "$MAXAVERSION" ];then
+        F_LOG $FUNCNAME "ended with $LASTERR, detected Ansible version: >$MAXAVERSION<" && F_EXIT $LASTERR
+    fi
 
     while [ ! -z "$1" ]; do
       case "$1" in
@@ -6482,4 +6518,4 @@ else
     done
 fi
 
-F_EXIT
+F_EXIT $?

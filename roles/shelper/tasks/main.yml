@@ -1,5 +1,10 @@
 ---
 - include: prereq.yml
+  become: yes
+  become_user: root
   when: shelper_installation.enabled == true
+
 - include: git_checkout.yml
+  become: yes
+  become_user: root
   when: shelper_installation.enabled == true and shelper_installation.install_shelper_git == true
