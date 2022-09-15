@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-88"
+VERSIONNUM="4.0-89"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -6234,7 +6234,7 @@ F_CHECKVERSION(){
     # check ansible version
     unset AVERSF AVERS MAXAVERSION MREQAVERSION
     MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
-    if [ -f "$ABIN" ];then
+    if [ -f "$ABINX" ];then
         AVERSF=$(F_ABIN version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && AVERS=$(echo $AVERSF | tr -d ".")
     else
         F_LOG MAIN "ABIN: $ABIN missing!" && return 3
@@ -6271,11 +6271,12 @@ echo "starting PORS as user $ME"
 ####  pre-check Ansible reqs
 
 # check ansible variable file existence
-
 [ ! -f $HOME/.ansible.cfg ] && echo -e "\nERROR: missing $HOME/.ansible.cfg. Please ensure you have copied it from EXAMPLES/ansible.cfg\n\ne.g: cp EXAMPLES/ansible.cfg $HOME/.ansible.cfg\n" && exit 4
 
 # ensure audit log dir exists
 [ ! -d "$DATADIR/audit" ] && mkdir -p $DATADIR/audit
+
+ABINX=$ABIN
 
 cd $ADIR
  
@@ -6295,6 +6296,7 @@ if [ $? -eq 0 ];then
     if [ $LASTERR -ne 0 ] || [ -z "$MAXAVERSION" ];then
         F_LOG $FUNCNAME "ended with $LASTERR, detected Ansible version: >$MAXAVERSION<" && F_EXIT $LASTERR
     fi
+    F_LOG MAIN "PYTHONPATH: $PYTHONPATH"
 
     export RUNMODE=batch
     export BDEPAPPSUBSET=0
