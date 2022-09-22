@@ -206,69 +206,69 @@ class CallbackModule(CallbackBase):
 
     def v2_playbook_on_play_start(self, play):
         self.play = play
-	self.vm = play.get_variable_manager()
+        self.vm = play.get_variable_manager()
 
     def v2_runner_on_ok(self, result, **kwargs):
-	# get the PORS target environment
-	host_vars = self.vm.get_vars()['hostvars'][result._host.name]
-      	self.target_env = host_vars['target_env']
+        # get the PORS target environment
+        host_vars = self.vm.get_vars()['hostvars'][result._host.name]
+        self.target_env = host_vars['target_env']
         self.splunk.send_event(
-            self.url,
-            self.authtoken,
-            'OK',
-            result,
-            self._runtime(result),
-	    self.target_env
-        )
+                self.url,
+                self.authtoken,
+                'OK',
+                result,
+                self._runtime(result),
+                self.target_env
+                )
 
     def v2_runner_on_skipped(self, result, **kwargs):
-	# get the PORS target environment
-	host_vars = self.vm.get_vars()['hostvars'][result._host.name]
-      	self.target_env = host_vars['target_env']
+        # get the PORS target environment
+        host_vars = self.vm.get_vars()['hostvars'][result._host.name]
+        self.target_env = host_vars['target_env']
         self.splunk.send_event(
             self.url,
             self.authtoken,
             'SKIPPED',
             result,
             self._runtime(result),
-	    self.target_env
+        self.target_env
         )
 
     def v2_runner_on_failed(self, result, **kwargs):
-	# get the PORS target environment
-	host_vars = self.vm.get_vars()['hostvars'][result._host.name]
-      	self.target_env = host_vars['target_env']
+        # get the PORS target environment
+        host_vars = self.vm.get_vars()['hostvars'][result._host.name]
+        self.target_env = host_vars['target_env']
         self.splunk.send_event(
             self.url,
             self.authtoken,
             'FAILED',
             result,
             self._runtime(result),
-	    self.target_env
+        self.target_env
         )
 
     def runner_on_async_failed(self, result, **kwargs):
-	# get the PORS target environment
-	host_vars = self.vm.get_vars()['hostvars'][result._host.name]
-      	self.target_env = host_vars['target_env']
+        # get the PORS target environment
+        host_vars = self.vm.get_vars()['hostvars'][result._host.name]
+        self.target_env = host_vars['target_env']
         self.splunk.send_event(
             self.url,
             self.authtoken,
             'FAILED',
             result,
             self._runtime(result),
-	    self.target_env
+        self.target_env
         )
 
     def v2_runner_on_unreachable(self, result, **kwargs):
-	# get the PORS target environment
-	host_vars = self.vm.get_vars()['hostvars'][result._host.name]
-      	self.target_env = host_vars['target_env']
+        # get the PORS target environment
+        host_vars = self.vm.get_vars()['hostvars'][result._host.name]
+        self.target_env = host_vars['target_env']
         self.splunk.send_event(
             self.url,
             self.authtoken,
             'UNREACHABLE',
             result,
             self._runtime(result),
-	    self.target_env
+        self.target_env
         )

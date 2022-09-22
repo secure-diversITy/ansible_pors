@@ -28,17 +28,18 @@ def linked_app_list_development(app):
   overalldict={}
   rolepath='apps'
   tgroups=os.listdir(base_dir)
+  filecontent=""
 
   for capp in app:
     for tgroup in tgroups:
       fullpath=base_dir + tgroup + "/" + capp
       if os.path.isfile(fullpath):
         filecontent=open(fullpath).read()
- 	if re.search("\s+install:\s+[tT]rue",filecontent) or re.search("\s+delete:\s+[tT]rue",filecontent):
-    	  if not capp in mopp:
-	    mopp[capp] = {"role":rolepath + "/" + capp, "tags":""}
-	    mopp[capp]['tags']=tgroup
-          else:
+    if re.search("\s+install:\s+[tT]rue",filecontent) or re.search("\s+delete:\s+[tT]rue",filecontent):
+        if not capp in mopp:
+            mopp[capp] = {"role":rolepath + "/" + capp, "tags":""}
+            mopp[capp]['tags']=tgroup
+        else:
             mopp[capp]['tags']+=", "+tgroup
   return mopp.values()
 
