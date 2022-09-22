@@ -24,6 +24,9 @@
 
 - include: service_enable.yml
 - include: optimize_ulimit.yml
+
 - include: optimize_initd.yml
+  when: ansible_facts.service_mgr != "systemd"
+
 - include: service_start.yml
 - include: sudoperms.yml

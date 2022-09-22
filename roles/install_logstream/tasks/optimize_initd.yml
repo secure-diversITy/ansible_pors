@@ -30,44 +30,29 @@
         backup: yes
   when: "cribl_optimize.initd == true | default(false)"
 
-- name: Tune init.d script (ulimit 1/2)
+- name: Tune init.d script (ulimit)
   blockinfile:
         dest: "/etc/init.d/cribl"
         marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS -->"
-        insertafter: '^esac$'
+        insertafter: '^start_app.*\{$'
         block: |
-            CRIBL_HOME={{ logstream_installation.home_path }}
-            USER="{{ cribl_install_user }}"
-            echo "$(date) - init start: nofiles soft + hard $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: no processes $(ulimit -Su)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: no processes $(ulimit -Hu)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: max file size $(ulimit -Sf)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: max file size $(ulimit -Hf)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: data segment size $(ulimit -Sd)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init start: data segment size $(ulimit -Hd)" >> $CRIBL_HOME/log/init-ulimit.log
-            ulimit -n {{ logstream_ulimit_nofile_softhard }}
-            ulimit -Su {{ logstream_ulimit_nproc_soft }}
-            ulimit -Hu {{ logstream_ulimit_nproc_hard }}
-            ulimit -Sf {{ logstream_ulimit_fsize_soft }}
-            ulimit -Hf {{ logstream_ulimit_fsize_hard }}
-            ulimit -Sd {{ logstream_ulimit_data_soft }}
-            ulimit -Hd {{ logstream_ulimit_data_hard }}
-        backup: yes
-  when: "cribl_optimize.initd == true | default(false)"
-
-- name: Tune init.d script (ulimit 2/2)
-  blockinfile:
-        dest: "/etc/init.d/cribl"
-        marker: "# <!-- {mark} ANSIBLE MANAGED BLOCK - ULIMITS-LOG -->"
-        insertbefore: "exit ??"
-        block: |
-            echo "$(date) - init end: nofiles soft + hard $(ulimit -n)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end: no processes $(ulimit -Su)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end: no processes $(ulimit -Hu)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end: max file size $(ulimit -Sf)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end: max file size $(ulimit -Hf)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end: data segment size $(ulimit -Sd)" >> $CRIBL_HOME/log/init-ulimit.log
-            echo "$(date) - init end: data segment size $(ulimit -Hd)" >> $CRIBL_HOME/log/init-ulimit.log
+            #
+                CRIBL_HOME={{ logstream_installation.home_path }}
+                USER="{{ cribl_install_user }}"
+                echo "$(date) - init start: nofiles soft + hard $(ulimit -Sn)" >> $CRIBL_HOME/log/init-ulimit.log
+                echo "$(date) - init start: no processes $(ulimit -Su)" >> $CRIBL_HOME/log/init-ulimit.log
+                echo "$(date) - init start: no processes $(ulimit -Hu)" >> $CRIBL_HOME/log/init-ulimit.log
+                echo "$(date) - init start: max file size $(ulimit -Sf)" >> $CRIBL_HOME/log/init-ulimit.log
+                echo "$(date) - init start: max file size $(ulimit -Hf)" >> $CRIBL_HOME/log/init-ulimit.log
+                echo "$(date) - init start: data segment size $(ulimit -Sd)" >> $CRIBL_HOME/log/init-ulimit.log
+                echo "$(date) - init start: data segment size $(ulimit -Hd)" >> $CRIBL_HOME/log/init-ulimit.log
+                ulimit -n {{ logstream_ulimit_nofile_softhard }}
+                ulimit -Su {{ logstream_ulimit_nproc_soft }}
+                ulimit -Hu {{ logstream_ulimit_nproc_hard }}
+                ulimit -Sf {{ logstream_ulimit_fsize_soft }}
+                ulimit -Hf {{ logstream_ulimit_fsize_hard }}
+                ulimit -Sd {{ logstream_ulimit_data_soft }}
+                ulimit -Hd {{ logstream_ulimit_data_hard }}
         backup: yes
   when: "cribl_optimize.initd == true | default(false)"
 

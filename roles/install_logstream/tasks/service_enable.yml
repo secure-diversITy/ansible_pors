@@ -17,13 +17,21 @@
   shell: chattr -i /etc/init.d/cribl
   when: initfile is defined and initfile.stat.exists
 
-- name: Install service (init)
-  shell: "{{ logstream_installation.home_path }}/bin/cribl boot-start enable -m initd -u {{ cribl_install_user }}"
+- name: Remove old initd service
+  shell: "chattr -i /etc/init.d/cribl; yes | {{ logstream_installation.home_path }}/bin/cribl boot-start disable -m initd"
+  when:
+    - (initfile is defined and initfile.stat.exists == true)
+    - ansible_facts.service_mgr == "systemd"
+
+- name: "Install service ({{ ansible_facts.service_mgr }})"
+  shell: "yes | {{ logstream_installation.home_path }}/bin/cribl boot-start enable -m {{ ansible_facts.service_mgr }} -u {{ cribl_install_user }}"
   when: 
-    - (initfile is not defined or initfile.stat.exists != true)
+    - (initfile is not defined or initfile.stat.exists != true) or logstream_upgrade == True
 
 - name: Reload init.d conf
-  shell: systemctl daemon-reload
+  systemd:
+    daemon_reload: true
+  when: ansible_facts.service_mgr == "systemd"
 
 - name: Ensure logstream runs as correct user
   lineinfile:
@@ -31,6 +39,7 @@
     backrefs: yes
     regexp: '(^USER=")(.*)(")'
     line: '\1{{ cribl_install_user }}\3'
+  when: ansible_facts.service_mgr != "systemd"
 
 - name: Enable init/systemd for cribl
   service:
