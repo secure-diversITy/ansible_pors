@@ -6,3 +6,7 @@
   service: name=cribl
            state=stopped
 
+- name: "Stop by binary"
+  become: yes
+  become_user: "{{ cribl_install_user }}" 
+  shell: "{{ logstream_installation.home_path }}/bin/cribl stop"
