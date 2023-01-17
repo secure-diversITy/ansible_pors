@@ -1,0 +1,12 @@
+---
+# HINT: The "hosts" value here is a dynamic group name used in PORS
+
+- name: Fetch files from a remote system
+  hosts: "{{ target }}"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ filefetch_user }}"
+
+  roles:
+    - fetchfiles
+

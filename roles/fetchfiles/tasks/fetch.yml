@@ -1,0 +1,7 @@
+---
+
+- name: "Get files"
+  ansible.posix.synchronize:
+    mode: pull
+    src: "{{ fetch_src }}"
+    dest: "{{ fetch_dest }}"

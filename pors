@@ -3,7 +3,7 @@
 ## @file	pors.sh
 ## @brief       PORS is an UI for managing your whole Splunk infrastructure with Ansible
 ## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
-## @date        2017-2022
+## @date        2017-2023
 ## @copyright	AGPL v3
 ## @details     
 ##    This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-90"
+VERSIONNUM="4.0-91"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -612,6 +612,13 @@ declare PBDEPLOYKEY="${PBDIRSPLUNK}/deploy_splunk_pubpem.yml"
 ## @brief Playbook for accessing a given ansible variable
 ## @showinitializer
 declare PBLOCGETVAR="${PBDIRLOCAL}/get_ansible_var.yml"
+
+## @var PBFETCHFILES
+## @brief Playbook for fetching files locally
+## @showinitializer
+declare PBFETCHFILES="${PBDIRSPLUNK}/fetch_files.yml"
+
+
 
 ## @var DEFSPLAPIADMIN
 ## @brief default splunk API (target:8089) admin account
@@ -1335,6 +1342,11 @@ F_DEPLSYSC(){
 	echo "$FUNCNAME started" >> $LOG
 	F_HOSTFILE
 	SELECTION="$1"
+
+        # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+        ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+        > $ITMPGRP
+
 	if [ "$SELECTION" == "Choose" ];then
 	     unset HOSTSELECT HOSTSELECTION
 	     while [ -z "$HOSTSELECT" ];do
@@ -1356,7 +1368,7 @@ F_DEPLSYSC(){
 		  else
 		     # TODO: optimize playbook exec to just exec on group instead of for each host
 			unset HOSTSELEXPANDED
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" clean | grep -v EMPTY |cut -d : -f 1)
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean | grep -v EMPTY |cut -d : -f 1)
 			# host 1,2,3,... of shcmember
 			for hex in $HOSTSELEXPANDED;do
 			     F_LOG $FUNCNAME "processing host >$hex<"
@@ -1407,21 +1419,29 @@ F_SSHORNOT(){
 
 ## @fn F_DIMPORT()
 ## @brief import by ssh from an existing host (system/local related)
+## @param 1 (required): Target host system where to pull from
+## @param 2 (required): Target host path to fetch
+## @param 3 (required): Local path to pull into
+## @param 4 (optional): Target host become user
 F_DIMPORT(){
 	echo "$FUNCNAME started" >> $LOG
-	SSHHOST="$1"
+	FTARGETHOST="$1"
 	SSHPATH="$2"
 	LOCTMP="$3"
-	[ -d $LOCTMP ]&& rm -R $LOCTMP
-	mkdir $LOCTMP
-	scp ${SSHHOST}:${SSHPATH}/*.conf $LOCTMP/
+        FFUSER="$4"
+        [ -z "$FFUSER" ] && FFUSER=$(F_GETANSIBLEVAR splunk_install_user)
 
-	# return errorcode to calling function
-	echo $?
+	[ -d $LOCTMP ]&& rm -R $LOCTMP
+	mkdir -p $LOCTMP
+
+        F_ABIN "$HOSTFILE" "$PBFETCHFILES" "fetching ..." "-e {'target':'$FTARGETHOST','fetch_src':'$SSHPATH','fetch_dest':'$LOCTMP','filefetch_user':'$FFUSER'}" 2>> $LOG 1>> /dev/null
+	ERR=$?
         F_PORSACTION "pulled system/local" "$FUNCNAME | fetched system/local confs from ${SSHHOST}"
 
 #	SIMP=$(F_DIALOG --inputbox "$TPLMSG\nNow initialize the deployment directory by copying your initial config files you want to deploy.\n\n\nWhere should I copy the initial configs from:" 15 80 2>&1 >/dev/tty)
 	echo "$FUNCNAME finished" >> $LOG
+        echo $?
+        return $ERR
 }
 
 ## @fn F_DBROWSE()
@@ -1802,7 +1822,7 @@ F_MSG(){
 ## @brief updating target dirs based on the template dir
 ## @details ensures consistent & updated tasks for all config folders
 F_TPLUPDATE(){
-	echo "$FUNCNAME started" >> $LOG
+	echo "$FUNCNAME started with: $1, $2" >> $LOG
 	# required argument: targetgroup/hostname
 	unset ROLEPATH
 	
@@ -1819,7 +1839,8 @@ F_TPLUPDATE(){
 			[ $? -ne 0 ]&&echo "FATAL: Cannot copy template to $FRPATH/$i/ !" && F_EXIT
 		done
 	else
-		F_MSG "\nERROR: cannot find specified path: $ROLEPATH!"
+		F_LOG $FUNCNAME "ERROR: cannot find specified path: $ROLEPATH!"
+                return 3
 	fi
 	echo "$FUNCNAME finished" >> $LOG
 }
@@ -1879,6 +1900,12 @@ F_PULLSYSC(){
 	echo "$FUNCNAME started" >> $LOG
 	ABORTED=0
 	AUTO="$1"
+        FSYSDIR="$2"
+
+        # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+        ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+        > $ITMPGRP
+
 	if [ -z "$AUTO" ];then
 		[ -z "$HOSTFILE" ]&& F_HOSTFILE
 		unset HOSTSELEXPANDED ABORTED SYScDIR HOSTSELECT HOSTSELECTION
@@ -1899,7 +1926,7 @@ F_PULLSYSC(){
 		echo ABORTED
 	else
 		if [ -z "$AUTO" ];then
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" clean)
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean)
 			[ "$HOSTSELEXPANDED" == "ERROR" ]&& echo "FATAL: problem with expanding hosts for $HOSTSELECTION" && F_EXIT
 			[ "$HOSTSELEXPANDED" == "EMPTY" ]&& F_LOG $FUNCNAME "Warning $HOSTSELECTION is empty?!"
 		else
@@ -1923,7 +1950,11 @@ F_PULLSYSC(){
 			DANGEROUS-Import|Pull)
 	  		    for host in $(echo "$HOSTSELEXPANDED"| cut -d : -f1);do
 				OWNDIR=$HOSTSELECTION/$host
-				SYScDIR=${DATADIR}/system/$OWNDIR
+                                if [ -z "$FSYSDIR" ];then
+				    SYScDIR=${DATADIR}/system/$OWNDIR
+                                else
+                                    SYScDIR="$FSYSDIR"
+                                fi
 				if [ ! -d "$SYScDIR/files" ];then
 				    mkdir -p "$SYScDIR"
 		    		TPLMSG="Base directory structure created!"
@@ -1948,7 +1979,7 @@ F_PULLSYSC(){
 				    if [ ! -z "$REMDIR" ];then
 					REMPATH="$REMDIR"
 				    else
-					REMPATH="/opt/splunk/etc/system/local"
+					REMPATH="/opt/splunk/etc/system/local/"
 				    fi
 				    # disabled user conf temporarly
 				    # TODO: put this into a general setting store instead?
@@ -1962,7 +1993,8 @@ F_PULLSYSC(){
 				    else
 					    SELDIR="/tmp/$host"
                                             [ -d "$SELDIR" ] && rm -rf $SELDIR
-					    SCPERR=$(F_DIMPORT $host "$REMDIR" "$SELDIR")
+					    F_DIMPORT $host "$REMDIR" "$SELDIR"
+                                            SCPERR=$?
 					    echo "$FUNCNAME: SCPERR was $SCPERR" >> $LOG
 					    [ $SCPERR -ne 0 ]&& F_MSG "ERROR: Problem while importing from >$host<"
 				    fi
@@ -1972,7 +2004,7 @@ F_PULLSYSC(){
 					F_CLEANCONF "$SELDIR"
 					# again! because clean could had cleaned all..
 					F_VALCONF "$SELDIR"
-					cp -v $SELDIR/*.conf $SYScDIR/system_local_configs/files/system/local/ >> $LOG
+					cp -v $SELDIR/*.conf $SYScDIR/system_local_configs/files/system/local/ >> $LOG 2>&1
 					CPERR=$?
 					echo "$FUNCNAME: CPERR was $CPERR" >> $LOG
 					# ask if you want to manage all files or a subset only
@@ -1985,7 +2017,7 @@ F_PULLSYSC(){
 					echo "$FUNCNAME: all files copied fine" >> $LOG
 					#F_DIALOG --msgbox "DONE:\n\nAll files copied successfully." 15 80
 				else
-					echo "$FUNCNAME: ERROR: A problem occurred while copying your source files" >> $LOG
+					F_LOG $FUNCNAME "ERROR: A problem occurred while copying your source files\nsrc: $SELDIR/*.conf\ndst: $SYScDIR/system_local_configs/files/system/local/"
 					echo "ERROR"
 					#F_DIALOG --msgbox "ERROR:\n\nA problem occurred while copying your source files!" 10 50
 				fi
@@ -2056,6 +2088,11 @@ F_EDITSYSC(){
 	echo "$FUNCNAME started" >> $LOG
         unset HOSTSELEXPANDED ABORTED SYScDIR HOSTSELECT EDITHOST host
 	F_HOSTFILE
+
+        # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+        ITMPGRP=${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts
+        > $ITMPGRP
+
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS radiolist)
 		if [ "$HOSTSELECTION" == "ABORTED" ];then
@@ -2077,16 +2114,19 @@ F_EDITSYSC(){
 			#TODO: ask if the user want to edit/open a path or manage previously pulled conf files
 			# e.g. to say for the shc group do not manage authorize.conf
 
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" clean |cut -d : -f1)
+			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean |cut -d : -f1)
 			EDITHOST="$(F_SHOWHOSTS radiolist "$HOSTSELEXPANDED")"
 			[ $? -eq 1 ] && HABORTED=1 && break
 
-			PERR=$(F_PULLSYSC $EDITHOST)
+			SYSBASEDIR=${DATADIR}/system_local/$HOSTSELECTION/$EDITHOST
+			SYSDIR=${SYSBASEDIR}/system_local_configs/files/system/local
+                        mkdir -p $SYSDIR
+
+			PERR=$(F_PULLSYSC "$EDITHOST" "$SYSBASEDIR")
 			[ "$PERR" == "ABORTED" -o "$PERR" == "ERROR" ] && HABORTED=1 && unset SELECTION &&break 
 			
 			echo "$FUNCNAME: Continuing after pull selection ($PERR)" >> $LOG
 
-			SYSDIR=${DATADIR}/system_local/$HOSTSELECTION/$EDITHOST/system_local_configs/files/system/local
 			unset OPTIONS
        			OPTIONS=($(for hostfile in $(find $SYSDIR -type f) ;do echo "${hostfile##*/}" "file";done|sort -f))
 		        while [ -z "$FTARGET" ];do
