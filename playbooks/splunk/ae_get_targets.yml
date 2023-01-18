@@ -27,17 +27,6 @@
         path: "{{ expandfile }}"
         state: touch
 
-#    - set_fact:
-#        #pg: "{{ pg|default({}) | combine({ key:{{item}}, value:{{ query('inventory_hostnames', item) }} }) }}"
-#        #pg: "{{ pg|default({}) | combine({ key:{{item}}, value:{{ query('inventory_hostnames', item) }} }) }}"
-#        #pg: "{{ pg | combine({ key:{{item}}, value:{{ query('inventory_hostnames', item) }} },list_merge='append') }}"
-#        #pg: "{{ pg | combine({ 'key':item, 'value':item }) }}"
-#        #pg: "[ 'key:{{item}}', 'value:{{query('inventory_hostnames', item)}}']"
-#        #pg: "{{ item.0 }}:{{query('inventory_hostnames', item)}}"
-#        pg: "{{ item.0 }}:{{ item.1 }}"
-#      when: item.1 in groups['{{item.0}}']
-#      loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | list }}"
-#
 #    - debug:
 #        msg: "{{ parsed_groups }}"
 
@@ -46,7 +35,7 @@
         dest: "{{ expandfile }}"
         section: "{{ item.0 }}"
         allow_no_value: yes
-        option: "{{ item.1 }}:{{ hostvars[item.1]['ansible_ssh_port'] | default(22)}}"
+        option: "{{ item.1 }} ansible_ssh_port={{ hostvars[item.1]['ansible_ssh_port'] | default(22)}}"
         state: present
       connection: local
       when: item.1 in groups['{{item.0}}']
@@ -55,16 +44,9 @@
     - name: "Write {{ expandfile }}.nogrp file"
       lineinfile:
         dest: "{{ expandfile }}.nogrp"
-        line: "{{ item.1 }}:{{ hostvars[item.1]['ansible_ssh_port'] | default(22)}}"
+        line: "{{ item.1 }}"
         state: present
         create: yes
       connection: local
       when: item.1 in groups['{{item.0}}']
       loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | list }}"
-
-      #loop: "{{ parsed_groups }}"
-      #loop: "{{ parsed_groups | subelements(query('inventory_hostnames', '{{ parsed_groups }}')) }}"
-      #loop: "{{ parsed_groups | product(parsed_groups) | list }}"
-      #loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | product(parsed_groups) | list }}"
- #     shell: echo "{{ item }}:{{ hostvars[item]['ansible_ssh_port'] | default(22)}}" >> "{{ expandfile }}"
-

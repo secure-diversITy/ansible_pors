@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-91"
+VERSIONNUM="4.0-92"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -3009,6 +3009,8 @@ F_SELHOST(){
 					F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
 					F_DIALOG --yesno "No selection made! Retry?" 10 40
 					[ $? -ne 0 ] && return $?
+                                else
+                                    F_LOG $FUNCNAME "EDITHOST = $EDITHOST"
 				fi
 			  done
 		else
@@ -5794,29 +5796,36 @@ F_BASEINSTALL(){
 F_SYSUPGRADE(){ 
     F_LOG $FUNCNAME started
     GHOST="$1"
-    unset AUTOMODE PARENTPID
+    unset AUTOMODE PARENTPID SELHOSTS
     export PARENTPID=$BASHPID
     AUTOMODE="$1"
     AUTOREBOOT=$2
+    ABORTED=0
+
+    while [ -z "$SELHOSTS" ] && [ $ABORTED -ne 1 ];do
+        if [ -z "$AUTOMODE" ];then
+            SELHOSTS="$(CLEANHOSTFILE=clean F_SELHOST)"
+            [ "$SELHOSTS" == ABORTED ] && ABORTED=1
+            ABORTED=0
+        else
+            SELHOSTS="$AUTOMODE"
+        fi
+    done
+    [ $ABORTED -eq 1 ] && F_LOG $FUNCNAME "Aborted by user (ABORTED=$ABORTED)" && return
+
+    AHOSTLIST=$(echo "$SELHOSTS" |tr " " ":" | sed 's/:$//g')
+    F_LOG $FUNCNAME "selected hosts for upgrade: $SELHOSTS (prep: $AHOSTLIST)"
+
+    [ -z "$AHOSTLIST" ] && F_DIAERR 9 "missing param AHOSTLIST for $FUNCNAME" && return 3
 
     if [ -z "$AUTOMODE" ];then
-        SELHOSTS="$(F_SELHOST)"
-        [ "$SELHOSTS" == ABORTED ] && return 4
-    else
-        SELHOSTS="$AUTOMODE"
+        F_DIALOG --scrollbar --yesno "\n\nStarting the OS upgrade on the following hosts (in parallel):\n\n$(echo -e '$SELHOSTS' | tr ' ' '\n')\n\nDo you want to continue?" 40 100
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user on summary page" && return 4
     fi
 
-    F_LOG $FUNCNAME "selected hosts for upgrade: $SELHOSTS"
+    F_ABIN $HOSTFILE $PBSYSUPGRADE "Upgrading $SELHOSTS ..." "--limit $AHOSTLIST"
+    FORERR=$?
 
-    [ -z "$SELHOSTS" ] && F_DIAERR 9 "missing param for $FUNCNAME" && return 3
-
-    for uhost in $(echo "$SELHOSTS" |tr " " "\n" | cut -d ":" -f 1);do
-        # check ssh first
-        F_CHECKSSH "$uhost"
-        F_ABIN $HOSTFILE $PBSYSUPGRADE "Upgrading $uhost ..." "--limit $uhost"
-        FORERR=$?
-        [ $FORERR -ne 0 ] && break
-    done
     if [ $FORERR -eq 0 ];then
         if [ $? -eq 0 ];then
             F_LOG $FUNCNAME "System packages or upgrade(s) have been installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
