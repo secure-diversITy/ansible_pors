@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-92"
+VERSIONNUM="4.0-93"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5819,7 +5819,7 @@ F_SYSUPGRADE(){
     [ -z "$AHOSTLIST" ] && F_DIAERR 9 "missing param AHOSTLIST for $FUNCNAME" && return 3
 
     if [ -z "$AUTOMODE" ];then
-        F_DIALOG --scrollbar --yesno "\n\nStarting the OS upgrade on the following hosts (in parallel):\n\n$(echo -e '$SELHOSTS' | tr ' ' '\n')\n\nDo you want to continue?" 40 100
+        F_DIALOG --scrollbar --yesno "\n\nStarting the OS upgrade on the following hosts (in parallel):\n\n$(echo $SELHOSTS | tr ' ' '\n')\n\nDo you want to continue?" 40 100
         [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user on summary page" && return 4
     fi
 
@@ -5839,6 +5839,9 @@ F_SYSUPGRADE(){
     fi
     F_PORSACTION "nogit" "$FUNCNAME | System packages or upgrade(s) have been installed for: $SELHOSTS"
     F_LOG $FUNCNAME "ended with $LASTERR"
+
+    F_DIALOG --msgbox "System upgrade completed for\n\n$(echo $SELHOSTS | tr ' ' '\n')." 40 80
+
     return $LASTERR
 }
 
