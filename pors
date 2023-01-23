@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-93"
+VERSIONNUM="4.0-95"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -2117,6 +2117,7 @@ F_EDITSYSC(){
 			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean |cut -d : -f1)
 			EDITHOST="$(F_SHOWHOSTS radiolist "$HOSTSELEXPANDED")"
 			[ $? -eq 1 ] && HABORTED=1 && break
+                        F_LOG $FUNCNAME "Selected host to edit: $EDITHOST"
 
 			SYSBASEDIR=${DATADIR}/system_local/$HOSTSELECTION/$EDITHOST
 			SYSDIR=${SYSBASEDIR}/system_local_configs/files/system/local
@@ -5048,7 +5049,7 @@ F_STARTVMDEP(){
         DIAOUT=$(F_DIALOG --colors --extra-button --extra-label "Available Roles" --mixedform "\nSetup your new VM - Use arrow keys to switch between\n(no validation so be careful what you type..)\n\nAvailable server role names are PREDEFINED, press \ZbAvailable Roles\ZB to find all valid role names" 30 100 20  \
                 "VM Provider" 1 1 "$VM_PROVIDER" 1 25 40 10 0\
                 "----------------------------------------------------------------" 2 1 "-" 2 99 0 0 2\
-                "Splunk Server Role" 3 1 "$SERVER_ROLE" 3 25 40 60 0\
+                "Splunk Server Role" 3 1 "$SELECTED_SERVER_ROLE" 3 25 40 60 0\
                 "----------------------------------------------------------------" 4 1 "-" 4 99 0 0 2\
                 "Hostname" 5 1 "$VMHOST" 5 25 40 60 0 \
                 "Server Domain Name" 6 1 "$VMSDOMAIN" 6 25 40 60 0\
