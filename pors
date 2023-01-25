@@ -5556,7 +5556,7 @@ F_PROXMOX_DEPLOY(){
 
     F_LOG $FUNCNAME "Will use this ip config: $VMIPCONF"
 
-    F_ABIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ipconfig':'$VMIPCONF','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_extraname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}'}"
+    F_ABIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ipconfig':'$VMIPCONF','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_extraname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}','proxmox_target_server_address':'$VMIP','proxmox_target_server_gateway4':'${VMGW}'}"
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
 
