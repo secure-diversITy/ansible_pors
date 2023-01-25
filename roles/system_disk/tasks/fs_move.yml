@@ -21,17 +21,11 @@
   when: server_lvm_lv is defined
 
 - name: "Copy content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}"
-  ansible.posix.synchronize:
+  ansible.builtin.copy:
+    remote_src: true
     src: "{{ server_disk_mountpoint }}/"
     dest: "{{ server_tmp_mnt }}"
-    recursive: yes
-    owner: yes
-    group: yes
-    delay_updates: no
-    rsync_opts:
-        - "--exclude=lastlog"
-  #      - "--exclude=/var/lib/sss"
-  delegate_to: "{{ server_hostname }}" 
+    mode: preserve
 
 - name: "Unmount and remove temp mount {{ server_tmp_mnt }}"
   mount:
