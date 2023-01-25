@@ -1,0 +1,32 @@
+#cloud-config
+hostname: "{{ inventory_hostname }}"
+manage_etc_hosts: true
+user: {{ vault_proxmox_kvm_ci_user  }}
+#password:
+ssh_authorized_keys:
+  - {{ vault_ssh_pubkey_pors }}
+chpasswd:
+  expire: False
+users:
+  - default
+#package_upgrade: true
+#package_reboot_if_required: true
+locale: en_GB.UTF-8
+timezone: Europe/Berlin
+#runcmd:
+#  - systemctl reload ssh
+packages:
+  - qemu-guest-agent
+network:
+    version: 2
+    ethernets:
+        id0:
+            match:
+                name: eth0
+{% if proxmox_target_server_address == "dhcp" %}
+            dhcp4: true
+{% else %}
+            dhcp4: false
+            addresses: "{{ proxmox_target_server_address }}"
+            gateway4: "{{ proxmox_target_server_gateway4 }}"
+{% endif %}

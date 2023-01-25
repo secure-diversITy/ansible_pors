@@ -1,6 +1,6 @@
 ---
 - name: Destroy a Proxmox VM
-  hosts: "{{ server_hostname }}*"
+  hosts: "pors_server"
   gather_facts: false
   connection: local
 
@@ -22,6 +22,7 @@
         api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
         api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
         api_host: "{{ proxmox.node[px_var].api_host }}"
-        name: "{{ server_hostname }}"
+        name: "{{ item }}"
         state: absent
         timeout: 120
+      loop: "{{ server_hostname }}"

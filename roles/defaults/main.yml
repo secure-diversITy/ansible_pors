@@ -148,3 +148,7 @@ systemd_journal_compress: "yes"
 systemd_journal_system_max_use: 1G
 systemd_journal_system_max_file_size: 200M
 systemd_journal_restart_state: restarted
+
+####### proxmox defaults #######
+
+proxmox_target_server_address: 'dhcp'

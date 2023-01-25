@@ -7,10 +7,11 @@
     api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
     api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
     api_host: "{{ proxmox.node[px_var].api_host }}"
-    name: "{{ server_hostname }}"
+    name: "{{ item }}"
     state: current
   register: vm
-  ignore_errors: yes
+  failed_when: vm.status is defined
+  loop: "{{ server_hostname }}"
 
 - name: generate VM {{ server_shortname }} tasks
   template:

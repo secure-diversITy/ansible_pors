@@ -1,26 +1,39 @@
 ---
+
+# important note!
+# Cause of the operations of the API and security reasons, I have disabled the update of the following parameters:
+# net, virtio, ide, sata, scsi.
+# Update of pool is disabled.
+
 - name: "Configure VM(s)"
   community.general.proxmox_kvm:
-        proxmox_default_behavior: compatibility
+        #proxmox_default_behavior: compatibility
         node: "{{ proxmox.node[px_var].name }}"
         api_user: "{{ proxmox.node[px_var].api_user }}"
         api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
         api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
         api_host: "{{ proxmox.node[px_var].api_host }}"
         name: "{{ item }}"
-        description: "Ansible changed VM settings on: {{ datetime }}"
-        ipconfig:
-            ipconfig0: '{{ server_ipconfig }}'
-        nameservers:
-            - "{{ server_dns1 }}"
-            - "{{ server_dns2 }}"
+        description: "Ansible (re-)configured VM settings on: {{ datetime }}"
+        #ipconfig:
+        #    ipconfig0: '{{ server_ipconfig }}'
+        #nameservers:
+        #    - "{{ server_dns1 }}"
+        #    - "{{ server_dns2 }}"
         citype: nocloud
-        ciuser: "{{ vault_proxmox_kvm_ci_user  }}"
-        cipassword: "{{ vault_proxmox_kvm_ci_user  }}"
+        #ciuser: "{{ vault_proxmox_kvm_ci_user  }}"
+        #cipassword: "{{ vault_proxmox_kvm_ci_user  }}"
+        cicustom: "user=local:snippets/ci_user.yml,network=local:snippets/ci_network.yml"
         sshkeys: "{{ vault_ssh_pubkey_pors }}"
         memory: "{{ server_ram_mb }}"
         cores: "{{ server_cpu_cores_count }}"
+        agent: "enabled=1,fstrim_cloned_disks=1"
+        boot: c
+        bootdisk: scsi0
+        numa_enabled: yes
+        tags:
+          - worker01
         timeout: 120
         update: yes
   run_once: True
-  loop: "{{ server_hostname }}"
+  loop: "{{ server_hostname | list }}"
