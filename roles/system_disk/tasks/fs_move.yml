@@ -21,12 +21,13 @@
   when: server_lvm_lv is defined
 
 - name: "Copy content of {{ server_disk_mountpoint }} to {{ server_tmp_mnt }}"
-  ansible.builtin.copy:
-    remote_src: true
-    src: "{{ server_disk_mountpoint }}/"
-    dest: "{{ server_tmp_mnt }}"
-    mode: preserve
-  ignore_errors: yes
+  shell: >
+    cp \
+      -a \
+      --copy-contents \
+      --symbolic-link \
+      --link \
+      {{ server_disk_mountpoint }}/ {{ server_tmp_mnt }}
 
 - name: "Unmount and remove temp mount {{ server_tmp_mnt }}"
   mount:
