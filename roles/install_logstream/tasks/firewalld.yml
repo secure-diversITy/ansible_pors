@@ -5,7 +5,7 @@
              state=enabled 
   when:
     - splunk_installation.firewalld_open_port is defined
-    - splunk_installation.firewalld_disabled is not defined
+    - splunk_installation.firewalld_disabled is not defined or (splunk_installation.firewalld_disabled is defined and splunk_installation.firewalld_disabled != "true")
   with_items: splunk_installation.firewalld_open_port | default()
 
 - name: Disable firewalld completely
@@ -13,4 +13,5 @@
     name: firewalld
     enabled: no
     state: stopped
-  when: splunk_installation.firewalld_disable is defined
+  when:
+    - splunk_installation.firewalld_disabled is defined and splunk_installation.firewalld_disabled == "true"

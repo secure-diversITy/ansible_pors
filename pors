@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-96"
+VERSIONNUM="4.0-97"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -5440,6 +5440,7 @@ F_GOOGLECP_DEPLOY(){
     # GCP MUST have vmdisk1 as root device and that is handled different so should not be in DISK_LIST at all
     VMDISKCNT=1
     unset DISK_LIST
+    declare -A DISK_LIST
 
     while [ $VMDISKCNT -ne $VMDISK ];do
         VMDISKCNT=$((VMDISKCNT +1))
@@ -5514,6 +5515,7 @@ F_PROXMOX_DEPLOY(){
     # Proxmox MUST have vmdisk1 as root device and that is handled different so should not be in DISK_LIST at all
     VMDISKCNT=0
     unset DISK_LIST
+    declare -A DISK_LIST
 
     while [ $VMDISKCNT -ne $VMDISK ];do
         VMDISKCNT=$((VMDISKCNT +1))
@@ -6119,7 +6121,7 @@ F_MENUMAIN(){
 			'Install splunk'      "splunk> on ansible-ready server(s)" \
 			'Install splunkforwarder'      "splunk> Universal forwarder on ansible-ready server(s)" \
 			'Install logstream'	"cribl logstream-worker on ansible-ready server(s)" \
-                        Configure "Configure splunk> on fresh installed splunk instances" \
+                        Configure "Configure splunk> / Logstream" \
 			"" "" \
 			'' '\Zb\ZuUPGRADE\ZB\ZU' \
 			"" "" \

@@ -7,4 +7,11 @@ distributed:
     ipWhitelistRegex: /.*/
     authToken: {{ vault_logstream_leader_authtoken }}
     tls:
-      disabled: {{ logstream_leader.disabledtls }}
+        disabled: {{ logstream_leader.disabledtls }}
+        privKeyPath: {{ logstream_leader.tls_privKeyPath }}
+        certPath: {{ logstream_leader.tls_certPath }}
+        caPath: {{ logstream_leader.tls_caPath }}
+        # Authenticate client (mutual auth) - Whether to require clients to present their certificates. Used to perform client authentication using SSL certs.
+        requestCert: true
+        # false if ignoring untrusted certs 
+        rejectUnauthorized: {{ logstream_leader.tls_untrusted }}

@@ -6,3 +6,5 @@
   tags: task_gather_facts
   when:
     - ssh_avail is defined
+
+- include: packages.yml

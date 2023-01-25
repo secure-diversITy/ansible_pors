@@ -10,4 +10,5 @@
     logstream_upgrade: False
 
   roles:
+    - common_tasks
     - install_logstream

@@ -1,0 +1,7 @@
+---
+
+- name: "Install basic packages"
+  package:
+    name:
+      - python3-selinux
+

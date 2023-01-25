@@ -7,6 +7,7 @@
 
 - include: firewalld.yml
 - include: optimize_selinux.yml
+  when: splunk_optimize.selinux is defined and splunk_optimize.selinux != "untouched"
 
 - include: backup.yml
   when: 
