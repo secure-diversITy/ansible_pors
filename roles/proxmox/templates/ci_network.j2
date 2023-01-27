@@ -1,0 +1,25 @@
+#cloud-config
+# ref: https://cloudinit.readthedocs.io/en/latest/reference/examples.html
+# ref2: https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v2.html
+network:
+    version: 2
+    ethernets:
+        id0:
+            match:
+                name: e*
+            set-name: eth0
+{% if proxmox_target_server_address == "dhcp" %}
+            dhcp4: true
+{% else %}
+            dhcp4: false
+            addresses:
+                - {{ proxmox_target_server_address }}
+            routes:
+                - to: 0.0.0.0/0
+                  via: {{ proxmox_target_server_gateway4 }}
+{% endif %}
+
+{% if proxmox.node[px_var].advanced_ci.cinetwork is defined %}
+# injected custom ciuser config
+{{ proxmox.node[px_var].advanced_ci.cinetwork }}
+{% endif %}

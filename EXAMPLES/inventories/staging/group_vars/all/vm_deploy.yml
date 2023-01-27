@@ -91,6 +91,35 @@ proxmox:
             ansible_template_name: "suse-ansible-template"
             # the default storage where new VMs should be deployed:
             storage: <storage-name>
+
+            # The community proxmox module is very limited in what you can actually do with cloud-init.
+            # If you want to have full flexibility you can use custom ci files (https://cloudinit.readthedocs.io/en/latest/reference/examples.html)
+            # PORS will:
+            # - generate them during the deployment (based on templates in roles/proxmox/templates/ci_*.j2
+            # - upload them to the Proxmox server
+            # - setup the cloud-init image on the target host so when the VM starts up it gets fully configured by them
+            #advanced_ci:
+              #enabled: true
+
+              # it is highly recommended to use a dedicated storage for the ci templates. this storage should be used for this purpose only.
+              # required types for that storage: "Container template, Snippets"
+              # Unfortunaley the Proxmox API does not allow to upload snippets directly so PORS will use a hackish way to upload them
+              # (as a tar.gz template - even though they are plain text files) to the templates directory.
+              # BUT: cicustom HAS TO be in SNIPPETS dir. the following works ONLY when you SYMLINK "templates/cache" with "snippets" (no sub dir allowed!!!).
+              # Note: if you are not quick enough the snippets dir will be auto-recreated by Proxmox but something like this works fine:
+              # "rm /var/lib/vz/snippets -rf; ln -s /var/lib/vz/template/cache /var/lib/vz/snippets" (for the local storage, replace that with yours!!!)
+              # do not execute the above blindly it will delete everything in your snippets dir so be sure to use the right one (a dedicated storage is
+              # recommended anyways)
+              # type in the name of your Proxmox storage name:
+              #storage: automation_storage
+
+              # extending the roles/proxmox/templates/ci_*.j2 with whatever you like
+              # (https://cloudinit.readthedocs.io/en/latest/reference/examples.html)
+              # this becomes part of the roles/proxmox/templates/ci_user.j2 (added at the end)
+              #ciuser:
+              # this becomes part of the roles/proxmox/templates/ci_network.j2 (added at the end)
+              #cinetwork:
+
         #staging_site1_us:
             #api_host: "host-FQDN"
             #....

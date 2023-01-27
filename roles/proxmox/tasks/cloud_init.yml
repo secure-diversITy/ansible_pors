@@ -1,0 +1,61 @@
+---
+- set_fact:
+    server_hostname_str: "{{ server_hostname | join(' ') }}"
+
+# using ci files is extreme flexible and not using it would limit our possible options dramatically
+- name: "Write cloud init (user & network)"
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ pors_temp_dir }}/{{ server_hostname_str }}__{{ item }}.not.tar.gz"
+  loop:
+    - ci_user
+    - ci_network
+
+# unbelievable dirty hack.. but.. it get the things done.
+# Note: if some day the Proxmox will really validate the uploaded file (atm it just checks the file ending)
+# then this will stop working!
+# .... and NO I was not able to use the template or even the URI module to get this to work.. the mix of form and binary
+# seems to be too unusual so I had to go back to the shell..
+- name: "Upload cloud init files"
+  connection: local
+  args:
+    executable: /bin/bash
+  shell: >
+    curl --fail -v \
+    {% if proxmox.node[px_var].validate_certs is not defined or proxmox.node[px_var].validate_certs != true %}-k \{% endif %}
+    -H 'Authorization: PVEAPIToken={{ proxmox.node[px_var].api_user }}!{{ proxmox.node[px_var].api_token_id }}={{ proxmox.node[px_var].api_token_secret }}' \
+    --form "content=vztmpl" \
+    --form "filename=@{{ item }}" \
+    "https://{{ proxmox.node[px_var].api_host }}:8006/api2/json/nodes/{{ proxmox.node[px_var].name }}/storage/{{ proxmox.node[px_var].ci_storage_name | d('local') }}/upload"
+  #no_log: true
+  register: curlout
+  ignore_errors: true
+  loop:
+    - "{{ pors_temp_dir }}/{{ server_hostname_str }}__ci_user.not.tar.gz"
+    - "{{ pors_temp_dir }}/{{ server_hostname_str }}__ci_network.not.tar.gz"
+
+- fail:
+    msg: |
+      Uploading cloud init task failed! Error output was:
+
+      {{ curlout.results[0].stderr_lines | regex_replace('.*(< HTTP.*URL returned error: [0-9]+).*','\1') }}
+      {{ curlout.results[1].stderr_lines | regex_replace('.*(< HTTP.*URL returned error: [0-9]+).*','\1') }}
+  when: curlout.failed is defined
+
+#- name: "Upload cloud init files"
+#  proxmox_api:
+#    #node: "{{ proxmox.node[px_var].name }}"
+#    user: "{{ proxmox.node[px_var].api_user }}"
+#    token_id: "{{ proxmox.node[px_var].api_token_id }}"
+#    token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+#    host: "{{ proxmox.node[px_var].api_host }}"
+#    # https://hotel.sedi.one:8006/api2/json/nodes/hotel/storage/shared_CT_templates/upload
+#    endpoint: /nodes/hotel/storage/{{ ci_storage_name }}/upload
+#    method: post
+#    parameters:
+#      content: vztmpl
+#      filename: "@/opt/pors/roles/proxmox/tasks/ci_user.yml.tar.gz"
+#      #mime_type: application/octet-stream
+#  vars:
+#    ci_storage_name: shared_CT_templates
+

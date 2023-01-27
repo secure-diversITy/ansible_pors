@@ -2,6 +2,9 @@
 - set_fact: datetime="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
   run_once: True
 
+- include_tasks: cloud_init.yml
+  when: proxmox.node[px_var].advanced_ci.enabled is defined and proxmox.node[px_var].advanced_ci.enabled == true
+
 - include_tasks: ct_create.yml
   when: ct_create is defined and ct_create != False
 
@@ -20,3 +23,5 @@
 - include_tasks: kvm_poweroff.yml
   when: kvm_poweroff is defined and kvm_poweroff != False
 
+- include_tasks: kvm_reboot.yml
+  when: kvm_autoreboot is defined and kvm_autoreboot != False

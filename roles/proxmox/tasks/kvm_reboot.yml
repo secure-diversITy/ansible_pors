@@ -1,5 +1,5 @@
 ---
-- name: "Power On VM"
+- name: "Reboot VM"
   community.general.proxmox_kvm:
         proxmox_default_behavior: compatibility
         node: "{{ proxmox.node[px_var].name }}"
@@ -9,13 +9,8 @@
         api_host: "{{ proxmox.node[px_var].api_host }}"
         name: "{{ item }}"
         timeout: 80
-        state: started
+        state: restarted
   run_once: True
   loop: "{{ server_hostname }}"
   loop_control:
     pause: 5
-
-# we can't check by SSH bc the cloud init might be not completed yet!
-- name: Giving PVE some time to actually start the VM...
-  pause:
-    seconds: 60

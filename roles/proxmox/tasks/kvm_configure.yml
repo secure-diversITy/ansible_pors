@@ -5,7 +5,7 @@
 # net, virtio, ide, sata, scsi.
 # Update of pool is disabled.
 
-- name: "Configure VM(s)"
+- name: "Configure VM(s) - advanced ci"
   community.general.proxmox_kvm:
         #proxmox_default_behavior: compatibility
         node: "{{ proxmox.node[px_var].name }}"
@@ -15,15 +15,8 @@
         api_host: "{{ proxmox.node[px_var].api_host }}"
         name: "{{ item }}"
         description: "Ansible (re-)configured VM settings on: {{ datetime }}"
-        #ipconfig:
-        #    ipconfig0: '{{ server_ipconfig }}'
-        #nameservers:
-        #    - "{{ server_dns1 }}"
-        #    - "{{ server_dns2 }}"
         citype: nocloud
-        #ciuser: "{{ vault_proxmox_kvm_ci_user  }}"
-        #cipassword: "{{ vault_proxmox_kvm_ci_user  }}"
-        cicustom: "user=local:snippets/ci_user.yml,network=local:snippets/ci_network.yml"
+        cicustom: "user={{ proxmox.node[px_var].advanced_ci.storage | d('local') }}:snippets/{{ server_hostname_str }}__ci_user.not.tar.gz,network={{ proxmox.node[px_var].advanced_ci_storage | d('local') }}:snippets/{{ server_hostname_str }}__ci_network.not.tar.gz"
         sshkeys: "{{ vault_ssh_pubkey_pors }}"
         memory: "{{ server_ram_mb }}"
         cores: "{{ server_cpu_cores_count }}"
@@ -32,8 +25,43 @@
         bootdisk: scsi0
         numa_enabled: yes
         tags:
-          - worker01
+          - "{{ hostvars[item].proxmox_tag | d('undefined') }}"
         timeout: 120
         update: yes
   run_once: True
   loop: "{{ server_hostname | list }}"
+  when: proxmox.node[px_var].advanced_ci.enabled is defined and proxmox.node[px_var].advanced_ci.enabled == true
+
+- name: "Configure VM(s) - basic ci"
+  community.general.proxmox_kvm:
+        #proxmox_default_behavior: compatibility
+        node: "{{ proxmox.node[px_var].name }}"
+        api_user: "{{ proxmox.node[px_var].api_user }}"
+        api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+        api_token_secret: "{{ proxmox.node[px_var].api_token_secret }}"
+        api_host: "{{ proxmox.node[px_var].api_host }}"
+        name: "{{ item }}"
+        description: "Ansible (re-)configured VM settings on: {{ datetime }}"
+        ipconfig:
+            ipconfig0: '{{ server_ipconfig }}'
+        #nameservers:
+        #    - "{{ server_dns1 }}"
+        #    - "{{ server_dns2 }}"
+        citype: nocloud
+        ciuser: "{{ vault_proxmox_kvm_ci_user  }}"
+        cipassword: "{{ vault_proxmox_kvm_ci_user  }}"
+        sshkeys: "{{ vault_ssh_pubkey_pors }}"
+        memory: "{{ server_ram_mb }}"
+        cores: "{{ server_cpu_cores_count }}"
+        agent: "enabled=1,fstrim_cloned_disks=1"
+        boot: c
+        bootdisk: scsi0
+        numa_enabled: yes
+        tags:
+          - "{{ hostvars[item].proxmox_tag | d('undefined') }}"
+        timeout: 120
+        update: yes
+  run_once: True
+  loop: "{{ server_hostname | list }}"
+  when: proxmox.node[px_var].advanced_ci.enabled is undefined or proxmox.node[px_var].advanced_ci.enabled != true
+

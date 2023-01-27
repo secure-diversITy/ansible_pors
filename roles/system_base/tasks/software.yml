@@ -54,7 +54,7 @@
 - name: enable NTPd
   systemd:
     daemon_reload: yes
-    name: ntpd
+    name: ntp
     enabled: yes
     state: started
 

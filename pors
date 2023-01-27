@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-100"
+VERSIONNUM="4.0-101"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -923,11 +923,11 @@ F_ABIN(){
             if [ "$RUNMODE" == "interactive" ];then
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
-                    F_LOG $FUNCNAME "Will execute:\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                    F_LOG $FUNCNAME "Will execute (EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG 2>&1 | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
                 else
-                    F_LOG $FUNCNAME "Will execute:\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | sed -u -r 's/(.*DEPRECATION.*)//Ig' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 1000 1000
+                    F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG 2>&1 | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
@@ -968,6 +968,8 @@ cat <<_EOHELP
     -i|--inventory <hosts-file>                 The full path to your hosts filename
     --verbose                                   will execute all playbook commands with -vvv
     --debug                                     will execute all playbook commands with -vvvv
+    --color <dark|mono>                         will start PORS in either a <dark> mode variant with color support or
+                                                in a full monochrome one supporting no colors at all
 
     Batch / API mode: !!!WORK-IN-PROGRESS!!!
     ------------------------------------------
@@ -1233,7 +1235,7 @@ F_HOSTFILE(){
        [ "$RUNMODE" == "batch" ] && echo "ERROR: $HOSTFILE does not exist or is not readable" && F_EXIT
 	else
 	    echo "HOSTFILE=\"$HOSTFILE\"" > $AEUSRHOSTFILE
-	    F_LOG $FUNCNAME "written new AEUSRHOSTFILE ($AEUSRHOSTFILE):\n$(cat $AEUSRHOSTFILE)"
+	    F_LOG $FUNCNAME "new AEUSRHOSTFILE ($AEUSRHOSTFILE) created:\n$(cat $AEUSRHOSTFILE)"
     fi
 	F_LOG $FUNCNAME finished
 }
@@ -1557,6 +1559,7 @@ F_CLEANCONF(){
 
 ## @fn F_DIAERR()
 ## @brief dialog box providing errorcode
+## @details simple error dialog. Use F_ERRLOG instead if you need an option to show the log file.
 F_DIAERR(){
 	echo "$FUNCNAME started with args: $@" >> $LOG
 	ERRC="$1"
@@ -1565,7 +1568,7 @@ F_DIAERR(){
 	[ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
 
 	if [ "$ERRC" != "0" ];then
-		F_DIALOG --colors --msgbox "ERROR:\n\nTask\n\n$TASK\n\nended with errorcode >$ERRC<!" 50 150
+		F_DIALOG --colors --msgbox "ERROR:\n\nTask\n\n$TASK\n\nended with errorcode >$ERRC<!" 30 80
 		# TODO: option to abort completely?
 	else
 		F_DIALOG --colors --msgbox "SUCCESS:\n\nTask\n\n$TASK\n\nended successfully" 20 100
@@ -1589,15 +1592,15 @@ F_ERRLOG(){
         [ -z "$ERRC" ]&&echo ERRORCODE MISSING for $FUNCNAME && F_EXIT
 
         if [ "$ERRC" != "0" ];then
-                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask:\n\n${TASK}\n\nended with errorcode >$ERRC<!" 20 150
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "ERROR:\n\nTask:\n\n${TASK}\n\nended with errorcode >$ERRC<!" 20 60
                 # TODO: option to abort completely?
 		exit_status=$?
         else
-                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask:\n\n${TASK}\n\nended successfully" 20 150
+                F_DIALOG --colors --extra-button --extra-label "Inspect" --msgbox "SUCCESS:\n\nTask:\n\n${TASK}\n\nended successfully" 20 60
 		exit_status=$?
         fi
 	if [ $exit_status -eq 3 ]; then
-		F_DIALOG --colors --textbox "$DLOG" 50 200
+		F_DIALOG --colors --textbox "$DLOG" 1000 1000
 	fi
         echo "$FUNCNAME finished" >> $LOG
 
@@ -5343,34 +5346,52 @@ F_STARTVMDEP(){
                 fi
             done
 
-            # check if the target exists and offer config only if
-            if [ $VMIP == "dhcp" ];then
-                F_PING $VMHOST
-            else
-                F_PING $VMIP
-            fi
-            if [ $? -ne 0 ];then
-                case $VM_PROVIDER in
-                    vsphere|vmware)
-                        # switch to vCenter information and actions
-                        #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
-                        F_VSPHERE_DEPLOY "$TMPHWPROFILE"
-                        VMERR=$?
+            CHKREQ=1
+            while [ "$CHKREQ" -eq 1 ];do
+                # check if the target exists and offer config only if
+                if [ $VMIP == "dhcp" ];then
+                    F_PING $VMHOST
+                else
+                    F_PING $VMIP
+                fi
+                if [ $? -ne 0 ];then
+                    case $VM_PROVIDER in
+                        vsphere|vmware)
+                            # switch to vCenter information and actions
+                            #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
+                            F_VSPHERE_DEPLOY "$TMPHWPROFILE"
+                            VMERR=$?
+                            ;;
+                        proxmox|pve)
+                            F_PROXMOX_DEPLOY "$TMPHWPROFILE"
+                            VMERR=$?
+                            ;;
+                        googlecp|gcp)
+                            F_GOOGLECP_DEPLOY "$TMPHWPROFILE"
+                            VMERR=$?
+                            ;;
+                        *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
+                    esac
+                    CHKREQ=$VMERR
+                else
+                    F_DIALOG --extra-button --yes-label "Retry VM Deploy" --extra-label "(Re-)Configure existing" --no-label Cancel --yesno "\nThe server $VMHOST ($VMIP) is PINGABLE!\n\nWe cannot create this system but we can try to configure it.\nThat means all settings of the current selected hardware profile will be set/changed/removed to this system!\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to (re-)configure an existing VM or retry the VM deployment?" 16 100
+                    ANS=$?
+                    F_LOG $FUNCNAME "dialog ended with: $ANS"
+
+                    # parse user response and act accordingly
+                    case $ANS in
+                        0) # retry deploy
                         ;;
-                    proxmox|pve)
-                        F_PROXMOX_DEPLOY "$TMPHWPROFILE"
-                        VMERR=$?
+                        3) # reconfig
+                            CHKREQ=0
                         ;;
-                    googlecp|gcp)
-                        F_GOOGLECP_DEPLOY "$TMPHWPROFILE"
-                        VMERR=$?
+                        *) # abort
+                            CHKREQ=0
+                            F_LOG $FUNCNAME "Aborted by user ($ANS)" && return 4
                         ;;
-                    *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
-                esac
-            else
-                F_DIALOG --yes-label "(Re-)Configure" --no-label Cancel --yesno "\n\n\nThe server $VMHOST ($VMIP) is pingable!\nWe cannot deploy on this system but we can try to configure it.\nThat means all settings of the current selected hardware profile will be set/changed/removed to this system!\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to (re-)configure an existing VM?" 16 100
-                [ $? -eq 1 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
-            fi
+                    esac
+                fi
+            done
         else
             [ $? -eq 1 ] && IACKEEP=0 
         fi
@@ -5556,7 +5577,7 @@ F_PROXMOX_DEPLOY(){
 
     F_LOG $FUNCNAME "Will use this ip config: $VMIPCONF"
 
-    F_ABIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ipconfig':'$VMIPCONF','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_extraname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}','proxmox_target_server_address':'$VMIP','proxmox_target_server_gateway4':'${VMGW}'}"
+    F_ABIN $HOSTFILE $PBPVEDEPLOY "Deploying $VMHOST to $VM_PROVIDER..." "--limit pors_server -e {'px_var':'$VM_PROXMOX_NODE','server_hostname':['${VMHOSTF}'],'server_shortname':'${VMHOST}','server_ram_mb':'$VMRAM_MB','server_cpu_cores_count':'$VMCPU','server_ipconfig':'$VMIPCONF','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','server_disk_type':'${VMDISK1TYPE}','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${VMDISK1SIZEGB}','server_disk_dev':'${VMDISK1DEV}','server_disk_name':'$VMDISK1NAME','server_disk_extraname':'$VMDISK1EXTRANAME','server_disk_autodel':'$VMDISK1DEVAUTODEL','disks':[${DISK_LIST_FLAT}],'server_disk_bootdev':'${VMDISK1DEVBOOT}','proxmox_target_server_address':'$VMIP/${VMNETCIDR}','proxmox_target_server_gateway4':'${VMGW}'}"
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
 
@@ -5564,7 +5585,7 @@ F_PROXMOX_DEPLOY(){
         # format all specified disks
         F_FORMATDISK $TMPHWPROFILE
         DEPERR=$?
-        [ $DEPERR -ne 0 ] && F_ERRLOG $DEPERR "issue occured while formatting disk(s)" $LOG && return $DEPERR
+        [ $DEPERR -ne 0 ] && F_LOG $FUNCNAME "issue occured while formatting disk(s)" && return $DEPERR
     else
         F_LOG $FUNCNAME "No additional disk config needed"
     fi
@@ -5770,6 +5791,7 @@ F_BASEINSTALL(){
     fi
 
     # check for playbook hook
+    F_WAITBOX "... parsing Ansible variables"
     HOOKYML=$(F_GETANSIBLEVAR hook_system_playbook)
 
     # install
@@ -5789,7 +5811,7 @@ F_BASEINSTALL(){
         F_ABIN $HOSTFILE $PBBASEINSTALL "Installing base on $uhost ..." "--limit $uhost $ABINARGS"
     done
     LERR=$?
-    [ "$LERR" -ne 0 ] && F_DIAERR $LERR "Base install on:\n\n$SELHOSTS\n\n"
+    #[ "$LERR" -ne 0 ] && F_DIAERR $LERR "Base install on:\n\n$SELHOSTS\n\n"
     F_PORSACTION "nogit" "$FUNCNAME | finished base install on $SELHOSTS"
     F_LOG $FUNCNAME ended
     return $LERR
@@ -5847,7 +5869,7 @@ F_SYSUPGRADE(){
     F_PORSACTION "nogit" "$FUNCNAME | System packages or upgrade(s) have been installed for: $SELHOSTS"
     F_LOG $FUNCNAME "ended with $LASTERR"
 
-    F_DIALOG --msgbox "System upgrade completed for\n\n$(echo $SELHOSTS | tr ' ' '\n')." 40 80
+    F_DIALOG --msgbox "\nSystem upgrade completed for\n\n$(echo $SELHOSTS | tr ' ' '\n')" 20 80
 
     return $LASTERR
 }
@@ -6467,7 +6489,9 @@ if [ $? -eq 0 ];then
         fi
     fi
 else
+    # regular interactive mode
     unset A2VAULTARG
+
     [ "$ENABLEVAULT" == "yes" ] \
     && declare A2VAULTARG="--vault-password-file $VAULTTEMPFILE" \
     && declare ABIN="$ABIN ${A2VAULTARG}" \
@@ -6516,6 +6540,13 @@ else
         --debug)
         export PLAYNOISE="-vvvv"
         shift
+        ;;
+        --color)
+        case "$2" in
+            dark|mono) export DIALOGRC="$ADIR/dialogrc_${2}";;
+            *) F_LOG MAIN "WARNING: no valid color mode selected!" ;;
+        esac
+        shift 2
         ;;
 	*)
 	F_HELP

@@ -2,3 +2,5 @@
 
 - name: "Regenerate initrd image to apply the current hostname"
   shell: dracut --no-hostonly --force
+  when: ansible_facts['os_family'] == "RedHat"
+

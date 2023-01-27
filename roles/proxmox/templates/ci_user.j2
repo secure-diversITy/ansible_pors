@@ -1,0 +1,42 @@
+#cloud-config
+# ref: https://cloudinit.readthedocs.io/en/latest/reference/examples.html
+
+hostname: {{ server_hostname_str }}
+manage_etc_hosts: true
+locale: en_GB.UTF-8
+timezone: Europe/Berlin
+
+chpasswd:
+  expire: False
+
+# https://cloudinit.readthedocs.io/en/latest/reference/modules.html#users-and-groups
+users:
+    - name: {{ vault_proxmox_kvm_ci_user  }}
+      lock_passwd: true
+      shell: /bin/bash
+      ssh_authorized_keys:
+        - {{ vault_ssh_pubkey_pors }}        
+      sudo: ALL=(ALL) NOPASSWD:ALL
+#groups:
+#    - admingroup: [root,sys]
+#    - cloud-users
+
+package_update: true
+package_upgrade: true
+package_reboot_if_required: false
+packages:
+    - qemu-guest-agent
+    - vim
+    - python3-selinux
+
+runcmd:
+    - systemctl start qemu-guest-agent
+    # without this, network config does not apply (or a reboot is required)
+    # TODO: might need to be adapted for distros not having netplan?!
+    - netplan apply
+#    - reboot
+
+{% if proxmox.node[px_var].advanced_ci.ciuser is defined %}
+# injected custom ciuser config
+{{ proxmox.node[px_var].advanced_ci.ciuser }}
+{% endif %}

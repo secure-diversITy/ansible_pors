@@ -194,7 +194,10 @@ vault_proxmox_pve_password: "<high-secure-password"
 vault_proxmox_ct_default_password: "abcdefg1234"
 
 # user & password auto-created by cloud-init when deploying
-vault_proxmox_kvm_ci_user: "ansible"
+# should be the PORS ssh user always - otherwise you have to
+# ensure that the PORS ssh user is already available or set
+# e.g by advanced ci
+vault_proxmox_kvm_ci_user: "{{ pors_ssh_user }}"
 vault_proxmox_kvm_ci_password: "abc123"
 
 ###################################

@@ -1,7 +1,7 @@
 ---
-- name: "Wait for SSH coming up (timeout: {{ wait_timeout | default(60)}}s)"
+- name: "Wait for SSH coming up (timeout: {{ wait_timeout | default(120)}}s)"
   wait_for_connection:
-    timeout: "{{ wait_timeout | default(60)}}"
+    timeout: "{{ wait_timeout | default(120)}}"
 
 - meta: clear_facts
 

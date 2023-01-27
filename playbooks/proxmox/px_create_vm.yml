@@ -10,6 +10,7 @@
     kvm_create: true
     kvm_configure: true
     kvm_poweron: true
+    kvm_autoreboot: true
 
   roles:
     - proxmox

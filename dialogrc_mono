@@ -1,0 +1,27 @@
+#
+# Run-time configuration file for dialog
+#
+# PORS IN MONOCHROME / NO COLORS MODE
+#
+#
+# Types of values:
+#
+# Number     -  <number>
+# String     -  "string"
+# Boolean    -  <ON|OFF>
+# Attribute  -  (foreground,background,highlight?,underline?,reverse?)
+
+# Set aspect-ration.
+aspect = 0
+
+# Set separator (for multiple widgets output).
+separate_widget = ""
+
+# Set tab-length (for textbox tab-conversion).
+tab_len = 0
+
+# Shadow dialog boxes? This also turns on color.
+use_shadow = OFF
+
+# Turn color support ON or OFF
+use_colors = OFF

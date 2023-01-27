@@ -25,9 +25,7 @@
     cp \
       -a \
       --copy-contents \
-      --symbolic-link \
-      --link \
-      {{ server_disk_mountpoint }}/ {{ server_tmp_mnt }}
+      {{ server_disk_mountpoint }}/. {{ server_tmp_mnt }}
 
 - name: "Unmount and remove temp mount {{ server_tmp_mnt }}"
   mount:

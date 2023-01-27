@@ -1,6 +1,7 @@
 ---
 - name: Add disk to an existing VM (proxmox)
-  hosts: "{{ server_hostname }}*"
+  #hosts: "{{ server_hostname }}*"
+  hosts: all
   gather_facts: false
   connection: local
 

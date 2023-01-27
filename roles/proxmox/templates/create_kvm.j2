@@ -22,8 +22,26 @@
         full: no
         name: "{{ '{{ item }}' }}"
         description: "{{ '{{ server_notes }} on {{ datetime }}' }}"
-        #storage: "{{ proxmox.node[px_var].storage }}"
-        virtio: 
+        timeout: 120
+  register: clone_output
+  failed_when: clone_output.msg != (clone_output.msg | regex_search("VM {{ '{{ item }}' }} with newid .* cloned from vm with vmid .*"))
+  run_once: True
+  loop: "{{ '{{ server_hostname }}' }}"
+  loop_control:
+    pause: 15
+
+- name: "Config Proxmox VM {{ server_shortname }}"
+  proxmox_kvm_dangerous:
+        #proxmox_default_behavior: compatibility
+        node: "{{ proxmox.node[px_var].name }}"
+        api_user: "{{ proxmox.node[px_var].api_user }}"
+        api_token_id: "{{ proxmox.node[px_var].api_token_id }}"
+        api_token_secret: "{{ '{{ proxmox.node[px_var].api_token_secret }}' }}"
+        api_host: "{{ proxmox.node[px_var].api_host }}"
+        name: "{{ '{{ item }}' }}"
+        update: yes
+        description: "{{ '{{ server_notes }} on {{ datetime }}' }}"
+        virtio:
 {% for disk_count,disk_size,disk_type in disks %}
             virtio{{disk_count}}: "{{ proxmox.node[px_var].storage }}:{{ disk_size }},format={{ disk_type }}"
 {% endfor %}
@@ -31,8 +49,8 @@
         ide:
             ide2: 'local:cloudinit,format=qcow2'
         timeout: 120
-  register: clone_output
-  failed_when: clone_output.msg != (clone_output.msg | regex_search("VM {{ '{{ item }}' }} with newid .* cloned from vm with vmid .*"))
+  register: update_output
+  failed_when: update_output.msg != (update_output.msg | regex_search("VM {{ '{{ item }}' }} with vmid .* updated"))
   run_once: True
   loop: "{{ '{{ server_hostname }}' }}"
   loop_control:
