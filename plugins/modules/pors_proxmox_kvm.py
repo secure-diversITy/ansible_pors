@@ -10,7 +10,7 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: proxmox_kvm_dangerous
+module: pors_proxmox_kvm
 short_description: Management of Qemu(KVM) Virtual Machines in Proxmox VE cluster.
 description:
   - Allows you to create/delete/stop Qemu(KVM) Virtual Machines in Proxmox VE cluster.

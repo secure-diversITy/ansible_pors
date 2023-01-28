@@ -29,9 +29,15 @@
   loop: "{{ '{{ server_hostname }}' }}"
   loop_control:
     pause: 15
+  retries: 3
+  delay: 5
+
+- name: "Give PVE enough time to settle the new VM"
+  pause:
+    seconds: 15
 
 - name: "Config Proxmox VM {{ server_shortname }}"
-  proxmox_kvm_dangerous:
+  pors_proxmox_kvm:
         #proxmox_default_behavior: compatibility
         node: "{{ proxmox.node[px_var].name }}"
         api_user: "{{ proxmox.node[px_var].api_user }}"
@@ -55,3 +61,5 @@
   loop: "{{ '{{ server_hostname }}' }}"
   loop_control:
     pause: 15
+  retries: 3
+  delay: 5

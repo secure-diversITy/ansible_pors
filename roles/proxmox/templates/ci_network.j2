@@ -18,7 +18,10 @@ network:
                 - to: 0.0.0.0/0
                   via: {{ proxmox_target_server_gateway4 }}
 {% endif %}
-
+            nameservers:
+                addresses:
+                    - {{ server_dns1 }}
+                    - {{ server_dns2 }}
 {% if proxmox.node[px_var].advanced_ci.cinetwork is defined %}
 # injected custom ciuser config
 {{ proxmox.node[px_var].advanced_ci.cinetwork }}

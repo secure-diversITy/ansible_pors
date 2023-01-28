@@ -20,13 +20,14 @@
   connection: local
   args:
     executable: /bin/bash
+    warn: false
   shell: >
     curl --fail -v \
     {% if proxmox.node[px_var].validate_certs is not defined or proxmox.node[px_var].validate_certs != true %}-k \{% endif %}
     -H 'Authorization: PVEAPIToken={{ proxmox.node[px_var].api_user }}!{{ proxmox.node[px_var].api_token_id }}={{ proxmox.node[px_var].api_token_secret }}' \
     --form "content=vztmpl" \
     --form "filename=@{{ item }}" \
-    "https://{{ proxmox.node[px_var].api_host }}:8006/api2/json/nodes/{{ proxmox.node[px_var].name }}/storage/{{ proxmox.node[px_var].ci_storage_name | d('local') }}/upload"
+    "https://{{ proxmox.node[px_var].api_host }}:8006/api2/json/nodes/{{ proxmox.node[px_var].name }}/storage/{{ proxmox.node[px_var].advanced_ci.storage | d('local') }}/upload"
   #no_log: true
   register: curlout
   ignore_errors: true

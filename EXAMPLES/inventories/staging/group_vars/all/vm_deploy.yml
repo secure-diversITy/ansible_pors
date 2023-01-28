@@ -104,19 +104,39 @@ proxmox:
               # it is highly recommended to use a dedicated storage for the ci templates. this storage should be used for this purpose only.
               # required types for that storage: "Container template, Snippets"
               # Unfortunaley the Proxmox API does not allow to upload snippets directly so PORS will use a hackish way to upload them
-              # (as a tar.gz template - even though they are plain text files) to the templates directory.
-              # BUT: cicustom HAS TO be in SNIPPETS dir. the following works ONLY when you SYMLINK "templates/cache" with "snippets" (no sub dir allowed!!!).
-              # Note: if you are not quick enough the snippets dir will be auto-recreated by Proxmox but something like this works fine:
-              # "rm /var/lib/vz/snippets -rf; ln -s /var/lib/vz/template/cache /var/lib/vz/snippets" (for the local storage, replace that with yours!!!)
-              # do not execute the above blindly it will delete everything in your snippets dir so be sure to use the right one (a dedicated storage is
-              # recommended anyways)
-              # type in the name of your Proxmox storage name:
+              # (as a "Container template" including tar.gz ending - even though they are plain text files) to the templates directory.
+              # The next limitation is that you cannot use cloud-init files from the templates directory so you need to prepare your
+              # storage that they are linked. The following 2 steps are required to achieve this:
+              # 1) Add the storage in the Proxmox UI:
+              #    Storage -> Add -> Directory (or anything else allowing snippets+templates)
+              #    -> select just "Snippets" + "Container template" and add a local <storage-path>
+              # 2) Symlink templates with snippets directory:
+              #    cicustom HAS TO be in SNIPPETS dir. the following works ONLY if you SYMLINK
+              #    "<storage-path>/templates/cache" with "<storage-path>/snippets" (no sub dirs allowed)
+              #    Note: if you are not quick enough the snippets dir will be auto-recreated by
+              #    Proxmox but something like this works fine:
+              #    "rm -rf <storage-path>/snippets; ln -s template/cache <storage-path>/snippets"
+              # WARNING: do not execute the above blindly it will delete everything in your snippets dir so be
+              # sure to use the right one (a dedicated storage is recommended as in step 1 above)
+              # WARNING2: you should have got an understanding that this whole process is not supported by Proxmox
+              # and can stop working at any time without any warnings.
+              #
+              # Finally add your Proxmox storage name here:
               #storage: automation_storage
+
+              # system locale
+              #locale: de_DE
+
+              # system timezone
+              #timezone: Europe/Berlin
 
               # extending the roles/proxmox/templates/ci_*.j2 with whatever you like
               # (https://cloudinit.readthedocs.io/en/latest/reference/examples.html)
               # this becomes part of the roles/proxmox/templates/ci_user.j2 (added at the end)
-              #ciuser:
+              #ciuser: |
+              #   <ci config>, e.g:
+              #   runcmd:
+              #     - [ echo, "foo", ">", /moo.txt ]
               # this becomes part of the roles/proxmox/templates/ci_network.j2 (added at the end)
               #cinetwork:
 

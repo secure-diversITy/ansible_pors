@@ -3,8 +3,8 @@
 
 hostname: {{ server_hostname_str }}
 manage_etc_hosts: true
-locale: en_GB.UTF-8
-timezone: Europe/Berlin
+locale: {{ proxmox.node[px_var].advanced_ci.locale | d('en_GB') }}
+timezone: {{ proxmox.node[px_var].advanced_ci.timezone | d('UTC') }}
 
 chpasswd:
   expire: False
