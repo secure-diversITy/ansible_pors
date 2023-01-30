@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-102"
+VERSIONNUM="4.0-103"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -924,10 +924,10 @@ F_ABIN(){
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
                     F_LOG $FUNCNAME "Will execute (EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG 2>&1 | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
                 else
                     F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG 2>&1 | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
@@ -1264,7 +1264,7 @@ F_HOSTFILE(){
 ## 8. get only these lines containing a comma and something behind (means section has a value)
 ##    this is needed as a section can be empty which shouldnt be shown if!
 F_TARGETS(){
-	F_LOG "$FUNCNAME" "started with these arguments: $@"
+	F_LOG "$FUNCNAME" "started with these arguments: $1,$2"
 	unset NIGRP
 	NIGRP="$2"
 	
@@ -1280,14 +1280,15 @@ F_TARGETS(){
 
 	if [ -z "$NIGRP" ];then
 	    HOSTSELECTION=$(F_DIALOG --${DOPT} "Please use the space-bar to make your selection:" 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-		HERR=$?
-		F_LOG "$FUNCNAME" "HERR was $HERR"
-		if [ "$HERR" != "0" ];then
-			echo "ABORTED"
-                        return 4
-		else
-			echo "$HOSTSELECTION"
-		fi
+	    HERR=$?
+	    F_LOG "$FUNCNAME" "selection: $HOSTSELECTION"
+            F_LOG "$FUNCNAME" "HERR was $HERR"
+            if [ "$HERR" != "0" ];then
+                    echo "ABORTED"
+                    return 4
+            else
+                    echo "$HOSTSELECTION"
+            fi
 	else
 		#echo "${OPTIONS[@]} | cut -d ' ' -f 1 |grep $NIGRP"
 		echo "$NIGRP"
@@ -2956,7 +2957,7 @@ F_STAGELS(){
 ## @details Parsing the inventory, offering all groups found, parsing groups including childs, remove dups, offer host list and let the user choose
 ## @exception on abort: return 4, on failure: error dialog
 F_SELHOST(){
-        F_LOG $FUNCNAME started
+        F_LOG $FUNCNAME "started with $1,$2"
         unset HOSTSELEXPANDED ABORTED HOSTSELECT HOSTFILE tgroup TGRP PREFILTER
 	TGRP="$1"
         PREFILTER="$2"
@@ -2969,8 +2970,10 @@ F_SELHOST(){
           [ -f "$HOSTFILE" ] || F_HOSTFILE
           while [ -z "$HOSTSELECT" ];do
                 if [ -z $PREFILTER ];then
+                    F_LOG $FUNCNAME "parsing groups (no prefilter)"
                     HOSTSELECTION=$(F_TARGETS $LISTTYPE)
                 else
+                    F_LOG $FUNCNAME "parsing groups (with prefilter $PREFILTER)"
                     HOSTSELECTION="$(F_TARGETS $LISTTYPE) | grep $PREFILTER"
                 fi
                 if [ "$HOSTSELECTION" == "ABORTED" ];then
@@ -2991,42 +2994,45 @@ F_SELHOST(){
 	fi
 
 	if [ $ABORTED -eq 1 ];then
-        F_LOG $FUNCNAME "aborted by user"
-		echo ABORTED
+            F_LOG $FUNCNAME "aborted by user"
+	    echo ABORTED
 	else
-		# ask for specific hosts or target group?
-		unset HOSTLIST['expanded']
-		if [ -z "$TGRP" ];then
-			  F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80 2>&1 > /dev/tty
-		fi
-			  for hostlist in $HOSTSELECTION;do
-				if [ -z "${HOSTLIST['expanded']}" ];then
-					HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
-				else
-					HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
-				fi
-			  done
+            # ask for specific hosts or target group?
+            unset HOSTLIST['expanded']
+            declare -A HOSTLIST
+            F_LOG $FUNCNAME "selection: $HOSTSELECTION"
+            if [ -z "$TGRP" ];then
+                F_WAITBOX "Please standby until all hostnames from your target groups are generated"  2>&1 >/dev/tty
+            fi
+            for hostlist in $HOSTSELECTION;do
+                F_LOG $FUNCNAME "$hostlist"
+                if [ -z "${HOSTLIST['expanded']}" ];then
+                        HOSTLIST['expanded']+="$(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
+                else
+                        HOSTLIST['expanded']+=" $(F_EXPANDHOSTS $hostlist | grep -v EMPTY)"
+                fi
+            done
 
-		unset EDITHOST
-		# select hosts interactive or not depending on how we get called
-		if [ -z "$TGRP" ];then
-			  while [ -z "$EDITHOST" ];do
-			        EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
-                                [ $? -eq 4 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
-				if [ -z "$EDITHOST" ];then
-					F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
-					F_DIALOG --yesno "No selection made! Retry?" 10 40
-					[ $? -ne 0 ] && return $?
-                                else
-                                    F_LOG $FUNCNAME "EDITHOST = $EDITHOST"
-				fi
-			  done
-		else
-			EDITHOST=$(echo "${HOSTLIST['expanded']}")
-		fi
-			  # make host list unique to avoid duplicated task runs when a host is in multiple groups
-			  # number each entry,sort by name and remove dups, sort by num
-			  echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
+            unset EDITHOST
+            # select hosts interactive or not depending on how we get called
+            if [ -z "$TGRP" ];then
+                      while [ -z "$EDITHOST" ];do
+                            EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
+                            [ $? -eq 4 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+                            if [ -z "$EDITHOST" ];then
+                                    F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
+                                    F_DIALOG --yesno "No selection made! Retry?" 10 40
+                                    [ $? -ne 0 ] && return $?
+                            else
+                                F_LOG $FUNCNAME "EDITHOST = $EDITHOST"
+                            fi
+                      done
+            else
+                    EDITHOST=$(echo "${HOSTLIST['expanded']}")
+            fi
+              # make host list unique to avoid duplicated task runs when a host is in multiple groups
+              # number each entry,sort by name and remove dups, sort by num
+              echo "$EDITHOST" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-|tr '\n' ' '
 	  fi
 }
 
@@ -3035,7 +3041,7 @@ F_SELHOST(){
 ## @param 1 optional: set install type (e.g. splunkforwarder)
 ## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
-    F_LOG $FUNCNAME started
+    F_LOG $FUNCNAME "started with $1"
 
     SPLTYPE="$1"
     # this installs pure splunk (i.e. with common configuration but without any specific configuration)
@@ -3044,7 +3050,7 @@ F_INSTALLSPL(){
     # must be explicitly unset for any subsequent tasks
     export CLEANHOSTFILE=yes
 	
-    SHOSTS="$(LISTTYPE=checklist F_SELHOST)"
+    SHOSTS=$(LISTTYPE=checklist F_SELHOST)
     [ $? -eq 4 ] && return 4
     [ "$SHOSTS" == ABORTED ] && return 4
     SHOSTST="$(echo "$SHOSTS" | sed 's/ /\n/g' | cut -d ':' -f 1)"
@@ -3053,7 +3059,7 @@ F_INSTALLSPL(){
         F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
         F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
     else
-        F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
+        F_LOG $FUNCNAME "SHOSTS ($SHOSTS) and SHOSTST ($SHOSTST) are both set"
     fi
 
     CURVER=$(F_GETSTAGEDSPL "$SPLTYPE")

@@ -16,5 +16,5 @@
   when: 
       - splunk_installation.package_format == "tgz"
       - splunk_packages.linux_64_tgz is defined
-      - item.key == spltype
+#      - item.key == spltype
 

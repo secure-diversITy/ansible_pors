@@ -25,7 +25,7 @@
     cp \
       -a \
       --copy-contents \
-      {{ server_disk_mountpoint }}/. {{ server_tmp_mnt }}
+      {{ server_disk_mountpoint }}/. {{ server_tmp_mnt }} || true
 
 - name: "Unmount and remove temp mount {{ server_tmp_mnt }}"
   mount:
