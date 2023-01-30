@@ -10,3 +10,5 @@ gen_hosts.yml
 *.pyc
 test.yml
 generated_*.yml
+roles/system_ntp/.github
+/playbooks/system/debug.yml
