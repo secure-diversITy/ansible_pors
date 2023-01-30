@@ -48,5 +48,5 @@
     state: present
   when: server_lvm_lv is defined
 
-- fail:
-    msg: "THIS FAIL WAS PLANNED"
+#- fail:
+#    msg: "THIS FAIL WAS PLANNED"
