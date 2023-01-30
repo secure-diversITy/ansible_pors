@@ -6,13 +6,13 @@
   package:
     name: ntp
     state: present
-  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] =< '6'
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int =< 6
 
 - name: Ensure NTP-related packages are installed.
   package:
     name: chrony
     state: present
-  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] >= '7'
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int >= 7
 
 - name: Ensure tzdata package is installed (Linux).
   package:
@@ -21,7 +21,7 @@
   when: ansible_system == "Linux"
 
 - include_tasks: clock-rhel-7.yml
-  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] == '7'
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int == 7
 
 - name: Set timezone
   timezone:
