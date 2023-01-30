@@ -38,9 +38,9 @@
 - name: RHEL specific packages
   package:
     name:
-        - libselinux-python
+        - python3-libselinux
         - nmap-ncat
-  when: ansible_facts['os_family'] == "RedHat"
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] >= '7'
 
 - name: vSphere requirements (RHEL)
   package:
@@ -50,10 +50,10 @@
     - ansible_facts['os_family'] == "RedHat"
     - ansible_virtualization_type == "VMware"
 
-- name: enable NTPd
-  systemd:
-    daemon_reload: yes
-    name: ntp
-    enabled: yes
-    state: started
+#- name: enable NTPd
+#  systemd:
+#    daemon_reload: yes
+#    name: ntp
+#    enabled: yes
+#    state: started
 
