@@ -6,6 +6,13 @@
   package:
     name: ntp
     state: present
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] =< '6'
+
+- name: Ensure NTP-related packages are installed.
+  package:
+    name: chrony
+    state: present
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] >= '7'
 
 - name: Ensure tzdata package is installed (Linux).
   package:

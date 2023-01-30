@@ -3,7 +3,6 @@
   package:
     name:
         - git
-        - ntp
         - vim
         - tuned
         - wget
