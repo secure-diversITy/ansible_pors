@@ -56,7 +56,7 @@
         landscape: "{{ googlecp.project[project_name].metadata_landscape }}"
         role: "{{ server_metadata_role }}"
     disks:
-        - auto_delete: true
+        - auto_delete: "{{ server_disk_autodel }}"
           device_name: "{{ server_disk_gcpdevname }}"
           boot: true
           source: "{{ '{{ %s }}' % 'computed_disk_root' }}"
