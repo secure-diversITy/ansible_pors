@@ -1,4 +1,7 @@
 ---
-ntp_daemon: ntpd
+__ntp_daemon: chronyd
 ntp_tzdata_package: tzdata
-ntp_driftfile: /var/lib/ntp/drift
+__ntp_package: chrony
+__ntp_config_file: /etc/chrony.conf
+__ntp_driftfile: /var/lib/ntp/drift
+ntp_cron_daemon: crond

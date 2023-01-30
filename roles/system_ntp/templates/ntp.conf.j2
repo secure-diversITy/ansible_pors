@@ -13,15 +13,25 @@ filegen loopstats file loopstats type day enable
 filegen peerstats file peerstats type day enable
 filegen clockstats file clockstats type day enable
 
+{% if ntp_tinker_panic is sameas true %}
+# Always reset the clock, even if the new time is more than 1000s away
+# from the current system time. Usefull for VMs that can be paused
+# and much later resumed.
+tinker panic 0
+{% endif %}
+
 # Use public servers from the pool.ntp.org project.
 # Please consider joining the pool (http://www.pool.ntp.org/join.html).
 {% for item in ntp_servers %}
-server {{ item }}
+pool {{ item }}
 {% endfor %}
 
 # Permit time synchronization with our time source, but do not
 # permit the source to query or modify the service on this system.
 restrict default nomodify notrap nopeer noquery
+
+# Allow pool associations
+restrict source nomodify notrap noquery
 
 # Permit all access over the loopback interface.  This could
 # be tightened as well, but to do so would effect some of
