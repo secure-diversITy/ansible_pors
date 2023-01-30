@@ -1,6 +1,8 @@
 ---
 - include: sys_check.yml
 
+- include: package.yml
+
 - include: prepare_splunk.yml
   when: splunk_upgrade == False
 
@@ -37,7 +39,10 @@
   when: splunk_upgrade == False
 
 - include: firewalld.yml
-  when: splunk_upgrade == False and splunk_installation.firewalld_disable != False
+  when:
+    - splunk_upgrade == False
+    - splunk_installation.firewalld_disable != False
+    - "'firewalld' in ansible_facts.packages"
 
 - include: splunk_startstop.yml
   when: splunk_upgrade == False

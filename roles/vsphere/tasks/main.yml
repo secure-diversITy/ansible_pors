@@ -26,7 +26,10 @@
   when: splunk_upgrade == False
 
 - include: firewalld_open_splunkports.yml
-  when: splunk_upgrade == False
+  when:
+    - splunk_upgrade == False
+    - splunk_installation.firewalld_disable != False
+    - "'firewalld' in ansible_facts.packages"
 
 - include: splunk_startstop.yml
   when: splunk_upgrade == False
