@@ -4654,11 +4654,11 @@ F_VSPHERE_VCGETINFO(){
 
 ## @fn F_VSPHERE_SELDS()
 ## @brief Select a datastore of a given vCenter
-## @param 1 (exported) VCENTER
-## @param 2 (exported) VCDSLIST
-## @param 1 (exported) VMDISKDEV
-## @param 1 (exported/optional) VMDISKMNTP
-## @param 1 (exported) VMDISKSIZEGB
+## @param (exported) VCENTER
+## @param (exported) VCDSLIST
+## @param (exported) VMDISKDEV
+## @param (exported/optional) VMDISKMNTP
+## @param (exported) VMDISKSIZEGB
 ## @return name of datastore 
 ## @details Select a datastore of a given vCenter for a specific disk
 F_VSPHERE_SELDS(){
@@ -4683,7 +4683,7 @@ F_VSPHERE_SELDS(){
 
 ## @fn F_VSPHERE_DEPLOY()
 ## @brief Deploys the vSphere VM
-## @param 1 required: the full path to the hardware profile to source
+## @param1 required: the full path to the hardware profile to source
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_VSPHERE_DEPLOY(){ 
