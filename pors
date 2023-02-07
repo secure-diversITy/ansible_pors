@@ -1581,9 +1581,9 @@ F_DIAERR(){
 
 ## @fn F_ERRLOG()
 ## @brief dialog box very similar to F_DIAERR but givin an option to display a given logfile
-## @param1 required: error code number
-## @param2 required: task name / description to show
-## @param3 optional: full path to the log file to show (defaults to $LOG)
+## @param 1 required: error code number
+## @param 2 required: task name / description to show
+## @param 3 optional: full path to the log file to show (defaults to $LOG)
 F_ERRLOG(){
         echo "$FUNCNAME started" >> $LOG
         ERRC="$1"
@@ -1625,7 +1625,7 @@ F_WAITBOX(){
 ## @fn F_MSGLEN()
 ## @brief specify the length of a message
 ## @return Message length
-## @param1 required: the message length
+## @param 1 required: the message length
 F_MSGLEN(){
     F_LOG $FUNCNAME "started with $1"
     MSG="$1"
@@ -1785,7 +1785,7 @@ F_ENAPP(){
 
 ## @fn F_FETCHGITREPOS()
 ## @brief get all available git repos
-## param1: required: git server type (gitlab, github)
+## @param 1: required: git server type (gitlab, github)
 ## @details fetches all repositories accessible by a defined token (vault)
 F_FETCHGITREPOS(){
     F_LOG $FUNCNAME "started with $1"
@@ -2250,7 +2250,7 @@ F_SHELPER(){
 ## @param 1 required: temporary filename
 ## @param 2 optional: temporary target group-name within the hosts file
 ## @param 3 optional: a given target group for just generating host names
-## @exception when param1 missing
+## @exception when param 1 missing
 ## @details calculate a temporary group based on user selected values
 ## the result is a list of hosts all added to one group which allows easy
 ## handling when running playbooks
@@ -2346,10 +2346,10 @@ F_CALCTGROUP(){
 ## @fn F_NOGROUPUNIQ()
 ## @brief remove all group tags from a hosts file
 ## @details Removes all group stanza's, sort alphabetical and just write unique entries
-## @param1 required: source host file name
-## @param2 required: target file name
+## @param 1 required: source host file name
+## @param 2 required: target file name
 ## @return 0: when everything is ok
-## @return 3: when param1 is not a valid file
+## @return 3: when param 1 is not a valid file
 ## @return any-other: grep errors
 F_NOGROUPUNIQ(){
     F_LOG "$FUNCNAME" started
@@ -3261,9 +3261,9 @@ F_CONFLOGSTREAM(){
 
 ## @fn F_ADDSERVICEUSER()
 ## @brief Creates the OS_SERVICE_USER linux user account and add any extra groups needed
-## @param1 (required) the remote hostname where the user should be created
-## @param2 (required) the username to be added
-## @param3 (required) the linux group name 
+## @param 1 (required) the remote hostname where the user should be created
+## @param 2 (required) the username to be added
+## @param 3 (required) the linux group name 
 ## @return success|fail
 ## @details The user created will get a random strong password which does not get stored anywhere
 ## because pubkey authentication is the way to go.
@@ -3289,9 +3289,9 @@ F_ADDSERVICEUSER(){
 
 ## @fn F_ADDSYSUSER()
 ## @brief Creates a linux user account and add it to a group
-## @param1 (required) the remote hostname where the user should be created
-## @param2 (required) the username to be added
-## @param3 (required) the (extra) linux group names (comma separated)
+## @param 1 (required) the remote hostname where the user should be created
+## @param 2 (required) the username to be added
+## @param 3 (required) the (extra) linux group names (comma separated)
 ## @return success|fail
 ## @details The user created will get a random strong password which does not get stored anywhere
 ## because pubkey authentication is the way to go.
@@ -3901,8 +3901,8 @@ F_CONFMENU(){
 
 ## @fn F_DEPLOYKEY()
 ## @brief Deploy a splunk server key to one or multiple targets
-## @param1 source hostname (as in ansible hosts file)
-## @param2 destination target group
+## @param 1 source hostname (as in ansible hosts file)
+## @param 2 destination target group
 ## @exception ..
 ## @details Deploys the public key into etc/auth/distServerKeys/{source}.
 ## This allows to add the remote host as a search peer.
@@ -4654,11 +4654,11 @@ F_VSPHERE_VCGETINFO(){
 
 ## @fn F_VSPHERE_SELDS()
 ## @brief Select a datastore of a given vCenter
-## @param (exported) VCENTER
-## @param (exported) VCDSLIST
-## @param (exported) VMDISKDEV
-## @param (exported/optional) VMDISKMNTP
-## @param (exported) VMDISKSIZEGB
+## @param VCENTER
+## @param VCDSLIST
+## @param VMDISKDEV
+## @param VMDISKMNTP
+## @param VMDISKSIZEGB
 ## @return name of datastore 
 ## @details Select a datastore of a given vCenter for a specific disk
 F_VSPHERE_SELDS(){
@@ -4683,8 +4683,7 @@ F_VSPHERE_SELDS(){
 
 ## @fn F_VSPHERE_DEPLOY()
 ## @brief Deploys the vSphere VM
-## @param1 required: the full path to the hardware profile to source
-## @exception ..
+## @param 1 required: the full path to the hardware profile to source
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_VSPHERE_DEPLOY(){ 
     F_LOG $FUNCNAME started
@@ -4958,7 +4957,7 @@ F_DEPLOYVM(){
 
 ## @fn F_CALCCIDR()
 ## @brief Calculates the CIDR of a given netmask
-## @param1 required: the netmask
+## @param 1 required: the netmask
 F_CALCCIDR(){
     F_LOG $FUNCNAME "started with $1"
     unset NETMASK cidr
@@ -4989,7 +4988,7 @@ F_CALCCIDR(){
 
 ## @fn F_CALCNETMASK()
 ## @brief Calculates the NETMASK of a given CIDR
-## @param1 required: the CIDR
+## @param 1 required: the CIDR
 F_CALCNETMASK(){
     F_LOG $FUNCNAME "started with $1"
     unset NETMASK CIDR nm
@@ -5015,7 +5014,7 @@ F_CALCNETMASK(){
 ## @fn F_STARTVMDEP()
 ## @brief Deploy a new blank VM based on a template
 ## @exception ..
-## @param1 required: target profile vendor (e.g. vmware,proxmox,googlecp,custom,..)
+## @param 1 required: target profile vendor (e.g. vmware,proxmox,googlecp,custom,..)
 ## @details The VM template used to clone.
 ## should be setup and prepared in a a way that ansible is able
 ## to connect and work with afterwards.
@@ -5472,7 +5471,7 @@ F_STARTVMDEP(){
 
 ## @fn F_GOOGLECP_DEPLOY()
 ## @brief Deploys a VM in GCP
-## @param1 required: source file containing the hw config
+## @param 1 required: source file containing the hw config
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_GOOGLECP_DEPLOY(){ 
@@ -5546,7 +5545,7 @@ F_GOOGLECP_DEPLOY(){
 
 ## @fn F_PROXMOX_DEPLOY()
 ## @brief Deploys a system to Proxmox VE
-## @param1 required: source file containing the hw config
+## @param 1 required: source file containing the hw config
 ## @exception ..
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_PROXMOX_DEPLOY(){ 
@@ -5631,11 +5630,11 @@ F_PROXMOX_DEPLOY(){
 
 ## @fn F_FORMATDISK()
 ## @brief Formats a new added disk of a system
-## @param1 required: source file containing the hw config
-## @param2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
+## @param 1 required: source file containing the hw config
+## @param 2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
 ## @exception Fail: when disk is formatted already
 ## @details Will format all disks specified in the given PORS hardware config
-## Formatting new disk(s) in an existing system must ensure that param1 is
+## Formatting new disk(s) in an existing system must ensure that param 1 is
 ## containing just the new disk(s) or that VMDISKFS=skip is set for any existing one.
 ## WARNING: this will auto-reboot the target system once completed
 F_FORMATDISK(){
@@ -5704,11 +5703,11 @@ F_FORMATDISK(){
 
 ## @fn F_ADDDISK()
 ## @brief Add a new disk to a system
-## @param1 required: source file containing the hw config
-## @param2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
+## @param 1 required: source file containing the hw config
+## @param 2 optional: skip count (e.g. 1 means start from the 2nd disk or 2 means start from the 3rd ..)
 ## @exception TODO
 ## @details Will add all disks specified in the given PORS hardware config
-## Adding a new single disk to an existing system must ensure that param1 is
+## Adding a new single disk to an existing system must ensure that param 1 is
 ## containing just the new disk
 F_ADDDISK(){
     F_LOG $FUNCNAME started
@@ -5790,8 +5789,8 @@ F_ADDDISK(){
 
 ## @fn F_BASEINSTALL()
 ## @brief Doing/Ensure the base is as we want it
-## param1 optional: specific hostname (as in hosts file)
-## param2 optional: (but requires param1 set!) the hardware profile to be sourced
+## @param 1 optional: specific hostname (as in hosts file)
+## @param 2 optional: (but requires param 1 set!) the hardware profile to be sourced
 ## @details This prepares or installs basic stuff we need on every system 
 ## as we are using a barebone template to deploy
 F_BASEINSTALL(){
@@ -5855,8 +5854,8 @@ F_BASEINSTALL(){
 
 ## @fn F_SYSUPGRADE()
 ## @brief system upgrade tasks
-## @param1 optional: set the host for the upgrade function
-## @param2 optional: (requires param1!) when set to "autoreboot" it will not ask for reboot after upgrading has finished
+## @param 1 optional: set the host for the upgrade function
+## @param 2 optional: (requires param 1!) when set to "autoreboot" it will not ask for reboot after upgrading has finished
 ## @details Upgrade a system by the distribution package manager
 F_SYSUPGRADE(){ 
     F_LOG $FUNCNAME started
