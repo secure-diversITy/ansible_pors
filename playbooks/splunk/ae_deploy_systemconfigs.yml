@@ -5,8 +5,8 @@
   become_user: "{{ splunk_install_user }}"
   gather_facts: False
 
-  pre_tasks:
-    - include_vars: inventories/{{ target_env }}/group_vars/all/ansible
+#  pre_tasks:
+#    - include_vars: inventories/{{ target_env }}/group_vars/all/ansible
 
   roles:
-    - system/{{ target }}/{{ exp_host }}/system_local_configs
+    - system_local/{{ target }}/{{ exp_host }}/system_local_configs

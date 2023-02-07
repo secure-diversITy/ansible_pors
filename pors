@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=RC
-VERSIONNUM="4.0-113"
+VERSIONNUM="4.0-115"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -924,10 +924,10 @@ F_ABIN(){
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
                     F_LOG $FUNCNAME "Will execute (EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
                 else
                     F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
@@ -1375,6 +1375,7 @@ F_DEPLSYSC(){
 		  else
 		     # TODO: optimize playbook exec to just exec on group instead of for each host
 			unset HOSTSELEXPANDED
+                        F_WAITBOX "... preparing environment"
 			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean | grep -v EMPTY |cut -d : -f 1)
 			# host 1,2,3,... of shcmember
 			for hex in $HOSTSELEXPANDED;do
@@ -1386,13 +1387,14 @@ F_DEPLSYSC(){
 
 				    # update task etc stuff first
                     F_LOG $FUNCNAME "roledir: $ROLEDIR"
-				    F_TPLUPDATE "${ROLEDIR}/system" "$hgroup/$hex"
+                                    [ ! -d "$DATADIR/custom/system_local/$hgroup/$hex" ] && mkdir -p "$DATADIR/custom/system_local/$hgroup/$hex"
+				    #F_TPLUPDATE "${ROLEDIR}/system" "$hgroup/$hex"
+				    F_TPLUPDATE "${ROLEDIR}/system" "$DATADIR/custom/system_local/$hgroup/$hex"
 
-				    F_LOG $FUNCNAME "Will play:\n$ABIN -i $HOSTFILE $PBDEPLSYSC -e \"target=$hgroup exp_host=$hex\""
-				    $ABIN -i $HOSTFILE $PBDEPLSYSC -e "target=$hgroup exp_host=$hex"
+                                    F_ABIN "$HOSTFILE" "$PBDEPLSYSC" "deploying system/local ..." "-e {'target':'$hgroup','exp_host':'$hex'}" 2>> $LOG 
 				    ERR=$?
-				    F_DIAERR "$ERR" "on \Zb\Z1<$hex>\Zn"
-				    [ $ERR -ne 0 ]&& F_MSG "ERROR: ABORTED deployment!" && break 2 >>$LOG
+				    F_ERRLOG "$ERR" "on \Zb\Z1<$hex>\Zn" $LOG
+				    [ $ERR -ne 0 ]&& F_ERRLOG $ERR "ERROR: while pushing to $hex .. ABORTING deployment!" $LOG && return 3
 			     done
 		     done
 		  fi
@@ -1830,7 +1832,7 @@ F_MSG(){
 ## @brief updating target dirs based on the template dir
 ## @details ensures consistent & updated tasks for all config folders
 F_TPLUPDATE(){
-	echo "$FUNCNAME started with: $1, $2" >> $LOG
+	F_LOG $FUNCNAME "started with: $1, $2"
 	# required argument: targetgroup/hostname
 	unset ROLEPATH
 	
@@ -1841,16 +1843,18 @@ F_TPLUPDATE(){
 		echo "FATAL: missing req arg in $FUNCNAME! $ROLEPATH and $FRPATH. ABORTED!" && F_EXIT
 	fi
 
-	if [ -d $FRPATH/$ROLEPATH ];then
-		for i in $ROLEPATH;do
-			cp -av $FRPATH/template/* $FRPATH/$i/ >>$LOG
-			[ $? -ne 0 ]&&echo "FATAL: Cannot copy template to $FRPATH/$i/ !" && F_EXIT
-		done
+	if [ -d $ROLEPATH ];then
+		#for i in $FRPATH;do
+			cp -av $FRPATH/template/* $ROLEPATH/ >>$LOG 2>&1
+			[ $? -ne 0 ]&& F_LOG 3 "FATAL: Cannot copy template to $ROLEPATH/ !" $LOG && return 3
+			cp -avL $FRPATH/defaults/ $ROLEPATH/system_local_configs/ >>$LOG 2>&1
+			[ $? -ne 0 ]&& F_LOG 3 "FATAL: Cannot create defaults in $ROLEPATH/ !" $LOG && return 3
+		#done
 	else
 		F_LOG $FUNCNAME "ERROR: cannot find specified path: $ROLEPATH!"
                 return 3
 	fi
-	echo "$FUNCNAME finished" >> $LOG
+	echo "$FUNCNAME finished with $?" >> $LOG
 }
 
 ## @fn F_APPTPLUPDATE()
@@ -1905,7 +1909,7 @@ F_APPTPLUPDATE(){
 ## @fn F_PULLSYSC()
 ## @brief pull system/local configs for remote server (system/local related)
 F_PULLSYSC(){
-	echo "$FUNCNAME started" >> $LOG
+	F_LOG $FUNCNAME "started with $1,$2"
 	ABORTED=0
 	AUTO="$1"
         FSYSDIR="$2"
@@ -1957,9 +1961,9 @@ F_PULLSYSC(){
 			;;
 			DANGEROUS-Import|Pull)
 	  		    for host in $(echo "$HOSTSELEXPANDED"| cut -d : -f1);do
-				OWNDIR=$HOSTSELECTION/$host
+				OWNDIR=$DATADIR/custom/roles/system_local/$HOSTSELECTION/$host
                                 if [ -z "$FSYSDIR" ];then
-				    SYScDIR=${DATADIR}/system/$OWNDIR
+				    SYScDIR=$OWNDIR
                                 else
                                     SYScDIR="$FSYSDIR"
                                 fi
@@ -1973,6 +1977,7 @@ F_PULLSYSC(){
 	
 				# this initiates the template files but also ensures that we keep all tasks and stuff current!
 				F_TPLUPDATE "${ROLEDIR}/system" $OWNDIR
+                                [ $? -ne 0 ] && F_LOG $FUNCNAME "FATAL: serious error encountered, check log" && return 3
 	
 				# do stuff based on user selection
 				if [ "$ANS" == "DANGEROUS-Import" ];then
@@ -2058,8 +2063,13 @@ F_SHOWHOSTS(){
 
         while [ -z "$HTARGETS" ];do
 	      ABORTED=0
-              HTARGETS=$(F_DIALOG --${DIAOPT} "\nThe following are members of the choosen target group(s)\n<$HOSTSELECTION>\n\nMake your selection:" 30 80 50 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-              [ $? -ne 0 ] && return 4
+              HTARGETS=$(F_DIALOG --cancel-label "Main Menu" --${DIAOPT} "\nThe following are members of the choosen target group(s)\n<$HOSTSELECTION>\n\nMake your selection:" 30 80 50 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+              HERR=$?
+              F_LOG $FUNCNAME "HERR = $HERR"
+              case $HERR in
+                    0) ;;
+                    *) return $HERR ;;
+              esac
 	      F_LOG $FUNCNAME "HTARGETS (while): >$HTARGETS<"
         done
 	F_LOG $FUNCNAME "HTARGETS (end): $HTARGETS"
@@ -2103,7 +2113,7 @@ F_EDITSYSC(){
 
         while [ -z "$HOSTSELECT" ];do
                 HOSTSELECTION=$(F_TARGETS radiolist)
-		if [ "$HOSTSELECTION" == "ABORTED" ];then
+		if [ "$HOSTSELECTION" == "ABORTED" ] || [ $? -eq 3 ];then
 			ABORTED=1 && break
 		else
                  	if [ -z "$HOSTSELECTION" ];then
@@ -2118,23 +2128,43 @@ F_EDITSYSC(){
                 echo "$FUNCNAME: aborted by user." >> $LOG
         else
 		HABORTED=0
+                F_WAITBOX "... parsing selected groups"
+	    	HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean |cut -d : -f1)
+
+                PULLQ=$(F_DIALOG --colors --yes-label "Fetch from all" --no-label "Fetch One-by-One" --yesno "\n\nDo you want to fetch all current configs from ALL hosts now?\n(skipping it here will pull when you select a host later)?\n\n\Zb\Z1WARNING: this will overwrite any LOCAL changes!\Zn\n\nWill fetch from these hosts:\n\n\Zb$(echo $HOSTSELEXPANDED | sed 's/ /\\n/g')\ZB\n\n" 30 80 2>&1 >/dev/tty)
+                PERRQ=$?
+                F_LOG $FUNCNAME "User answered fetching question with: $PERRQ"
+                if [ $PERRQ -eq 0 ];then
+                    F_WAITBOX "... fetching files from all members of $HOSTSELECTION"
+                    PERR=$(F_PULLSYSC "${HOSTSELEXPANDED}" "$SYSBASEDIR")
+                    "$PERR" == "ABORTED" -o "$PERR" == "ERROR" ] && HABORTED=1 && unset SELECTION &&break
+                    SINGLEPULL=0
+                else
+                    SINGLEPULL=1
+                fi
+
 		while [ $HABORTED -ne 1 ];do
 			#TODO: ask if the user want to edit/open a path or manage previously pulled conf files
 			# e.g. to say for the shc group do not manage authorize.conf
+			EDITHOST=$(F_SHOWHOSTS radiolist "$HOSTSELEXPANDED")
+                        ERRE=$?
+			case $ERRE in
+                            1) F_LOG $FUNCNAME "should break here";  HABORTED=1; break ;;
+                            3) return ;;
+                        esac
+                        F_LOG $FUNCNAME "Selected host to edit: $EDITHOST ($ERRE)"
 
-			HOSTSELEXPANDED=$(F_EXPANDHOSTS "$HOSTSELECTION" $ITMPGRP clean |cut -d : -f1)
-			EDITHOST="$(F_SHOWHOSTS radiolist "$HOSTSELEXPANDED")"
-			[ $? -eq 1 ] && HABORTED=1 && break
-                        F_LOG $FUNCNAME "Selected host to edit: $EDITHOST"
-
-			SYSBASEDIR=${DATADIR}/system_local/$HOSTSELECTION/$EDITHOST
+			SYSBASEDIR=${DATADIR}/custom/roles/system_local/$HOSTSELECTION/$EDITHOST
 			SYSDIR=${SYSBASEDIR}/system_local_configs/files/system/local
                         mkdir -p $SYSDIR
 
-			PERR=$(F_PULLSYSC "$EDITHOST" "$SYSBASEDIR")
-			[ "$PERR" == "ABORTED" -o "$PERR" == "ERROR" ] && HABORTED=1 && unset SELECTION &&break 
+                        if [ $SINGLEPULL -eq 1 ];then
+                            F_WAITBOX "... fetching files from $EDITHOST"
+			    PERR=$(F_PULLSYSC "$EDITHOST" "$SYSBASEDIR")
+			    [ "$PERR" == "ABORTED" -o "$PERR" == "ERROR" ] && HABORTED=1 && unset SELECTION &&break 
 			
-			echo "$FUNCNAME: Continuing after pull selection ($PERR)" >> $LOG
+			    F_LOG "$FUNCNAME" "Continuing after pull selection ($PERR)"
+                        fi
 
 			unset OPTIONS
        			OPTIONS=($(for hostfile in $(find $SYSDIR -type f) ;do echo "${hostfile##*/}" "file";done|sort -f))

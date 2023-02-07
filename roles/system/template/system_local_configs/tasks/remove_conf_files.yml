@@ -1,13 +1,14 @@
 ---
 # THIS GETS OVERWRITTEN EACH RUN FROM: roles/system/template/ DIRECTORY! 
-- name: Prepare the next tasks
-  set_fact: handle_unmanaged=false
+#- name: Prepare the next tasks
+#  set_fact: 
+#    handle_unmanaged: "{{ system_local_remove_unhandled | d('False') }}"
 
-- name: Check what to do with unmanaged configs
-  set_fact: handle_unmanaged=true
-  when: "{{ item.value.remove_absent_files }} is defined and
-        {{ item.value.remove_absent_files }} == true"
-  with_dict: "{{ vars['app_variable'] }} | app_default"
+#- name: Check what to do with unmanaged configs
+#  set_fact: handle_unmanaged=true
+#  when: "{{ item.value.remove_absent_files }} is defined and
+#        {{ item.value.remove_absent_files }} == true"
+#  with_dict: "{{ vars['app_variable'] }} | app_default"
 
 - name: Get all unmanaged config files
   become: yes
@@ -21,7 +22,7 @@
   become_user: "{{ splunk_install_user }}"
   shell: mv {{ item }} {{ item }}-unmanaged
   with_items: grep_unmanaged.stdout_lines
-  when: handle_unmanaged
+  when: handle_unmanaged is defined and handle_unmanaged
 
 #  notify: 
 #    - splunk reload deploy-server 

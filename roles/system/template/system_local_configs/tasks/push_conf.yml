@@ -4,7 +4,9 @@
 - name: Copy conf to remote host
   become: yes
   become_user: "{{ splunk_install_user }}"
-  copy: src="{{ item }}"
-        dest="/{{ splunk_conf_path }}/"
+  copy:
+    src: "{{ item }}"
+    dest: "/{{ splunk_conf_path }}/"
+    mode: 0660
   with_fileglob: system/local/*.conf
 

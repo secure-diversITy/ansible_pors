@@ -1,6 +1,6 @@
 ---
 # THIS GETS OVERWRITTEN EACH RUN FROM: roles/system/template/ DIRECTORY! 
-- include: ../../../../../common/handlers/splunkd.yml
+- include: "{{ pors_install_dir }}/roles/common/handlers/splunkd.yml"
 - include: inject_myfiles.yml
 - include: configure_local.yml
 - include: remove_conf_files.yml
