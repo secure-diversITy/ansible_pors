@@ -60,3 +60,7 @@ system:
 #ntp_servers:
 #    - 0.de.pool.ntp.org iburst
 #    - 1.de.pool.ntp.org iburst
+
+# when true the file /opt/pors_repo/common/sudo/splunk-admin must exist
+# which then gets copied into sudoers.d
+#install_splunk_sudoperms: true

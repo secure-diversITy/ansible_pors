@@ -85,3 +85,4 @@
   when: splunk_upgrade == False
 
 - include: sudoperms.yml
+  when: install_splunk_sudoperms is defined and install_splunk_sudoperms == true

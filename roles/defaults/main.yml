@@ -141,6 +141,10 @@ ntp_restrict:
   - "127.0.0.1"
   - "::1"
 
+# when true the file /opt/pors_repo/common/sudo/splunk-admin must exist
+# which then gets copied into sudoers.d
+install_splunk_sudoperms: true
+
 ####### system_journald.yml #######
 
 systemd_journal_storage: persistent
