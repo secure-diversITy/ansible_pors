@@ -11,7 +11,7 @@
 
   tasks: 
     - set_fact:
-        repo_uri: "{{ git_server }}/repos?per_page=100&page"
+        repo_uri: "{{ git_server }}/{{ git_uri_group }}/repos?per_page=100&page"
 
     - name: Get pagination count
       uri:
@@ -53,14 +53,18 @@
       set_fact:
         all_repos: "{{ all_repos }} + [ '{{ item.clone_url }}={{ item.default_branch }}' ]"
       no_log: true
-      when: git_access_type == "http"
+      when:
+        - git_access_type == "http"
+        - not use_git_apps_filter or (use_git_apps_filter and item.clone_url | regex_search(git_apps_filter))
       loop: "{{ gh_out.results | json_query('[*].json[*].{clone_url:clone_url,default_branch:default_branch}') | flatten(1) }}"
 
     - name: Collect repo locations (ssh - based)
       set_fact:
         all_repos: "{{ all_repos }} + [ '{{ item.ssh_url }}={{ item.default_branch }}' ]"
       no_log: true
-      when: git_access_type == "ssh"
+      when:
+        - git_access_type == "ssh"
+        - not use_git_apps_filter or (use_git_apps_filter and item.clone_url | regex_search(git_apps_filter))
       loop: "{{ gh_out.results | json_query('[*].json[*].{ssh_url: ssh_url,default_branch:default_branch}') | flatten(1) }}"
 
     - name: "Write repo cache file ({{ git_tmp_repos_file }})"

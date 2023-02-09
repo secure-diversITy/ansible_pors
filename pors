@@ -35,8 +35,8 @@
 ## https://github.com/secure-diversITy/ansible_pors/wiki
 ##<br>
 ###############################################################################################################
-VERSIONTYPE=DEV
-VERSIONNUM="4.1-0"
+VERSIONTYPE=STREAM
+VERSIONNUM="4.1-2"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1526,16 +1526,20 @@ F_EXPANDHOSTS(){
 	    # parse the resulted FILE and massage its content
 	    if [ -r "$TGFILE" ];then
                 RET=$(sort -u ${TGFILE}.nogrp)
+                RETCODE=$?
             else
 	      	# bark no error to the calling function but an error message in log
               	F_LOG $FUNCNAME "WARNING: cant read/find $TGFILE! Empty group??"
 	      	RET="EMPTY"
+                RETCODE=1
             fi
 	else
 		F_LOG $FUNCNAME "ERROR: HOSTFILE $HOSTFILE NOT FOUND!"
+                RETCODE=2
 	fi
 	echo "$RET"
-	F_LOG "$FUNCNAME" finished
+	F_LOG "$FUNCNAME" "finished with $RETCODE"
+        return $RETCODE
 }
 
 ## @fn F_VALCONF()
@@ -3048,10 +3052,11 @@ F_SELHOST(){
             if [ -z "$TGRP" ];then
                       while [ -z "$EDITHOST" ];do
                             EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
-                            [ $? -eq 4 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+                            EDITERR=$?
+                            [ $EDITERR -eq 1 ] && F_LOG $FUNCNAME "Main menu selected.." && return 4
                             if [ -z "$EDITHOST" ];then
                                     F_LOG $FUNCNAME "No selection made / EDITHOST empty!"
-                                    F_DIALOG --yesno "No selection made! Retry?" 10 40
+                                    F_DIALOG --yesno "No selection made! Retry?" 10 40 2>&1 >/dev/tty
                                     [ $? -ne 0 ] && return $?
                             else
                                 F_LOG $FUNCNAME "EDITHOST = $EDITHOST"
@@ -4246,8 +4251,11 @@ F_ADDDS(){
         TG="${SITESEL}_deploymentserver"
     fi
 
-    [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-    SHOSTS=$(F_EXPANDHOSTS ${TG} $ITMPGRP clean | sed "s/$TG//g")
+    [ $RUNMODE != "batch" ] && F_WAITBOX "Please standby until all hostnames from your target groups are generated"
+    SHOSTS=$(F_EXPANDHOSTS ${TG} $ITMPGRP clean | sed "s/$TG//g" ; exit ${PIPESTATUS[0]} )
+    SERR=$?
+    F_LOG $FUNCNAME "SHOSTS = $SHOSTS, ERR= $SERR"
+    [ $SERR -ne 0 ] && F_DIAERR $SERR "Sorry but it seems there is no host in the selected target group: $TG" && return 3
     while [ -z "$HOSTSELECTION" ];do
         OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))
         HOSTSELECTION=$(F_DIALOG --checklist "Please use the space-bar to make your selection." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
@@ -4264,7 +4272,7 @@ F_ADDDS(){
             F_LOG $FUNCNAME "SHOSTS and SHOSTST are both set"
     fi
 
-    [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby.. (setting up some magic)" 5 45
+    [ $RUNMODE != "batch" ] && F_WAITBOX "Please standby.. (setting up some magic)"
 
     F_LOG "$FUNCNAME" "Will configure deploymentserver on <$HOSTSELECTION>"
     F_DIALOG --scrollbar --yesno "Will configure: \n\n$SHOSTST\n\nas Deploymentserver. Are you sure?" 30 100

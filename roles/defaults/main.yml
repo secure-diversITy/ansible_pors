@@ -41,6 +41,8 @@ tokenauth:
     git_ro_user: "{{ vault_git_ro_user }}"
     git_ro_token: "{{ vault_git_ro_token }}"
 
+use_git_apps_filter: false
+
 ####### hooks.yml ########
 
 hook_system_playbook: False

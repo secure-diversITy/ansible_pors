@@ -21,6 +21,18 @@
 # https://gitlab.e.foundation/api
 #git_server:
 
+# the group/org/project name of where apps are stored
+#git_uri_group:
+
+# the pors repository itself (here /opt/pors_data/ get pushed to)
+#git_uri_repo_pors_data:
+
+# enable or disable filterin apps from the git repo
+use_git_apps_filter: true
+
+# regex filter for app names (only these will be shown durin link app process
+#git_apps_filter: "<some regex>"
+
 # define a type for that git server
 # Possible values: gitlab | github
 #git_server_type:
