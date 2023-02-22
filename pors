@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-2"
+VERSIONNUM="4.1-3"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -924,10 +924,10 @@ F_ABIN(){
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
                     F_LOG $FUNCNAME "Will execute (EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /DONE: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
                 else
                     F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /TASK FINISHED: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 100
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /DONE: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
@@ -1382,19 +1382,15 @@ F_DEPLSYSC(){
 			     F_LOG $FUNCNAME "processing host >$hex<"
 			     for hgroup in $HOSTSELECTION;do
 				    F_LOG $FUNCNAME "processing $hex in >$hgroup<"
-				    # for shcmember, ...
-			    	#F_GVARDIR "$hgroup"
-
 				    # update task etc stuff first
-                    F_LOG $FUNCNAME "roledir: $ROLEDIR"
+                                    F_LOG $FUNCNAME "roledir: $ROLEDIR"
                                     [ ! -d "$DATADIR/custom/system_local/$hgroup/$hex" ] && mkdir -p "$DATADIR/custom/system_local/$hgroup/$hex"
 				    #F_TPLUPDATE "${ROLEDIR}/system" "$hgroup/$hex"
 				    F_TPLUPDATE "${ROLEDIR}/system" "$DATADIR/custom/system_local/$hgroup/$hex"
 
                                     F_ABIN "$HOSTFILE" "$PBDEPLSYSC" "deploying system/local ..." "-e {'target':'$hgroup','exp_host':'$hex'}" 2>> $LOG 
 				    ERR=$?
-				    F_ERRLOG "$ERR" "on \Zb\Z1<$hex>\Zn" $LOG
-				    [ $ERR -ne 0 ]&& F_ERRLOG $ERR "ERROR: while pushing to $hex .. ABORTING deployment!" $LOG && return 3
+				    [ $ERR -ne 0 ]&& F_ERRLOG $ERR "ERROR: while pushing to \Zb\Z1<$hex>\Zn.. ABORTING deployment!" $LOG && return 3
 			     done
 		     done
 		  fi
