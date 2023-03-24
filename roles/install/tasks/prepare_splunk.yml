@@ -1,17 +1,41 @@
 ---
+- name: "Create Splunk unix group ({{ splunk_install_user_gid }})"
+  group:
+    name: "{{ splunk_install_group }}"
+    gid: "{{ splunk_install_user_gid }}"
+    state: present
+  when: splunk_install_user_gid is defined
+
+- name: "Create Splunk unix user ({{ splunk_install_user_uid }})"
+  user:
+    name: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_group }}"
+    uid: "{{ splunk_install_user_uid }}"
+    comment: "Created by PORS"
+    shell: "{{ splunk_install_user_shell }}"
+    home: "{{ splunk_installation.splunk_home_path }}"
+    password: "!!"
+    expires: -1
+    state: present
+  when: splunk_install_user_uid is defined
+
 - name: Create Splunk unix group
   group:
     name: "{{ splunk_install_group }}"
     state: present
-  when: splunk_installation.package_format != "rpm"
+  when: splunk_install_user_gid is undefined
 
 - name: Create Splunk unix user
   user:
     name: "{{ splunk_install_user }}"
     group: "{{ splunk_install_group }}"
-    comment: "Splunk"
-    shell: "/bin/bash"
+    comment: "Created by PORS"
+    shell: "{{ splunk_install_user_shell }}"
     home: "{{ splunk_installation.splunk_home_path }}"
     password: "!!"
+    expires: -1
     state: present
-  when: splunk_installation.package_format != "rpm"
+  when: splunk_install_user_uid is undefined
+
+- name: "Disable max days before password expiry for {{ splunk_install_user }}"
+  shell: "passwd -x -1 {{ splunk_install_user }}"

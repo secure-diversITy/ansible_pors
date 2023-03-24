@@ -22,6 +22,7 @@
     - (system.add_custom_tasks is defined and system.add_custom_tasks == True)
       or (hook_system_tasks is defined and hook_system_tasks == True)
 
+- include: update_package_db.yml
 - include_tasks: software.yml
 
 - include_tasks: ../../system_optimize/tasks/optimize_selinux.yml

@@ -1,34 +1,58 @@
 ---
 
-- name: Create {{ user_name }} unix group
+- name: "Create {{ user_name }} unix group ({{ username_uid }})"
   group:
     name: "{{ user_name }}"
     state: present
+    gid: "{{ username_uid }}"
+  when: username_uid is defined
+  
+- name: "Create {{ user_name }} unix group"
+  group:
+    name: "{{ user_name }}"
+    state: present
+  when: username_uid is undefined
 
-- name: Create {{ appadm }} group
+- name: "Create {{ appadm }} group"
   group:
     name: "{{ item }}"
     state: present
   loop: "{{ appadm.split(',') }}"
   when: appadm is defined
 
-- name: Create {{ user_name }} unix user
+- name: "Create {{ user_name }} unix user ({{ username_gid }})"
+  user:
+    name: "{{ user_name }}"
+    group: "{{ user_name }}"
+    uid: "{{ username_gid }}"
+    create_home: yes
+    skeleton: /etc/skel
+    append: yes
+    comment: "created by PORS"
+    shell: "{{ user_shell | d(system_default_shell) }}"
+    password: "{{ user_pass | password_hash('sha512') }}"
+    expires: -1
+    state: present
+  when: username_gid is defined
+
+- name: "Create {{ user_name }} unix user"
   user:
     name: "{{ user_name }}"
     group: "{{ user_name }}"
     create_home: yes
     skeleton: /etc/skel
     append: yes
-    comment: "created by Ansible"
-    shell: "/bin/bash"
+    comment: "created by PORS"
+    shell: "{{ user_shell | d(system_default_shell) }}"
     password: "{{ user_pass | password_hash('sha512') }}"
     expires: -1
     state: present
+  when: username_gid is undefined
 
-- name: Disable password expiry for {{ user_name }}
+- name: "Disable max days before password expiry for {{ user_name }}"
   shell: "passwd -x -1 {{ user_name }}"
 
-- name: Add { user_name }} to additional groups
+- name: "Add {{ user_name }} to additional groups"
   user:
     name: "{{ user_name }}"
     groups: "{{ item }}"

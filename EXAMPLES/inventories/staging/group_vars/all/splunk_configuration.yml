@@ -17,6 +17,15 @@
 #splunk_install_user: splunk
 #splunk_install_group: splunk
 
+# optionally you can specify a uid and/or gid for the splunk install user
+# default is the OS defines it automatically
+#splunk_install_user_uid:
+#splunk_install_user_gid: 
+
+# overwrite the default shell for the the splunk install user:
+# default is set in roles/system_user/defaults/main.yml
+#splunk_install_user_shell: /bin/bash
+
 # Should PORS push local splunk license(s) to the LicenseMaster?
 # Licenses must be added to:
 # {{ repo_base }}/{{ target_env }}/licenses/enterprise/

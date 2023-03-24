@@ -111,6 +111,7 @@ splunk_auth:
 splunk_conf_path: /opt/splunk/etc/system/local
 splunk_install_user: splunk
 splunk_install_group: splunk
+splunk_install_user_shell: /bin/bash
 lm_push_license: True
 
 ####### splunk_installation.yml ########
