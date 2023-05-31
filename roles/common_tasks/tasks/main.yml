@@ -1,6 +1,8 @@
 ---
 
 - include: check_ssh.yml
+- include: set_touch_dir.yml
+- include: check_sudo.yml
 
 - include: gather_facts.yml
   tags: task_gather_facts

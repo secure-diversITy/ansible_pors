@@ -16,13 +16,17 @@ pors_install_dir: /opt/pors
 # support legacy var:
 base_install_dir: "{{ pors_install_dir }}"
 pors_data_dir: /opt/pors_data
-pors_ssh_user: ansible
+pors_ssh_user: ansible-pors
+pors_ssh_key: "~/.ssh/{{ pors_ssh_user }}_ed25519"
 pors_temp_dir: /tmp/pors
 env_inventory_dir: "{{ pors_data_dir }}/inventories/{{ target_env }}"
 custom_data_dir: "{{ pors_data_dir }}/custom"
 custom_roles_dir: "{{ custom_data_dir }}/roles"
 custom_playbooks_dir: "{{ custom_data_dir }}/playbooks"
 git_pors_data_push: no
+pors_allow_autoupgrade_requirements: false
+system_default_shell: /bin/bash
+pors_touch_dir: /var/lib/pors
 
 ###### splunk_repository.yml #######
 

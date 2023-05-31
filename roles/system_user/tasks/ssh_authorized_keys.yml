@@ -2,10 +2,10 @@
 
 - stat:
     path: '{{ repo_base }}/common/ssh/authorized_keys_{{ user_name }}'
-  connection: local
   become: no
   register: authkey
   run_once: True
+  delegate_to: localhost
 
 - name: Set authorized keys for {{ user_name }}
   authorized_key:

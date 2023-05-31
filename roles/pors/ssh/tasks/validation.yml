@@ -1,0 +1,50 @@
+---
+
+- block:
+
+    - pause:
+        prompt: "Enter the password for the remote linux user"
+        echo: false
+      register: tsp
+
+    - set_fact:
+        tmp_ssh_password: "{{ tsp.user_input }}"
+      no_log: true
+
+  when: tmp_ssh_password is undefined
+
+- name: Validation failed
+  connection: local
+  fail:
+    msg: |
+        At least one of the required variables is not set properly:
+
+        variable name: tmp_ssh_user
+        current value: >{{ tmp_ssh_user | d('not set') }}<
+        variable meaning:
+            The username which should be used to connect to the remote machine
+            (HAS TO have root permissions)
+
+        variable name: tmp_ssh_password 
+        current value: >{% if tmp_ssh_password is undefined %}not set{% else %}set (hidden here){% endif %}<
+        variable meaning:  
+            The corresponding password (can be empty when tmp_ssh_key is defined)
+
+        variable name: username_uid 
+        current value: >{{ username_uid | d('not set') }}<
+        variable meaning:
+            An unique linux user uid for the PORS user
+            - can be empty to use any - not recommended though
+
+  when:
+    - tmp_ssh_password is undefined or tmp_ssh_user is undefined
+
+# supporting temporary ssh keys is a bit more tricky as we need to handle that on sub tasks properly
+# disabled atm
+#        variable name: tmp_ssh_key 
+#        current value: >{{ tmp_ssh_key | d('not set') }}<
+#        variable meaning:
+#            The full path to your temporary ssh key
+#            - can be empty when using a password
+#            - can be set to "create" if PORS should create one for you
+#    - (tmp_ssh_password is undefined and tmp_ssh_key is undefined) or tmp_ssh_user is undefined

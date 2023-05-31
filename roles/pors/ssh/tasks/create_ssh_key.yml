@@ -1,0 +1,23 @@
+---
+
+- name: "Create private SSH key for {{ pors_ssh_user }}"
+  connection: local
+  community.crypto.openssh_keypair:
+    path: "{{ pors_ssh_key }}"
+    type: ed25519
+
+# we do not use community.general.ssh_config as it expects a valid hostname
+# aaaaand when using the wildcard "*" it will not work properly and re-add
+# on each run
+- name: "Ensure new key is set in ssh config"
+  connection: local
+  become: no
+  lineinfile:
+    path: "~/.ssh/config"
+    owner: "{{ pors_user }}"
+    mode: 0600
+    regex: "^[iI]dentity[fF]ile\\s+{{ pors_ssh_key }}"
+    line: IdentityFile {{ pors_ssh_key }}
+    create: yes
+    insertbefore: BOF
+    state: present

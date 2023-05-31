@@ -1,0 +1,63 @@
+---
+
+- name: "Import defaults"
+  hosts: "{{ target }}"
+  connection: local
+  gather_facts: false
+
+  vars:
+    var_validation_only: true
+
+  tasks:
+    - include_role:
+        name: common
+        public: yes
+
+    - include_role:
+        name: pors/ssh
+        public: yes
+
+- name: "Create / manage the remote PORS linux user"
+  hosts: "{{ target }}"
+  remote_user: "{{ tmp_ssh_user }}"
+  become: yes
+  become_user: root
+  gather_facts: false
+
+  vars:
+    var_validation_only: false
+    ansible_become_pass: "{{ tmp_ssh_password }}"
+    ansible_pass: "{{ tmp_ssh_password }}"
+    test_shared_service_account: True
+    shared_service_account_as_root: True
+    user_name: "{{ pors_ssh_user }}"
+    user_pass: "!!"
+
+  tasks:
+
+    #- include_role:
+    #    name: pors/setup
+
+    - add_host:
+        name: "{{ inventory_hostname }}"
+        ansible_become_pass: "{{ tmp_ssh_password }}"
+        ansible_ssh_pass: "{{ tmp_ssh_password }}"
+      connection: local
+      no_log: true
+
+
+    - include_role:
+        name: common
+        public: yes
+    - include_tasks: ../../roles/common_tasks/tasks/set_touch_dir.yml
+
+
+    - include_tasks: ../../roles/common_tasks/tasks/check_sudo.yml
+
+    - include_role:
+        name: pors/ssh
+
+    - include_role:
+        name: system_user
+
+

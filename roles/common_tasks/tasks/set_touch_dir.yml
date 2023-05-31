@@ -1,0 +1,8 @@
+---
+
+- file:
+    path: "{{ pors_touch_dir }}"
+    owner: "{{ pors_ssh_user }}"
+    group: "{{ pors_ssh_user }}"
+    mode: 0733
+    state: directory

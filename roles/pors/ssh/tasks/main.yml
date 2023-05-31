@@ -1,0 +1,11 @@
+---
+
+- block:
+
+    - include: validation.yml
+    - include: create_ssh_key.yml
+      when: not var_validation_only
+
+  become: no
+  run_once: true
+  delegate_to: localhost

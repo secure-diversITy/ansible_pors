@@ -1,0 +1,6 @@
+---
+
+- include: requirements.yml
+  run_once: true
+  connection: local
+  become: no

@@ -1,0 +1,23 @@
+---
+
+- name: "Check pipelining support"
+  lineinfile:
+    path: /etc/sudoers
+    regexp: ^Defaults.*requiretty
+    state: absent
+  check_mode: yes
+  register: plsup
+
+- debug:
+    msg: |
+        WARNING WARNING WARNING WARNING WARNING WARNING
+        ***********************************************        
+
+        Your /etc/sudoers configuration contains "requiretty" in the "Defaults" setting.
+        This will prevent the use of pipelining support in Ansible and so decreases
+        the execution speed a lot.
+
+        ***********************************************        
+        WARNING WARNING WARNING WARNING WARNING WARNING
+  changed_when: plsup is changed
+  when: plsup is changed
