@@ -1,16 +1,16 @@
 ---
-- hosts: "{{ target }}"
+- name: "Rebooting a system"
+  hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
+  gather_facts: false
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
 
   tasks:
-   - name: reboot remote system
-     reboot:
-        msg: "reboot initiated by Ansible Engine"
-     register: rebootsys
 
-   - name: verify system reboot
-     fail:
-        msg: "ERROR: Failed to reboot the remote system or it has taken too long to boot up again"
-     when: rebootsys.rebooted != True
+    - include_role:
+        name: system_reboot
+

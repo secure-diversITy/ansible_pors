@@ -6,6 +6,9 @@
   become_user: "{{ splunk_install_user }}"
   gather_facts: false
 
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
+
   tasks:
     - name: "Create {{ user_name }} with role {{ user_role }}"
       shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk add user {{ user_name }} -password '{{ user_password }}' -role {{ user_role }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"

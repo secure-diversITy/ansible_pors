@@ -8,7 +8,10 @@
   vars:
     # format defined disks within an instance
     format_disk: True
+    ansible_ssh_user: "{{ pors_ssh_user }}"
 
-  roles:
-    - system_disk
+  tasks:
+
+    - include_role:
+        name: system_disk
  

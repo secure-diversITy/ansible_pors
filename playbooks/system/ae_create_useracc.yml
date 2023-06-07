@@ -4,6 +4,12 @@
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
+  gather_facts: False
 
-  roles:
-    - system_user
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
+
+  tasks:
+
+    - include_role:
+        name: system_user

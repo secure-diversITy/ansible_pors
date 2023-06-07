@@ -4,7 +4,10 @@
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
-  gather_facts: False
+  gather_facts: false
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
 
   pre_tasks:
     - set_fact:

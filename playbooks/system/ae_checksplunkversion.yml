@@ -4,6 +4,10 @@
   become: yes
   become_user: root
   strategy: free
+  gather_facts: false
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
 
   roles:
     - ../roles/splunk_info
