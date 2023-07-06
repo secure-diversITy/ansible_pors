@@ -12,3 +12,6 @@ USERPORS          ALL=(pors)      NOPASSWD: PORSCMD
 
 # allow changing to user pors for all PORS users
 USERPORS          ALL=(root)      NOPASSWD: /bin/su - pors
+
+# allow specifying/overwriting debug option for PORS
+Defaults env_keep += "DEBUG"
