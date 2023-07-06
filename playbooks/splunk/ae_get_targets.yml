@@ -35,7 +35,7 @@
         dest: "{{ expandfile }}"
         section: "{{ item.0 }}"
         allow_no_value: yes
-        option: "{{ item.1 }} ansible_ssh_port={{ hostvars[item.1]['ansible_ssh_port'] | default(22)}}"
+        option: "{{ item.1 }} {% if hostvars[item.1]['ansible_ssh_port'] is defined %}ansible_ssh_port={{ hostvars[item.1]['ansible_ssh_port'] }}{% endif %}"
         state: present
       connection: local
       when: item.1 in groups['{{item.0}}']

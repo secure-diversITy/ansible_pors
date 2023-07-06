@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-7"
+VERSIONNUM="4.1-10"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -88,6 +88,7 @@ export NCURSES_NO_UTF8_ACS=1
 : "${DEBUG:=0}"
 
 [ $DEBUG -eq 1 ] && echo "DEBUG MODE ON !!!!"
+export DEBUG=$DEBUG
 
 ## @var RUNMODE
 ## @brief PORS can run in several modes this sets the default
@@ -792,7 +793,8 @@ F_LOGROTATESIZE(){
 ## @details Checks for $VAULTTEMPFILE and if that exists it gets deleted.
 ## This should be used whenever F_VAULTPW was used before.
 F_RMVAULTPW(){
-    F_LOG $FUNCNAME started
+    F_LOG $FUNCNAME "started with $1"
+    F_LOG $FUNCNAME "DEBUG=$DEBUG"
     if [ -f "$VAULTTEMPFILE" ];then
         [ $DEBUG -eq 1 ] &&  F_LOG $FUNCNAME "DEBUG MODE !!! DEBUG MODE !!! skipped removing vault temp file forever!" && return 0
         [ ! -z $STEALTHMODE ] && F_LOG $FUNCNAME "skipped removing vault temp file as we are in STEALTH mode!" && return 0
@@ -1269,8 +1271,10 @@ F_TARGETS(){
 	NIGRP="$2"
 	
 	#OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort))
-	OPTIONS=($(for i in $(egrep -v "(:vars|^#)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g;s/:children//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort -u ))
+	OPTIONS=($(for i in $(egrep -v "(:vars|^#)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g;s/:children//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i "#" off; done | sort -u ))
 	# OPTIONS EXPLANATION ABOVE
+
+        F_LOG $FUNCNAME "${OPTIONS[@]}"
 
 	if [ -z "$1" ];then 
 		F_LOG $FUNCNAME "ERROR! Missing F_TARGETS arg!! Cannot continue..." && return 3
@@ -2059,7 +2063,7 @@ F_SHOWHOSTS(){
 	[ -z "$DIAOPT" ]&& echo "ABORTED! Missing arg for dialog in $FUNCNAME!" && return 1
 	[ -z "$HOSTSELEXPANDED" ]&& echo "ABORTED! Missing arg for target group in $FUNCNAME!" && return 2
 
-	OPTIONS=($(for host in $HOSTSELEXPANDED;do echo "$host $host off";done))
+	OPTIONS=($(for host in $HOSTSELEXPANDED;do echo "$host # off";done))
 
         while [ -z "$HTARGETS" ];do
 	      ABORTED=0
@@ -3043,11 +3047,14 @@ F_SELHOST(){
                 fi
             done
 
+            UNIHOSTLIST=$(echo "${HOSTLIST['expanded']}" | tr ' ' '\n' | nl| sort -u -k2|sort -n| cut -f2-)
+            F_LOG $FUNCNAME "UNI: $UNIHOSTLIST"
             unset EDITHOST
             # select hosts interactive or not depending on how we get called
             if [ -z "$TGRP" ];then
                       while [ -z "$EDITHOST" ];do
-                            EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
+                            #EDITHOST=$(F_SHOWHOSTS $LISTTYPE "${HOSTLIST['expanded']}")
+                            EDITHOST=$(F_SHOWHOSTS $LISTTYPE "$UNIHOSTLIST")
                             EDITERR=$?
                             [ $EDITERR -eq 1 ] && F_LOG $FUNCNAME "Main menu selected.." && return 4
                             if [ -z "$EDITHOST" ];then
@@ -3432,7 +3439,7 @@ F_UPGRADE(){
         UPGRADEHOSTS="$AUTOMODE"
     fi
 
-	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\n/g')"
+	UPGRADEHOSTST="$(echo "$UPGRADEHOSTS" | sed 's/ /\\n/g')"
 
 	if  [ -z "$UPGRADEHOSTS" ] || [ -z $UPGRADEHOSTST ];then
 		F_LOG $FUNCNAME "UPGRADEHOSTS ($UPGRADEHOSTS) or UPGRADEHOSTSST ($UPGRADEHOSTST) empty"
@@ -3640,11 +3647,15 @@ F_DEPLOYMENU(){
             Choose)
                 export DEPLOYAPPSUBSET=1
                 F_DEPLOYAPP
+                ERR=$?
+                [ $ERR -ne 0 ] && F_ERRLOG $ERR "deploying app(s)"
                 F_DEPLOYMENU
             ;;
             ALL-Apps)
                 export DEPLOYAPPSUBSET=0
                 F_DEPLOYAPP
+                ERR=$?
+                [ $ERR -ne 0 ] && F_ERRLOG $ERR "deploying app(s)"
                 F_DEPLOYMENU
             ;;
             *)
