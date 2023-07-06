@@ -12,39 +12,37 @@
 
 - name: shelper stop
   shell: "{{ shelper_installation.shelper_path }}/shelperstop"
-#  no_log: false
   register: shelper_result
 
 - name: shelper restart
   shell: "{{ shelper_installation.shelper_path }}/shelperrestart"
-#  no_log: false
   register: shelper_result
         
 - name: shelper reload_deploy_server
   shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_ds_ae_user }}:{{ vault_ds_ae_pass }}"
-#  no_log: true
+  no_log: true
   when: inventory_hostname in groups['deploymentserver']
   register: shelper_result
 
 - name: shelper reload_custom
   shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
-#  no_log: true
   register: shelper_result
 
 - name: shelper reload_all
-  shell: "timeout -s HUP -k 130s 120s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
-#  no_log: true
+  shell: "timeout -s HUP -k 360s 300s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  register: shelper_result
+
+- name: shelper reload_apps
+  shell: "timeout -s HUP -k 260s 200s {{ shelper_installation.shelper_path }}/shelperreload apps --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
   register: shelper_result
 
 - name: shelper apply_cluster_bundle
   shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_mn_ae_user }}:{{ vault_mn_ae_pass }}"
-#  no_log: true
   when: inventory_hostname in groups['masternode']
   register: shelper_result
 
 - name: shelper apply_shcluster_bundle
   shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ generated_shcmember }} -auth {{ vault_dep_ae_user }}:{{ vault_dep_ae_pass }} --batch"
-#  no_log: true
   when:
     - generated_deployer is defined
     - shc_site is defined

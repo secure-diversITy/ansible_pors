@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-10"
+VERSIONNUM="4.1-11"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -1477,7 +1477,7 @@ F_LOCSRC(){
 
     # ensure only apps that are not already linked will be shown
     LINKEDAPPS=$(F_LISTAPPS "$TG" | grep pors-hosted| cut -d ":" -f 2-3)
-    AVAILAPPSFP=$(for tgzf in $(find $REPODIR -type f |egrep "(tar|tgz|spl)");do echo "$tgzf";done)
+    AVAILAPPSFP=$(for tgzf in $(find $REPODIR $REPODIR_COMMON -type f | grep -E "*\.(tar|tgz|spl)");do echo "$tgzf";done)
     AVAILAPPNAMES=$(for tgz in $AVAILAPPSFP;do APPN=$(tar tf "$tgz" 2> /dev/null |head -n1 | cut -d '/' -f1) ; echo "${APPN}:${tgz##*/}" ;done)
     UNLINKEDAPPS=$(echo "$LINKEDAPPS" "$AVAILAPPNAMES" | tr " " "\n" | sort | uniq -u)
 
@@ -1653,7 +1653,7 @@ F_SETREPODIR(){
     if [ -z "$REPODIR" ];then
         REPODIR="$(grep ^repo_base $DEFAULTSYML |cut -d ":" -f 2|tr -d " ")"
     fi
-    REPODIRS="${REPODIR}/${TARGETENV}/apps/splunk ${REPODIR}/${TARGETENV}/apps/other"
+    REPODIRS="${REPODIR}/${TARGETENV}/apps/splunk ${REPODIR}/${TARGETENV}/apps/other ${REPODIR}/common/apps/all"
     for d in $REPODIRS;do [ ! -d "$d" ] && mkdir -p $d;done
 
     # return only the repo dir when its a valid directory
@@ -1677,6 +1677,9 @@ F_ENAPP(){
 	#REPODIR="$(grep repository_root $REPODEF|cut -d ":" -f 2|tr -d " ")/apps"
 
         REPODIR="$(F_SETREPODIR)/${TARGETENV}/apps"
+        REPODIR_COMMON="$(F_SETREPODIR)/common/apps"
+        F_LOG $FUNCNAME "REPODIR COMMON: $REPODIR_COMMON"
+
         [ ! -d "$REPODIR" ] && mkdir -p $REPODIR && F_LOG $FUNCNAME "REPODIR: $REPODIR has been created"
 
         while [ -z "$HOSTSELECT" ];do
@@ -1707,7 +1710,7 @@ F_ENAPP(){
 			SELAPPS=$(F_LOCSRC "$HOSTSELECTION")
                         [ $? -ne 0 ] && F_ERRLOG 3 "issue occured while parsing local apps" $LOG  && return 3
 		        if [ -z "$SELAPPS" ]||[ "$SELAPPS" == "EMPTY" ];then
-                            F_DIALOG --msgbox "\n\nEither\n$REPODIR\nis empty or all local available apps are linked to $HOSTSELECTION already ..." 15 76
+                            F_DIALOG --msgbox "\n\nEither\n$REPODIR\n$REPODIR_COMMON\nare both empty or all local available apps are linked to $HOSTSELECTION already ..." 15 76
                         else
 			    # atm we have to use group otherwise we have to switch group_vars to targetgroup/host/ as well	
                 	    #SELHOSTS=$(F_SHOWHOSTS "checklist" "$HOSTSELEXPANDED")
@@ -1715,21 +1718,25 @@ F_ENAPP(){
 			    # enable app for each target group
 			    for tapp in $SELAPPS;do
 				    F_WAITBOX "... linking $tapp ..."
-				    app_fulldir=$(find $REPODIR -type f -name $tapp |egrep "(tar|tgz|spl)")
+				    app_fulldir=$(find $REPODIR $REPODIR_COMMON -type f -name $tapp | grep -E "(tar|tgz|spl)")
 				    app_dir=${app_fulldir%/*}
-				    app_type=$(echo "$app_dir" | egrep -o '(/other$|/splunk$)')
-				    F_LOG $FUNCNAME "app_fulldir: $app_fulldir, app_dir: $app_dir, app_type: $app_type"
-				    if [ "$app_type" == "/other" -o "$app_type" == "/splunk" ];then
+				    app_type=$(echo "$app_dir" | egrep -o '(/other$|/splunk$|/all$)')
+				    F_LOG $FUNCNAME "app_fulldir: >$app_fulldir<, app_dir: >$app_dir<, app_type: >$app_type<"
+				    if [ "$app_type" == "/other" -o "$app_type" == "/splunk" -o "$app_type" == "/all" ];then
 				        app_name=$(tar tf "$app_fulldir" 2> /dev/null |head -n1 | cut -d '/' -f1)
 				    else
 				        app_name=${app_dir##*/}
 				        app_type="/${app_name}"
 				    fi
+                                    if [ -z "$app_name" ];then F_ERRLOG 3 "internal error: app_name var empty"; return 3;fi
+                                    if [ -z "$app_type" ];then F_ERRLOG 3 "internal error: app_type var empty"; return 3;fi
+                                    if [ -z "$app_fulldir" ];then F_ERRLOG 3 "internal error: app_fulldir var empty"; return 3;fi
+                                    if [ -z "$app_dir" ];then F_ERRLOG 3 "internal error: app_dir var empty"; return 3;fi
 				    for tgroup in $HOSTSELECTION;do
 					    F_GVARDIR $tgroup
                                             F_APPTPLUPDATE "${ROLEDIR}/apps/app.template" "$DATADIR/custom/roles/apps" "$app_name"
-					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR\":\n" >>$LOG
-					    $ABIN -i $HOSTFILE $PBENAPP -e "app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR" 2>> $LOG 1>> /dev/null
+					    echo -e "will start playbook:\n$ABIN -i $HOSTFILE $PBENAPP -e \"app_dir=$app_dir app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR\":\n" >>$LOG
+					    $ABIN -i $HOSTFILE $PBENAPP -e "app_dir=$app_dir app_type=$app_type app_name=$app_name app2group=$tgroup filename=$tapp git_url='' git_branch='' pors_data_dir=$DATADIR" 2>> $LOG 1>> /dev/null
 					    [ $? -ne 0 ] && F_ERRLOG "1" "linking $app_name to $tgroup\n\n" "$LOG"
 				    done
 			    done
@@ -2490,6 +2497,7 @@ F_SHEXEC(){
 	while [ -z "$ANS" ];do
 		ANS=$(F_DIALOG --radiolist "\nSelect with the space-bar your shelper action:\n(pro tip: jump to an entry with the highlighted key shortcut)" 15 100 6 \
 			reload-all "shelperreload all - like a 'debug refresh'" on \
+			reload-apps "will activate/reload all apps on the target" on \
 			DS-reload "reloads the serverclass on a DS (deploymentserver)" off \
 			SHC-apply-cb "apply cluster-bundle on a DEP (deployer)" off \
 			MN-apply-cb "apply cluster-bundle on a MN (masternode)" off \
@@ -2522,6 +2530,7 @@ F_SHEXEC(){
 			#SHCUST=$(echo $SHCUSTRAW | sed 's/ /SPACE/g')
 		;;
 		reload-all) SHEXE="reload_all" ;;
+		reload-apps) SHEXE="reload_apps" ;;
                 DS-reload) SHEXE="reload_deploy_server" ;TMPGRP=deploymentserver ;;
                 MN-apply-cb) SHEXE="apply_cluster_bundle" ; TMPGRP=masternode ;;
                 SHC-apply-cb) SHEXE="apply_shcluster_bundle"; TMPGRP=deployer ;;
