@@ -163,3 +163,37 @@ systemd_journal_restart_state: restarted
 ####### proxmox defaults #######
 
 proxmox_target_server_address: 'dhcp'
+
+####### splunk download defaults #######
+
+splunk_packages:
+
+  linux_64_tgz:
+    splunk:
+      version: "{{ globversion }}"
+      url: 'https://download.splunk.com/products/splunk/releases/{{ globversion }}/linux/{{ tgzname }}'
+
+    splunkforwarder:
+      version: "{{ globversion }}"
+      url: 'https://download.splunk.com/products/universalforwarder/releases/{{ globversion }}/linux/{{ tgzname }}'
+
+####### yum / elrepo defaults #######
+
+system_yum:
+  elrepo:
+    enabled: False
+    # !!!! ensure the following are in quotes - otherwise 'when' condition checks will fail (they expect strings) !!!!
+    
+    # enable (yes) or disable (no) this repo
+    main: "no"
+    kernel:
+        # enable (yes) or disable (no) this repo
+        setup: "no"
+        # the kernel package name to install
+        name: "kernel-lt"
+        # RHEL/CentOS: use grub to set kernel on next boot (0 or any other id number)
+        setboot: "0"
+        # generate a grub config based on the above
+        gengrub: True
+    # enable (yes) or disable (no) this repo
+    extras: "no"
