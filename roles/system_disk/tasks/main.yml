@@ -2,7 +2,10 @@
 - set_fact: datetime="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
   run_once: True
 
-- include_tasks: "{{ base_install_dir }}/roles/system_base/tasks/check_ssh.yml"
+- include_role:
+    name: ssh/check
+
+#- include_tasks: "{{ base_install_dir }}/roles/system_base/tasks/check_ssh.yml"
 
 - include_tasks: format_disk_lvm.yml
   when:

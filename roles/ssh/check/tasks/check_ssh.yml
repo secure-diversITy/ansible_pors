@@ -1,0 +1,23 @@
+---
+
+- name: "Wait for SSH coming up (timeout: {{ wait_timeout | default(240)}}s)"
+  wait_for:
+    port: 22
+    host: '{{ (server_hostname|default(ansible_ssh_host)|default(ansible_host))|default(inventory_hostname) }}'
+    search_regex: OpenSSH
+    delay: 2
+    timeout: "{{ wait_timeout | default(240)}}"
+  connection: local
+  ignore_errors: True
+  register: ssh_avail
+
+#- name: "Wait for SSH coming up (timeout: {{ wait_timeout | default(240)}}s)"
+#  ansible.builtin.wait_for_connection:
+#    timeout: "{{ wait_timeout | default(240)}}"
+#  become: no
+#  delegate_to: localhost
+
+- meta: clear_facts
+
+- name: Gather facts for {{ server_hostname }}
+  setup:

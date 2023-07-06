@@ -1,6 +1,8 @@
 ---
 
-- include: check_ssh.yml
+- include_role:
+    name: ssh/check
+
 - include: set_touch_dir.yml
 - include: check_sudo.yml
 
