@@ -1,6 +1,6 @@
 ---
 
-- name: "Allow {{ user_name }} to have passwordless sudo"
+- name: "Allow >{{ user_name }}< to have passwordless sudo"
   lineinfile:
     dest: /etc/sudoers.d/ansible_admin
     state: present
