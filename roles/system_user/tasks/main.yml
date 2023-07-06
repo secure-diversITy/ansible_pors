@@ -1,17 +1,40 @@
 ---
 
-# normal user creation
-- include: create.yml
-- include: ssh_authorized_keys.yml
-- include: login_test.yml
-  when: test_shared_service_account is defined and test_shared_service_account == True
-
-# admin without a password prompt
-- include: nopass_sudoers.yml
-  when: shared_service_account_as_root is defined and shared_service_account_as_root == True
-
-- include: become_root_test.yml
+- fail:
+    msg: "legacy username detected! Correct default var set??"
   when:
-    - shared_service_account_as_root is defined
-    - shared_service_account_as_root == True
-    - test_shared_service_account is defined and test_shared_service_account == True
+    - user_name == "ansible"
+    - delete_user is undefined
+
+- fail:
+    msg: |
+
+        WHOOOPS, you want to bite the hand that feeds you! aborting..!
+
+        you want to delete: {{ user_name }}
+        the ssh user used for this attempt: {{ ansible_ssh_user }}
+ 
+        You are trying to delete the user which is also used for connecting to the remote target!
+
+  when: user_name == ansible_ssh_user
+
+- include: delete.yml
+  when: delete_user is defined and delete_user | bool 
+
+- block:
+    # normal user creation
+    - include: create.yml
+    - include: ssh_authorized_keys.yml
+    - include: login_test.yml
+      when: test_shared_service_account is defined and test_shared_service_account == True
+
+    # admin without a password prompt
+    - include: nopass_sudoers.yml
+      when: shared_service_account_as_root is defined and shared_service_account_as_root == True
+
+    - include: become_root_test.yml
+      when:
+        - shared_service_account_as_root is defined
+        - shared_service_account_as_root == True
+        - test_shared_service_account is defined and test_shared_service_account == True
+  when: delete_user is undefined

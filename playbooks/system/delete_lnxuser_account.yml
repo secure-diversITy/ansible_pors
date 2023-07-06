@@ -1,0 +1,23 @@
+---
+
+- name: "Delete a remote linux user account"
+  hosts: "{{ target }}"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  gather_facts: false
+
+  vars:
+    var_validation_only: false
+    delete_user: True
+
+  tasks:
+
+    - include_role:
+        name: common
+        public: yes
+
+    - include_tasks: ../../roles/common_tasks/tasks/check_sudo.yml
+
+    - import_role:
+        name: system_user

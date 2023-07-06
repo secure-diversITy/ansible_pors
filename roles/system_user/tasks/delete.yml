@@ -1,0 +1,8 @@
+---
+
+- name: "REMOVE {{ user_name }} unix user"
+  user:
+    name: "{{ user_name }}"
+    group: "{{ user_name }}"
+    force: "{{ remove_all_files | d(false) }}"
+    state: absent
