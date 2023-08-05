@@ -1,0 +1,28 @@
+---
+
+- name: "Check if we can become root"
+  become: yes
+  become_user: root
+  shell: whoami
+  ignore_errors: true
+  changed_when: become.rc != 0
+  register: become
+
+- fail:
+    msg: |
+
+        It seems we cannot become root here.
+        In order to run the setup you must have added a sudo config
+        to this machine for the user {{ pors_user }}!
+
+        The following command executed as root will do that for you:
+
+        echo -e "# Ansible management for the splunk> platform\n{{ pors_user }}\tALL=(ALL)\tNOPASSWD: ALL\n" > /etc/sudoers.d/ansible-admin-root
+
+        This will create a new sudoers file named: /etc/sudoers.d/ansible-admin-root
+        and adds this as content:
+
+        # Ansible management for the splunk> platform
+        {{ pors_user }}         ALL=(ALL)       NOPASSWD: ALL
+
+  when: become.changed

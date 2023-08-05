@@ -1,0 +1,34 @@
+---
+
+- pause:
+    prompt: |-
+
+        Type in the full path to your git repository where {{ pors_data_dir }} should be pushed to.
+
+            Examples:
+            https://<my-server>/splunkinfra/pors_data.git
+            git@<my-server>:splunkinfra/pors_data.git
+
+        Repository
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_pors_data_repo
+  when: 
+    - answ_git_pors_data_repo is undefined
+    - pre_answ_git_pors_data_repo is undefined
+
+- pause:
+    prompt: |-
+
+        Eanble automatic config push?
+
+            Should PORS push any changes to the repository automatically (highly recommended)?
+
+        Type "y" to activate it or press <ENTER> to skip
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_pors_data_push
+  when: 
+    - answ_git_pors_data_push is undefined
+    - pre_answ_git_pors_data_push is undefined
+

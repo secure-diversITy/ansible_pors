@@ -1,0 +1,24 @@
+---
+
+- name: "Initialize a PORS installation"
+  hosts: "{{ target | d('localhost') }}"
+  become: no
+  connection: local
+  gather_facts: false
+
+  vars:
+    var_validation_only: false
+    initial_setup: true
+    debug_off: "{{ no_debug | d(True) | bool }}"
+
+  tasks:
+
+    - include_role:
+        name: common
+        public: yes
+
+    - include_role:
+        name: pors/setup
+
+    - include_role:
+        name: pors/ssh

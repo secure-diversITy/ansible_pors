@@ -1,0 +1,7 @@
+---
+
+pors_base_dirs:
+    - "/home/{{ pors_user }}/.pors"
+    - "/home/{{ pors_user }}/.ssh"
+    - "/opt/pors_repo"
+    - "/opt/pors_data"

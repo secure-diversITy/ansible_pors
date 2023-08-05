@@ -1,0 +1,12 @@
+---
+
+- name: "Copy initial PORS files"
+  become: yes
+  become_user: root
+  copy:
+    remote_src: true
+    src: "{{ item.s }}"
+    dest: "{{ item.d }}"
+    mode: "{{ item.m | d('0600') }}"
+  loop:
+    - { s: "{{ pors_install_dir }}/EXAMPLES/pors-server.profile.d-example" , d: "/etc/profile.d/pors.sh" , m: '0755' }

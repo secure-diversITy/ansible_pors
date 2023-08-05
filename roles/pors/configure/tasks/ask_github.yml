@@ -1,0 +1,25 @@
+---
+
+- pause:
+    prompt: |-
+        
+        Please specify your self-hosted git server API URL
+        
+            Github (organisation):
+                Format: "https://<your-github-server>/api/v3/orgs/<organisation-name>"
+                Example: "https://api.github.com/orgs/secure-diversITy"
+
+            Github (user):
+                Format: "https://<your-github-server>/api/v3/users/<user-name>"
+
+            Checkout documentation for further details:
+            https://github.com/secure-diversITy/ansible_pors/wiki/git_access
+
+        Enter the API URI
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_server
+  when:
+    - answ_git_server_type.user_input == "2"
+    - answ_git_server is undefined
+

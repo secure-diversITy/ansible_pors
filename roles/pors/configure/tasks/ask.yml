@@ -1,0 +1,59 @@
+---
+
+###### START - PUSH PORS USER DATA #######
+- pause:
+    prompt: |-
+
+        Do you want to configure a remote git repository for the PORS user data?
+
+            Basically it will push {{ pors_data_dir }} to your specified git repository (in the next step).
+            It is strongly recommended but you can also execute this again to setup this at any time later.
+
+        Type "y" to configure it now or press <ENTER> to skip
+    echo: true
+  register: answ_git_remote
+  no_log: "{{ debug_off }}"
+  when: pre_answ_git_remote is undefined
+
+- include: ask_pors_repo.yml
+  when:
+    - (answ_git_remote.user_input is defined and answ_git_remote.user_input == "y")
+      or (pre_answ_git_remote is defined and pre_answ_git_remote == "y")
+###### END - PUSH PORS USER DATA #######
+
+###### START - PORS APP MANAGEMENT #######
+- pause:
+    prompt: |-
+
+        Do you want to use PORS for App deployment?
+
+            You can also use PORS as a central deployment server to push/update/remove
+            splunk apps - while using the internal official splunk methods. So PORS
+            simply pushes apps e.g to your SHD and applies the bundle by using splunk
+            commands.
+
+            If you want to use PORS for App deployment you will be prompted with additional
+            questions regarding your git infrastructure.
+
+            Checkout the documentation for the requirements:
+            https://github.com/secure-diversITy/ansible_pors/wiki/git_access
+
+            Keep in mind that you can come back here at any time later if you are not sure atm.
+
+        Type "y" to configure it now or press <ENTER> to skip
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_app_mgm
+  when:
+    - pre_answ_git_app_mgm is undefined
+
+- include: ask_app_mgm.yml
+  when: 
+    - (answ_git_app_mgm.user_input is defined and answ_git_app_mgm.user_input == "y")
+      or (pre_answ_git_app_mgm.user_input is defined and pre_answ_git_app_mgm.user_input == "y")
+###### END - PORS APP MANAGEMENT #######
+
+- set_fact:
+    file_ssh_privkey_splunk: "~/.ssh/{{ user_name }}_ed25519"
+    file_ssh_pubkey_splunk: "~/.ssh/{{ user_name }}_ed25519.pub"
+  when: user_name == splunk_install_user

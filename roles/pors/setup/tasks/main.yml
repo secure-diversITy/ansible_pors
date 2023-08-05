@@ -1,6 +1,14 @@
 ---
 
+- include: user_setup.yml
 - include: requirements.yml
-  run_once: true
-  connection: local
-  become: no
+
+- fail:
+    msg: Please re-run the exact same playbook command again. This is expected as we added mandatory files which requires a new run..
+  when: init_files.changed or gi_inst.changed or gi_upgr.changed
+
+- include: check_sudo.yml
+- include: base_dirs.yml
+- include: user_setup_root.yml
+
+- include: finish.yml

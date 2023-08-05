@@ -1,9 +1,9 @@
 ---
 
-- name: "Create private SSH key for {{ pors_ssh_user }}"
+- name: "Create private SSH key for user: {{ user_name }}"
   connection: local
   community.crypto.openssh_keypair:
-    path: "{{ pors_ssh_key }}"
+    path: "~/.ssh/{{ user_name }}_ed25519"
     type: ed25519
 
 # we do not use community.general.ssh_config as it expects a valid hostname
@@ -17,7 +17,8 @@
     owner: "{{ pors_user }}"
     mode: 0600
     regex: "^[iI]dentity[fF]ile\\s+{{ pors_ssh_key }}"
-    line: IdentityFile {{ pors_ssh_key }}
+    line: "IdentityFile ~/.ssh/{{ user_name }}_ed25519"
     create: yes
     insertbefore: BOF
     state: present
+  when: add_local_ssh_config
