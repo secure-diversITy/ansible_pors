@@ -4,10 +4,10 @@
        state=present
   when: splunk_installation.package_format == "rpm"
 
-- name: Install Splunk package from tgz
-  unarchive: src="{{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}"
-             dest=/opt
-             copy=no
+- name: Install Splunk package from tgz (shell mod)
+  shell: "tar xzf {{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}"
+  args:
+    chdir: /opt
   when:  splunk_installation.package_format == "tgz"
 
 - name: Remove temporary Splunk package
@@ -15,12 +15,9 @@
   when: splunk_installation.delete_package_after_install != false
 
 - name: Set permissions for $SPLUNK_HOME 
-  file: path="{{ splunk_installation.splunk_home_path }}" 
-        owner="{{ splunk_install_user }}"
-        group="{{ splunk_install_group }}"
-        recurse=yes
+  shell: "chown -R {{ splunk_install_user }}:{{ splunk_install_group }} {{ splunk_installation.splunk_home_path }}"
   when: splunk_installation.package_format == "tgz"
 
 - name: Set directory permissions for splunk
-  file: path={{ splunk_installation.splunk_home_path }}/
-        mode=0750
+  shell: "chmod 750 -R {{ splunk_installation.splunk_home_path }}/"
+  when: splunk_installation.package_format == "tgz"

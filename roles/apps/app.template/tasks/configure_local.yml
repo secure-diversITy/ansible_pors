@@ -24,6 +24,12 @@
   when: vars[app_variable].master_apps is defined
   with_fileglob: master-apps/local/*.conf
 
+- name: Configure manager-apps files (local/*.conf)
+  copy: src="{{ item }}"
+        dest="{{ splunk_installation.splunk_home_path }}/etc/manager-apps/{{ app_name }}/local/"
+  when: vars[app_variable].manager_apps is defined
+  with_fileglob: manager-apps/local/*.conf
+
 - name: Configure app permission file (metadata/local.meta)
   copy: src="{{ item }}"
         dest="{{ splunk_installation.splunk_home_path }}/etc/apps/{{ app_name }}/metadata/"
@@ -39,12 +45,17 @@
 - name: Configure shcluster/apps permission file (metadata/local.meta)
   copy: src="{{ item }}"
         dest="{{ splunk_installation.splunk_home_path }}/etc/shcluster/apps/{{ app_name }}/metadata/"
-  when: vars[app_variable].shcluster_apps is defined"
+  when: vars[app_variable].shcluster_apps is defined
   with_fileglob: shcluster/apps/metadata/local.meta
 
 - name: Configure master-apps permission file (metadata/local.meta)
   copy: src="{{ item }}"
         dest="{{ splunk_installation.splunk_home_path }}/etc/master-apps/{{ app_name }}/metadata/"
-  when: vars[app_variable].master_apps is defined"
+  when: vars[app_variable].master_apps is defined
   with_fileglob: master-apps/metadata/local.meta
 
+- name: Configure manager-apps permission file (metadata/local.meta)
+  copy: src="{{ item }}"
+        dest="{{ splunk_installation.splunk_home_path }}/etc/manager-apps/{{ app_name }}/metadata/"
+  when: vars[app_variable].manager_apps is defined
+  with_fileglob: manager-apps/metadata/local.meta

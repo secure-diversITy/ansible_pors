@@ -16,7 +16,9 @@
  
         You are trying to delete the user which is also used for connecting to the remote target!
 
-  when: user_name == ansible_ssh_user
+  when:
+    - user_name == ansible_ssh_user
+    - delete_user is defined and delete_user | bool
 
 - include: delete.yml
   when: delete_user is defined and delete_user | bool 

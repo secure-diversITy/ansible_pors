@@ -92,6 +92,10 @@ idx_cluster_replicationfactor: 1
 idx_cluster_searchfactor: 1
 idx_cluster_site_replicationfactor: "origin:1,total:1"
 idx_cluster_site_searchfactor: "origin:1,total:1"
+idxc_rolling_upgrade: True
+
+# perform a rolling SH cluster upgrade or not?
+shc_rolling_upgrade: True
 
 ###### logstream_installation.yml #######
 

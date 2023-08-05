@@ -1,14 +1,29 @@
 ---
 - include: sys_check.yml
-
 - include: package.yml
 
 - include: prepare_splunk.yml
   when: splunk_upgrade == False
 
-- include: operation_mode.yml
+- name: Import splunk checks
+  import_tasks: splunk_checks.yml
+
+- block:
+    - include: splunk_login.yml
+    - include: operation_mode.yml
+  when: splunk_state.rc == 0
 
 - include: transfer_pkg.yml
+
+- include: splunk_stop_shcmember.yml
+  when:
+    - splunk_state.rc == 0
+    - splshcmember.stdout is defined and splshcmember.stdout == "member"
+
+- include: splunk_stop_peernode.yml
+  when:
+     - splunk_state.rc == 0
+     - splpeernode.stdout == "slave"
 
 - include: splunk_stop.yml
   # this condition will fail on half-installed splunk re-installs
@@ -47,6 +62,9 @@
 - include: splunk_startstop.yml
   when: splunk_upgrade == False
 
+- include: splunk_login.yml
+  when: splunk_upgrade == False
+
 - include: change_default_password.yml
   when: splunk_upgrade == False
 
@@ -74,9 +92,10 @@
 - include_tasks: optimize_ulimit.yml
 
 - include: splunk_start.yml
-#  when:
-#    - splunk_upgrade == False
-#    - splpeernode.stdout != "slave" 
+- include: splunk_login.yml
+- include_tasks: splunk_start_shcmember.yml 
+  when:
+    - splshcmember.stdout is defined and splshcmember.stdout == "member"
 
 - include: add_spl_ae_user.yml 
   when: vault_splunk_ae_user is defined and splunk_upgrade == False

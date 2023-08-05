@@ -12,6 +12,7 @@
         - rsync
         - net-tools
         - telnet
+        - bash-completion
     state: present
 
 - name: Install user-defined packages

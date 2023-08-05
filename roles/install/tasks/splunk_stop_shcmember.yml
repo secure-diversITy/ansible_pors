@@ -1,0 +1,21 @@
+---
+
+- name: "Block: SHC"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  block:
+
+    - name: "Check & enable rolling upgrade mode"
+      shell: |
+        {{ splunk_installation.splunk_home_path }}/bin/splunk show shcluster-status --verbose | grep -q rolling_upgrade_flag.*1 \
+            || {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init shcluster-members
+      when: shc_rolling_upgrade
+
+    # enable detention mode
+    - name: "Enable detention mode (SH cluster)"
+      shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit shcluster-config -manual_detention on"
+
+  when:
+    - splunk_state.rc == 0
+    - splshcmember.stdout == "member"
+

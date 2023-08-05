@@ -1,0 +1,20 @@
+---
+
+- name: "Block: SHC"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  block:
+
+    # disable detention mode
+    - name: "Disable detention mode (SH cluster)"
+      shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit shcluster-config -manual_detention off"
+
+    - debug:
+        msg: |
+
+            You have to finalize manually at the very end as PORS is not aware of the state.
+            Execute this on any SHC member once completed:
+
+            splunk upgrade-finalize shcluster-members
+
+

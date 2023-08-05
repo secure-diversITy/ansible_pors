@@ -1,0 +1,41 @@
+---
+
+- name: "Check & enable rolling upgrade mode"
+  shell: |
+    {{ splunk_installation.splunk_home_path }}/bin/splunk show cluster-status --verbose | grep -qi 'rolling upgrade is in progress' \
+        || {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init cluster-peers
+  when: idxc_rolling_upgrade
+  delegate_to: "{{ groups['masternode'][0] }}"
+
+# check if this is an indexer peer and take offline if (will fail after 30 min >retries< wait time)
+- name: Take Splunk offline (indexer cluster peer)
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  async: 1800
+  poll: 0
+  register: splunk_ix_is_stopped
+  ignore_errors: yes
+  no_log: true
+  when: 
+     - splunk_state.rc == 0
+     - splpeernode.stdout == "slave"
+        #("'peernode' in group_names" or splpeernode.stdout == "slave" ) 
+        #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
+
+# to catch the job id we need to become the same user than the offline cmd uses
+- name: ... is Splunk offline (indexer cluster peer)?
+  async_status: jid={{ splunk_ix_is_stopped.ansible_job_id }}
+  register: splunk_ix_is_stopped_result
+  until: splunk_ix_is_stopped_result.finished
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+  retries: 360
+  ignore_errors: yes
+  when:
+     - splunk_state.rc == 0
+     - splunk_ix_is_stopped is defined
+     - splpeernode.stdout == "slave"
+        #("'peernode' in group_names" or splpeernode.stdout == "slave" )
+        #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
+
