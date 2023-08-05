@@ -1,0 +1,12 @@
+---
+
+- name: "Create PORS base directories"
+  become: yes
+  become_user: root
+  file:
+    path: "{{ item }}"
+    owner: "{{ pors_user }}"
+    group: "{{ pors_group }}"
+    state: directory
+  loop: "{{ pors_base_dirs }}"
+

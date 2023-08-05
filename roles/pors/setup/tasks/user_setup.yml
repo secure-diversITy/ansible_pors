@@ -1,0 +1,15 @@
+---
+
+- name: "Copy initial PORS files"
+  copy:
+    remote_src: true
+    src: "{{ item.s }}"
+    dest: "{{ item.d }}"
+    owner: "{{ pors_user }}"
+    group: "{{ pors_group }}"
+    mode: "{{ item.m | d('0600') }}"
+  loop:
+    - { b: no, bu: "", s: "{{ pors_install_dir }}/EXAMPLES/.pors_vars-example" , d: "${HOME}/.pors/vars" }
+    - { b: no, bu: "", s: "{{ pors_install_dir }}/EXAMPLES/ansible.cfg" , d: "${HOME}/.ansible.cfg" }
+  register: init_files
+

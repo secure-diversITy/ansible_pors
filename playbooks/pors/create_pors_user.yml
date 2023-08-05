@@ -7,6 +7,8 @@
 
   vars:
     var_validation_only: true
+    initial_setup: false
+    add_local_ssh_config: true
 
   tasks:
     - include_role:
@@ -33,11 +35,9 @@
     shared_service_account_as_root: True
     user_name: "{{ pors_ssh_user }}"
     user_pass: "!!"
+    initial_setup: false
 
   tasks:
-
-    #- include_role:
-    #    name: pors/setup
 
     - add_host:
         name: "{{ inventory_hostname }}"
@@ -45,7 +45,6 @@
         ansible_ssh_pass: "{{ tmp_ssh_password }}"
       connection: local
       no_log: true
-
 
     - include_role:
         name: common
@@ -55,6 +54,8 @@
 
     - import_role:
         name: pors/ssh
+      vars:
+        user_name: "{{ pors_ssh_user }}"
 
     - import_role:
         name: system_user

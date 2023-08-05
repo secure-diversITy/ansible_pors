@@ -1,0 +1,35 @@
+---
+
+- ansible.builtin.stat:
+    path: "{{ pors_data_dir }}/pors_setup.answers"
+  no_log: "{{ debug_off }}"
+  register: v
+
+- pause:
+    prompt: |-
+
+        Found existing answers from a previous run, should I import that?
+        
+            otherwise we overwite it with this run.
+
+        Type "new" to create a new answers file or ENTER to re-use it
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: source_vars
+  when: v.stat.exists
+
+- include_vars: "{{ pors_data_dir }}/pors_setup.answers"
+  no_log: "{{ debug_off }}"
+  when:
+    - source_vars.user_input is undefined or (source_vars.user_input is defined and source_vars.user_input == '')
+    - v.stat.exists
+
+- name: "Removing previous answers file as requested by user"
+  file:
+    path: "{{ pors_data_dir }}/pors_setup.answers"
+    state: absent
+  no_log: "{{ debug_off }}"
+  when: 
+    - (source_vars.user_input is defined and source_vars.user_input == "new")
+    - v.stat.exists
+

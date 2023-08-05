@@ -121,6 +121,7 @@ splunk_install_user: splunk
 splunk_install_group: splunk
 splunk_install_user_shell: /bin/bash
 lm_push_license: True
+splunk_ssh_key: "~/.ssh/{{ splunk_install_user }}_ed25519"
 
 ####### splunk_installation.yml ########
 

@@ -1,0 +1,31 @@
+---
+
+- name: "(Re-)configure a PORS installation"
+  hosts: "{{ target | d('localhost') }}"
+  become: no
+  connection: local
+  gather_facts: false
+
+  vars:
+    var_validation_only: false
+    initial_setup: "{{ reconfigure | d(True) }}"
+    debug_off: "{{ no_debug | d(True) | bool }}"
+
+  tasks:
+
+    - include_role:
+        name: common
+        public: yes
+
+    - include_role:
+        name: pors/configure
+      vars:
+        user_name: "{{ splunk_install_user }}"
+
+    # create the ssh key for the splunk account
+    # used for fetching apps from git
+    - include_role:
+        name: pors/ssh
+      vars:
+        user_name: "{{ splunk_install_user }}"
+        add_local_ssh_config: false

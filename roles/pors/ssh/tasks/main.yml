@@ -3,6 +3,7 @@
 - block:
 
     - include: validation.yml
+      when: not initial_setup
     - include: create_ssh_key.yml
       when: not var_validation_only
 

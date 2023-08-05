@@ -1,20 +1,20 @@
 ---
 
-- name: "Install all role requirements"
+- name: "Install all ansible requirements"
   shell: "ansible-galaxy {{ item }} install -v -r {{ pors_install_dir }}/roles/requirements.yml"
   run_once: true
-  register: gi
-  changed_when: "'nstalling' in gi.stdout"
+  register: gi_inst
+  changed_when: "'nstalling' in gi_inst.stdout"
   loop:
     - role
     - collection
   when: not pors_allow_autoupgrade_requirements
 
-- name: "Install and/or upgrade all role requirements"
+- name: "Install and/or upgrade all ansible requirements"
   shell: "ansible-galaxy {{ item }} install -v -r {{ pors_install_dir }}/roles/requirements.yml --force-with-deps"
   run_once: true
-  register: gi
-  changed_when: "'nstalling' in gi.stdout"
+  register: gi_upgr
+  changed_when: "'nstalling' in gi_upgr.stdout"
   loop:
     - role
     - collection

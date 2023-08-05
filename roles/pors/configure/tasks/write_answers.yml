@@ -1,0 +1,60 @@
+---
+
+- name: "Write answer file -> {{ pors_data_dir }}/pors_setup.answers"
+  lineinfile:
+    path: "{{ pors_data_dir }}/pors_setup.answers"
+    regexp: "{{ item.r }}"
+    line: "{{ item.answ }}"
+    create: true
+  no_log: "{{ debug_off }}"
+  loop:
+    - { r: "^answ_git_server_type:.*", answ: "pre_answ_git_server_type: {{ answ_git_server_type.user_input | d(pre_answ_git_server_type) | d(0) }}" }
+    - { r: "^answ_git_access_type:.*", answ: "pre_answ_git_access_type: {{ answ_git_access_type.user_input | d(pre_answ_git_access_type) | d(0) }}" }
+    - { r: "^answ_git_server:.*", answ: "pre_answ_git_server: {{ answ_git_server.user_input | d(pre_answ_git_server) | d(0) }}" }
+    - { r: "^answ_gitlab_groupname:.*", answ: "pre_answ_gitlab_groupname: {{ answ_gitlab_groupname.user_input | d(pre_answ_gitlab_groupname) | d(0) }}" }
+    - { r: "^answ_git_pors_data_repo:.*", answ: "pre_answ_git_pors_data_repo: {{ answ_git_pors_data_repo.user_input | d(pre_answ_git_pors_data_repo) | d(0) }}" }
+    - { r: "^answ_git_pors_data_push:.*", answ: "pre_answ_git_pors_data_push: {{ answ_git_pors_data_push.user_input | d(pre_answ_git_pors_data_push) | d(0) }}" }
+    - { r: "^answ_git_remote:.*", answ: "pre_answ_git_remote: {{ answ_git_remote.user_input | d(pre_answ_git_remote) | d(0) }}" }
+    - { r: "^answ_git_app_mgm:.*", answ: "pre_answ_git_app_mgm: {{ answ_git_app_mgm.user_input | d(pre_answ_git_app_mgm) | d(0) }}" }
+    - { r: "file_ssh_privkey_splunk:.*", answ: "file_ssh_privkey_splunk: {{ file_ssh_privkey_splunk | d(0) }}" }
+    - { r: "file_ssh_pubkey_splunk:.*", answ: "file_ssh_pubkey_splunk: {{ file_ssh_pubkey_splunk | d(0) }}" }
+    - { r: "pre_answ_git_server_type_trans:.*", answ: "pre_answ_git_server_type_trans: {{ answ_git_server_type_trans | d(pre_answ_git_server_type_trans) | d(0) }}" }
+
+# above loop list created by:
+# grep -h register roles/pors/configure/tasks/ask* |cut -d : -f2 | tr -d ' ' | sed -E 's/^(.*)/    - { r: "^\1:.*", answ: "pre_\1: {{ \1.user_input | d(pre_\1) | d\(0) }}" }/g' | uniq
+#
+# plus these manual ones:
+#    - { r: "file_ssh_privkey_splunk:.*", answ: "file_ssh_privkey_splunk: {{ file_ssh_privkey_splunk | d(0) }}" }
+#    - { r: "file_ssh_pubkey_splunk:.*", answ: "file_ssh_pubkey_splunk: {{ file_ssh_pubkey_splunk | d(0) }}" }
+#    - { r: "pre_answ_git_server_type_trans:.*", answ: "pre_answ_git_server_type_trans: {{ answ_git_server_type_trans | d(pre_answ_git_server_type_trans) | d(0) }}" }
+
+# grep -h register roles/pors/configure/tasks/ask* |cut -d : -f2 | tr -d ' ' | sed -E 's/^(.*)/    - { answ: "pre_\1: {{ \1.user_input | d(pre_\1) | d\(0) }}" }/g' | uniq
+#grep -h register roles/pors/configure/tasks/ask* |cut -d : -f2 | tr -d ' ' | sed -E 's/^(.*)/    - { k: "\1", answ: "pre_\1: {{ \1.user_input | d(pre_\1) | d\(0) }}" }/g' | uniq
+
+#- name: "Write answer file -> {{ pors_data_dir }}/pors_setup.answers"
+#  blockinfile:
+#    path: "{{ pors_data_dir }}/pors_setup.answers"
+#    block: "{{ item.answ | indent(width=4, first=False) }}"
+#    create: true
+#    marker: "# {mark} {{ item.k }}"
+#  no_log: "{{ debug_off }}"
+#  loop:
+#    - { k: "answ_git_server_type", answ: "pre_answ_git_server_type: {{ answ_git_server_type.user_input | d(pre_answ_git_server_type) | d(0) }}" }
+#    - { k: "answ_git_access_type", answ: "pre_answ_git_access_type: {{ answ_git_access_type.user_input | d(pre_answ_git_access_type) | d(0) }}" }
+#    - { k: "answ_git_server", answ: "pre_answ_git_server: {{ answ_git_server.user_input | d(pre_answ_git_server) | d(0) }}" }
+#    - { k: "answ_gitlab_groupname", answ: "pre_answ_gitlab_groupname: {{ answ_gitlab_groupname.user_input | d(pre_answ_gitlab_groupname) | d(0) }}" }
+#    - { k: "answ_git_pors_data_repo", answ: "pre_answ_git_pors_data_repo: {{ answ_git_pors_data_repo.user_input | d(pre_answ_git_pors_data_repo) | d(0) }}" }
+#    - { k: "answ_git_pors_data_push", answ: "pre_answ_git_pors_data_push: {{ answ_git_pors_data_push.user_input | d(pre_answ_git_pors_data_push) | d(0) }}" }
+#    - { k: "answ_git_remote", answ: "pre_answ_git_remote: {{ answ_git_remote.user_input | d(pre_answ_git_remote) | d(0) }}" }
+#    - { k: "answ_git_app_mgm", answ: "pre_answ_git_app_mgm: {{ answ_git_app_mgm.user_input | d(pre_answ_git_app_mgm) | d(0) }}" }
+#    - { k: "answ_git_server_type_trans", answ: "pre_answ_git_server_type_trans: {{ answ_git_server_type_trans | d(pre_answ_git_server_type_trans) | d(0) }}" }
+
+
+#grep -h register roles/pors/configure/tasks/ask* |cut -d : -f2 | tr -d ' ' | sed -E 's/^(.*)/    - { k: "\1", answ: "pre_\1: {{ \1.user_input | d\(0) }}" }/g' | uniq
+
+
+# above loop list created by:
+#    - { k: "git_server_type_trans", answ: "git_server_type_trans: {{ git_server_type_trans | d(False) }}" }
+#grep -h register roles/pors/configure/tasks/ask* |cut -d : -f2 | tr -d ' ' | sed -E 's/^(.*)/    - { k: "\1", answ: "\1:\\nuser_input: {{ \1.user_input | d\(False) }}" }/g' | uniq
+#grep -h register roles/pors/configure/tasks/ask* |cut -d : -f2 | tr -d ' ' | sed -E 's/^(.*)/    - { k: "\1", answ: "pre_\1:\\nuser_input: {{ \1.user_input | d\(0) }}" }/g' | uniq
+

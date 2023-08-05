@@ -1,0 +1,54 @@
+---
+
+- pause:
+    prompt: |-
+
+        PORS supports either github or gitlab as git server.
+
+        which git server do you want to use?
+
+            Type "1"        for github.com
+            Type "2"        for github on a self-hosted instance
+            Type "3"        for gitlab.com
+            Type "4"        for gitlab on a self-hosted instance
+
+        Your choice
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_server_type
+  when: answ_git_server_type.user_input is undefined
+
+- debug:
+    var: answ_git_server_type
+
+- set_fact:
+    answ_git_server: |
+        {% if answ_git_server_type.user_input == "1" %}
+        {{ github_com_api }}
+        {% elif answ_git_server_type.user_input == "3" %}
+        {{ gitlab_com_api }}
+        {% endif %}
+  no_log: "{{ debug_off }}"
+  when: answ_git_server_type.user_input == "1" or answ_git_server_type.user_input == "3"
+
+- set_fact:
+    answ_git_server_type_trans: >-
+        {% if answ_git_server_type.user_input == "1" or answ_git_server_type.user_input == "2" %}github{% elif answ_git_server_type.user_input == "3" or answ_git_server_type.user_input == "4" %}gitlab{% endif %}
+  no_log: "{{ debug_off }}"
+
+- include: "ask_{{ answ_git_server_type_trans }}.yml"
+
+- pause:
+    prompt: |-
+        
+        How should PORS access your Apps stored in git?
+
+            Type "1" for http and https
+            Type "2" for ssh
+
+        Your choice
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_access_type
+  when: answ_git_access_type.user_input is undefined
+

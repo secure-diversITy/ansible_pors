@@ -1,0 +1,46 @@
+---
+
+- pause:
+    prompt: |-
+        
+        Please specify your self-hosted git server API URL
+        
+            Format: "https://<your-gitlab-uri>/api"
+
+            Checkout documentation for further details:
+            https://github.com/secure-diversITy/ansible_pors/wiki/git_access
+
+        Enter the API URI
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_git_server
+  when:
+    - answ_git_server_type.user_input == "4"
+    - answ_git_server is undefined
+
+- pause:
+    prompt: |-
+
+        Please specify your the gitlab "group name".
+
+        PORS expects all repos (aka "projects") within a single "group".
+        If the group name contains spaces or other special characters or when being a subgroup the group name must be URL-encoded (see example).
+
+            Example 1:
+            Repo URL: "https://gitlab.com/flexiwangroup/fleximanage"
+            Meaning: "flexiwangroup" = group, "fleximanage" = repo name
+            Your answer: "flexiwangroup"
+
+            Example 2:
+            Repo URL: "https://gitlab.com/LineageOS/android/android_system_core"
+            Meaning: LineageOS = group, android = sub-group, android_system_core = repo name
+            Your answer: "LineageOS%2Fandroid" (%2F means a "/" here)
+
+        Checkout documentation for further details:
+        https://github.com/secure-diversITy/ansible_pors/wiki/git_access
+
+        Enter your gitlab group name
+    echo: true
+  no_log: "{{ debug_off }}"
+  register: answ_gitlab_groupname
+  when: answ_gitlab_groupname is undefined

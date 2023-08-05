@@ -1,0 +1,15 @@
+---
+
+- name: "Finished!"
+  debug:
+    msg: |
+
+        Congratulations! PORS has been setup succesfully and is now ready to use!
+
+        Have fun and do not hesitate to contact us if any issues occur
+
+        https://github.com/secure-diversITy/ansible_pors
+
+        Have a great day
+
+
