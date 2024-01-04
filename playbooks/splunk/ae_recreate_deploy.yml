@@ -1,6 +1,7 @@
 ---
 - hosts: pors_server
   connection: local
+  gather_facts: false
 
   vars:
     custom_data_dir: "{{ data_dir }}/custom"
@@ -14,7 +15,7 @@
   tasks:
 
   - name: Find app roles (filter a subset)
-    shell: "ls -1 {{ data_dir }}/custom/roles/apps | egrep '({{ deploy_sub_apps }})'"
+    shell: "ls -1 {{ data_dir }}/custom/roles/apps | grep -E '(^{{ deploy_sub_apps }}$)'"
     register: app_roles
     when: deploy_type == "custom" and deploy_sub_apps is defined
 
