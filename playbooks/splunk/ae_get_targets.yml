@@ -16,37 +16,31 @@
           state: absent
       when: clean_tmp is defined and clean_tmp == "yes"
 
-    - name: Clean any previous nogrp file
+    - name: Delete any previous nogrp file
       file:
           path: "{{ expandfile }}.nogrp"
           state: absent
       when: clean_tmp is defined and clean_tmp == "yes"
-
-    - name: Create empty tmp file
-      file:
-        path: "{{ expandfile }}"
-        state: touch
 
 #    - debug:
 #        msg: "{{ parsed_groups }}"
 
     - name: "Write {{ expandfile }} file"
       ini_file:
+        create: yes
         dest: "{{ expandfile }}"
-        section: "{{ item.0 }}"
+        section: "{{ item }}"
         allow_no_value: yes
-        option: "{{ item.1 }} {% if hostvars[item.1]['ansible_ssh_port'] is defined %}ansible_ssh_port={{ hostvars[item.1]['ansible_ssh_port'] }}{% endif %}"
+        option: "{{ groups[item] | join('\n') }}"
         state: present
       connection: local
-      when: item.1 in groups['{{item.0}}']
-      loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | list }}"
+      loop: "{{ parsed_groups }}"
 
     - name: "Write {{ expandfile }}.nogrp file"
       lineinfile:
         dest: "{{ expandfile }}.nogrp"
-        line: "{{ item.1 }}"
+        line: "{{ groups[item] | join('\n') }}"
         state: present
         create: yes
       connection: local
-      when: item.1 in groups['{{item.0}}']
-      loop: "{{ parsed_groups | product(query('inventory_hostnames', '{{ parsed_groups }}')) | list }}"
+      loop: "{{ parsed_groups }}"
