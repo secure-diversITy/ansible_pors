@@ -10,14 +10,11 @@
   when: 
     - splunkinitfile is defined and splunkinitfile.stat.exists
     - run_in_docker.rc == 1
-#    - splunk_upgrade == True
 
 - name: Remove existing init.d script
   file: path=/etc/init.d/splunk
         state=absent
   when: splunkinitfile is defined and splunkinitfile.stat.exists
-#  when: splunk_upgrade == True
-#  when: splunkversionnum < 72
 
 - name: show splunk ver
   debug: 

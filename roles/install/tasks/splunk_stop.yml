@@ -7,52 +7,37 @@
     name: Splunkd
     state: stopped
   when: splunksystemdfile is defined and splunksystemdfile.stat.exists
-#  when: splunkversionnum >= 72
-#  ignore_errors: yes
-#  register: systemdnew
-
-#- name: debug
-#  debug: msg="{{ systemdnew.status }}, {{systemdnew.failed}}"
 
 - name: Stop Splunk (non-systemd only)
   service: name=splunk
            state=stopped
   ignore_errors: yes
   when: splunksystemdfile is not defined or splunksystemdfile.stat.exists == false
-#  when: splunkversionnum < 720 or systemdnew.failed = true
 
 - name: Stop Splunk by binary
   shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk stop"
   async: 1800
   poll: 0
   register: splunk_stopped_by_bin
-  #when:
-        #- splunk_state.rc == 0
-        #- (splunk_restate.rc == 0 or splunk_stopped_by_init.skipped is defined)
-        #- splunkbin is defined and splunkbin.stat.exists == True
-
-#- debug: msg="{{ splunk_restate }} . {{ splunk_stopped_by_bin}} ."
 
 - name: ... is Splunk by bin stopped (non-indexers only)?
   async_status: jid={{ splunk_stopped_by_bin.ansible_job_id }}
   register: splunk_bin_stopped_result
   until: splunk_bin_stopped_result.finished
   retries: 360
-  #when: 
-  #      - splunk_state.rc == 0
-  #      - splunk_stopped_by_init.skipped is defined and splunk_stopped_by_init.skipped == True
-  #      - splunk_stopped_by_bin.changed is defined and splunk_stopped_by_bin.changed == True
 
 # ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
 - name: Re-Check Splunk Status
-  shell: "ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol|ansible)' |grep splunkd || true"
+  shell: "ps aux | grep splunkd | grep -Ev '(ssh|grep|tail|less|vim|vi|patrol|ansible)'"
   async: 1800
   poll: 0
   register: splunk_laststate
-#  failed_when: splunk_laststate.rc == 0
+  failed_when: splunk_laststate.rc == 0
+  ignore_errors: true
 
-- name: ... all Splunk processes stopped?
+- name: ... all Splunk processes REALLY stopped?
   async_status: jid={{ splunk_laststate.ansible_job_id }}
   register: splunk_allprocs_result
   until: splunk_allprocs_result.finished
-  retries: 360
+  retries: 100
+  delay: 20
