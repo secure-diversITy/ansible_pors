@@ -10,6 +10,7 @@
   vars:
     var_validation_only: false
     delete_user: True
+    remove_all_files: true
 
   tasks:
 
