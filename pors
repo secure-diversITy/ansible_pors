@@ -3,7 +3,7 @@
 ## @file	pors.sh
 ## @brief       PORS is an UI for managing your whole Splunk infrastructure with Ansible
 ## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
-## @date        2017-2023
+## @date        2017-2024
 ## @copyright	AGPL v3
 ## @details     
 ##    This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-13"
+VERSIONNUM="4.1-14"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -691,6 +691,11 @@ declare DEFAULTVAULT=$AINVENTORY/$TARGETENV/group_vars/all/vault.yml
 ## @brief Valid Splunk Server Role names
 ## @details these are in use everwhere in PORS, i.e. in playbooks, target groups as well. Fully static. do NOT touch these.
 declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder httpeventcollector licensemaster logstream_leader logstream_worker masternode monitoringconsole peernode searchhead shcmember universalforwarder"
+
+## @var DEFUPGDELAY
+## @brief Guided upgrade default wait time
+## @details The time PORS should wait between upgrading hosts when guided upgrade has been chosen
+declare DEFUPGDELAY=1m
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
@@ -3611,6 +3616,17 @@ F_GUIDEDUPGRADE(){
     SORTO=$(echo -e "$SORTED" | sed 's/\n/,/g')
     F_LOG $FUNCNAME "$SORTO"
 
+    FORMARGS=' '"WAIT delay"' '$DEFUPGDELAY' 1 1 'Wait time between each host' 40 4 3'
+    UPGDELAY=$(F_DIALOG --colors --form "\nThe default WAIT time between each host is >$DEFUPGDELAY< (s = seconds, m = minutes).\nYou can set a different value here if you like:" \
+               $FORMARGS \
+               3>&1 1>&2 2>&3 )
+    if [ $? -ne 0 ];then
+        F_LOG $FUNCNAME "aborted on user request"
+        return 4
+    fi
+
+    F_LOG $FUNCNAME "UPGDELAY=$UPGDELAY"
+
     F_DIALOG --colors --scrollbar --yesno "\n\nWill upgrade $UPGTYPE \Zb\Zuv${STAGEDVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
     RET=$?
     if [ $RET -ne 0 ];then
@@ -3621,6 +3637,7 @@ F_GUIDEDUPGRADE(){
             F_UPGRADE "$UPGTYPE" "${utg/*:/}"
             UPERR=$?
             [ $UPERR -ne 0 ] && break
+            sleep $DEFUPGDELAY
         done
         F_ERRLOG "$UPERR" "Upgrade to $UPGTYPE v${STAGEDSPLVER} for:\n\n$SORTED" "$LOG"
     fi

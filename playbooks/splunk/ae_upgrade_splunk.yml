@@ -25,6 +25,7 @@
   vars:
     splunk_upgrade: True
     splunk_type: "splunk"
+    ansible_ssh_user: "{{ pors_ssh_user }}"
 
   pre_tasks:
     - include_vars: "{{ env_inventory_dir }}/group_vars/universal_forwarder/splunk_installation.yml"
