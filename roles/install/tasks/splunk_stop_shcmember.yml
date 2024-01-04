@@ -16,6 +16,16 @@
       shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit shcluster-config -manual_detention on"
 
   when:
-    - splunk_state.rc == 0
     - splshcmember.stdout == "member"
 
+- block:
+
+    - name: "Static SH captain is unsupported.."
+      fail:
+        msg: |
+
+            Please consider to switch to a dynamic captain election
+            Ref: https://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Staticcaptain#Revert_to_the_dynamic_captain
+
+  when:
+    - splshcmember.stdout == "captain"
