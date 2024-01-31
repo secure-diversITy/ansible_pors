@@ -1,6 +1,6 @@
 ---
 - name: Settle up the base
-  hosts: "*:!pors_server"
+  hosts: "*"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
@@ -9,11 +9,23 @@
   vars:
     ansible_ssh_user: "{{ pors_ssh_user }}"
 
-  roles:
-    - { role: system_upgrade, when: system.upgrade_os is defined and system.upgrade_os == True }
-    - { role: system_kernel, when: system_yum.elrepo.kernel.setup is defined and system_yum.elrepo.kernel.setup == "yes" }
-    - system_prep
-    - system_base
-    - system_optimize
-    - system_ntp
-    - system_journal
+  tasks:
+
+    - include_role:
+        name: system_upgrade
+      when: system.upgrade_os is defined and system.upgrade_os == True
+
+    - include_role:
+        name: system_prep
+
+    - include_role:
+        name: system_base
+
+    - include_role:
+        name: system_optimize
+
+    - include_role:
+        name: system_ntp
+
+    - include_role:
+        name: system_journal

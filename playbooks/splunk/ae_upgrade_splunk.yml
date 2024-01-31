@@ -42,6 +42,4 @@
     - splunk_info
     - install
 
-- name: Upgrade Shelper
-  include: ../shelper/ae_install_shelper.yml
-  when: shelper_installation.enabled
+- ansible.builtin.import_playbook: ../shelper/ae_install_shelper.yml

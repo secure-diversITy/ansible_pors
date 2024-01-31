@@ -53,6 +53,36 @@ system:
         #- make
         #- ..
 
+# some distributions offer an unattended upgrade service which can be
+# activated and configured by PORS during the system / VM installation
+unattended_system_upgrade:
+
+    # enables/disables configuration
+    enabled: False
+
+    # specific settings for RedHat-(based) systems.
+    # NOTE: only v8 or later are supported by PORS.
+    # every unspecified option will be skipped and the default is used
+    #redhat:
+
+      # configuration of /etc/dnf/automatic.conf:
+    #  conf_dnf:
+    #    - { 'section':'', 'option':'', 'valuelist':''}
+    #    e.g. to enable just security updates instead of all packages:
+    #    - { 'section':'commands', 'option':'upgrade_type', 'valuelist':'security'}
+
+      # configuration of /etc/systemd/system/dnf-automatic.timer.d/override.conf:
+    #  conf_timer:
+    #    - { 'section':'', 'option':'', 'valuelist':''}
+    #  e.g to schedule the run every Tuesday starting at 7 o'clock with a random delay of 60mins:
+    #    - { 'section':'Timer', 'option':'OnCalendar', 'valuelist':'[ "", "Tue *-*-* 07:00:00" ]' }  # the first "" is IMPORTANT! this will reset any defaults!
+    #    - { 'section':'Timer', 'option':'OnCalendar', 'valuelist':'Tue *-*-* 07:00:00'}
+    #    - { 'section':'Timer', 'option':'RandomizedDelaySec', 'valuelist':'60m'}
+
+    # specific settings for Debian-(based) systems
+    #debian:
+    #  conf_apt:
+
 # NTP settings
 #ntp_enabled: true
 #ntp_timezone: Europe/Berlin

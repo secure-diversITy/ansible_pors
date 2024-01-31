@@ -9,7 +9,7 @@
 
 # check if this is an indexer peer and take offline if (will fail after 30 min >retries< wait time)
 - name: Take Splunk offline (indexer cluster peer)
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk offline -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   become: yes
   become_user: "{{ splunk_install_user }}"
   async: 1800

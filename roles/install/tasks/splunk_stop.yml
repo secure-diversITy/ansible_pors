@@ -32,12 +32,12 @@
   async: 1800
   poll: 0
   register: splunk_laststate
-  failed_when: splunk_laststate.rc == 0
   ignore_errors: true
 
 - name: ... all Splunk processes REALLY stopped?
   async_status: jid={{ splunk_laststate.ansible_job_id }}
   register: splunk_allprocs_result
   until: splunk_allprocs_result.finished
+  failed_when: splunk_allprocs_result.rc == 0
   retries: 100
   delay: 20

@@ -1,5 +1,13 @@
 ---
 
+- name: "Ensure SSSd is not running"
+  service:
+    name: sssd.service
+    state: stopped
+
+- name: "Clear SSSd cache"
+  shell: sss_cache -E || true
+
 - name: "Create {{ user_name }} unix group ({{ username_uid }})"
   group:
     name: "{{ user_name }}"
@@ -69,3 +77,8 @@
     state: present
   loop: "{{ appadm.split(',') }}"
   when: appadm is defined
+
+- name: "Ensure SSSd is running"
+  service:
+    name: sssd.service
+    state: started

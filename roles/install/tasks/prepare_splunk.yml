@@ -1,13 +1,22 @@
 ---
+
+- name: "Ensure SSSd is not running"
+  service:
+    name: sssd.service
+    state: stopped
+
+- name: "Clear SSSd cache"
+  shell: sss_cache -E || true
+
 - name: "Create Splunk unix group ({{ splunk_install_user_gid }})"
-  group:
+  ansible.builtin.group:
     name: "{{ splunk_install_group }}"
     gid: "{{ splunk_install_user_gid }}"
     state: present
   when: splunk_install_user_gid is defined
 
 - name: "Create Splunk unix user ({{ splunk_install_user_uid }})"
-  user:
+  ansible.builtin.user:
     name: "{{ splunk_install_user }}"
     group: "{{ splunk_install_group }}"
     uid: "{{ splunk_install_user_uid }}"
@@ -20,13 +29,13 @@
   when: splunk_install_user_uid is defined
 
 - name: Create Splunk unix group
-  group:
+  ansible.builtin.group:
     name: "{{ splunk_install_group }}"
     state: present
   when: splunk_install_user_gid is undefined
 
 - name: Create Splunk unix user
-  user:
+  ansible.builtin.user:
     name: "{{ splunk_install_user }}"
     group: "{{ splunk_install_group }}"
     comment: "Created by PORS"
@@ -34,8 +43,14 @@
     home: "{{ splunk_installation.splunk_home_path }}"
     password: "!!"
     expires: -1
+    #expires: 22472144061  # -1 break on some devices, 32472144061 = 2999-01-01 01:01:01
     state: present
   when: splunk_install_user_uid is undefined
 
 - name: "Disable max days before password expiry for {{ splunk_install_user }}"
   shell: "passwd -x -1 {{ splunk_install_user }}"
+
+- name: "Ensure SSSd is running"
+  service:
+    name: sssd.service
+    state: started

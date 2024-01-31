@@ -2,7 +2,6 @@
 - name: Add private key (SSH)
   shell: "echo -e '{{ vault_ssh_privkey_splunk }}' > {{ splunk_installation.splunk_home_path }}/.ssh/id_rsa"
   no_log: true
-  when: vault_ssh_privkey_splunk is defined
 
 - name: Set perms (SSH key)
   file:

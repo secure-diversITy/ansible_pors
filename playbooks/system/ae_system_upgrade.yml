@@ -1,14 +1,23 @@
 - name: System Upgrade
-  hosts: "*:!pors_server"
+  hosts: "*"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
   strategy: free
-  gather_facts: false
+  gather_facts: true
 
   vars:
     ansible_ssh_user: "{{ pors_ssh_user }}"
 
-  roles:
-    - system_kernel
-    - system_upgrade
+  tasks:
+
+    - include_role:
+        name: system_journal
+
+    - include_role:
+        name: system_upgrade
+
+    - include_role:
+        name: system_base
+        tasks_from: set_unattended_upgrade.yml
+      when: unattended_system_upgrade.enabled | d(False)

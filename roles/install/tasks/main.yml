@@ -49,6 +49,8 @@
   when: splunk_upgrade == False
 
 - include: enable_boot_start_splunk.yml
+  become: yes
+  become_user: root
 
 - include: add_authorized_key.yml
   when: splunk_upgrade == False
@@ -60,9 +62,6 @@
     - "'firewalld' in ansible_facts.packages"
 
 - include: splunk_startstop.yml
-  when: splunk_upgrade == False
-
-- include: splunk_login.yml
   when: splunk_upgrade == False
 
 - include: change_default_password.yml
@@ -92,13 +91,30 @@
 - include_tasks: optimize_ulimit.yml
 
 - include: splunk_start.yml
+
+- block:
+
+    - set_fact:
+        splunk_username: "{{ vault_splunk_ae_user }}"
+        splunk_password: "{{vault_splunk_ae_password }}"
+      no_log: true
+
+    - set_fact:
+        vault_splunk_ae_user: "{{ vault_splunk_admin_user }}"
+        vault_splunk_ae_password: "{{ vault_splunk_admin_password }}"
+      no_log: true
+
+  when: not splunk_upgrade
+
 - include: splunk_login.yml
 - include_tasks: splunk_start_shcmember.yml 
   when:
     - splshcmember.stdout is defined and splshcmember.stdout == "member"
 
-- include: add_spl_ae_user.yml 
-  when: vault_splunk_ae_user is defined and splunk_upgrade == False
+- include: add_spl_ae_user.yml
+  vars:
+    replace_roles: replace
+  when: not splunk_upgrade
 
 - include: post_actions.yml
   when: splunk_upgrade == False

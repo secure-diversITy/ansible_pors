@@ -8,6 +8,25 @@
 
   vars:
     logstream_upgrade: False
+    skip_ssh_splunk_privkey: True
+    skip_ssh_splunk_authkey: True
 
-  roles:
-    - logstream_configure
+  tasks:
+
+     - block:
+
+        - include_role:
+            name: logstream_configure
+
+        - include_role:
+            name: system_sshid
+
+       rescue:
+
+          - fail:
+              msg: |
+                ERROR OCCURED:
+                
+                {{ ansible_failed_result.msg | replace('"','') |replace("'","") | regex_replace('[}{]','') }}
+                
+                See above for details.

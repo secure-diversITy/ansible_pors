@@ -3,7 +3,7 @@
 # login to allow any later commands to run w/o auth
 - name: "Login into splunk"
   shell: |
-    {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}
+    {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
   register: splauth
   retries: 15
   delay: 20

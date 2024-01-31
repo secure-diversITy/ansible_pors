@@ -19,30 +19,29 @@
   register: shelper_result
         
 - name: shelper reload_deploy_server
-  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth {{ vault_ds_ae_user }}:{{ vault_ds_ae_pass }}"
-  no_log: true
+  shell: "{{ shelper_installation.shelper_path }}/shelperdsreload --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   when: inventory_hostname in groups['deploymentserver']
   register: shelper_result
 
 - name: shelper reload_custom
-  shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelperreload {{ shelper_custom }} --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   register: shelper_result
 
 - name: shelper reload_all
-  shell: "timeout -s HUP -k 360s 300s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "timeout -s HUP -k 360s 300s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   register: shelper_result
 
 - name: shelper reload_apps
-  shell: "timeout -s HUP -k 260s 200s {{ shelper_installation.shelper_path }}/shelperreload apps --batch -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "timeout -s HUP -k 260s 200s {{ shelper_installation.shelper_path }}/shelperreload apps --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   register: shelper_result
 
 - name: shelper apply_cluster_bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth {{ vault_mn_ae_user }}:{{ vault_mn_ae_pass }}"
+  shell: "{{ shelper_installation.shelper_path }}/shelpercmapply --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   when: inventory_hostname in groups['masternode']
   register: shelper_result
 
 - name: shelper apply_shcluster_bundle
-  shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ generated_shcmember }} -auth {{ vault_dep_ae_user }}:{{ vault_dep_ae_pass }} --batch"
+  shell: "{{ shelper_installation.shelper_path }}/shelpershcapply {{ generated_shcmember }} -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' --batch"
   when:
     - generated_deployer is defined
     - shc_site is defined

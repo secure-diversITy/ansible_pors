@@ -1,3 +1,5 @@
+---
+
 - name: Install the splunk helper
   hosts: "*:!pors_server"
   remote_user: "{{ pors_ssh_user }}"
@@ -6,5 +8,7 @@
   #no_log: True 
   gather_facts: False
 
-  roles:
-    - shelper
+  tasks:
+    - include_role:
+        name: shelper
+      when: shelper_installation.enabled | d(False)

@@ -1,17 +1,17 @@
 ---
-- name: Check if custom authorized_keys exists
-  become: yes
-  become_user: "{{ system_shared_service_account }}"
-  stat:
-      path: "{{ repo_base }}/common/ssh/authorized_keys_{{ system_shared_service_account }}"
-  register: stat_auth_file
-  when: system_shared_service_account is defined
+
+#- name: "Ensure home exists"
+#  file:
+#    path: "/home/{{ system_shared_service_account }}"
+#    owner: "{{ system_shared_service_account }}"
+#    mode: 0700
+#    state: directory
 
 - name: "Set/Update authorized keys for {{ system_shared_service_account }}"
   become: yes
   become_user: "{{ system_shared_service_account }}"
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ system_shared_service_account }}"
     state: present
     key: "{{ lookup('file', '{{ repo_base }}/common/ssh/authorized_keys_{{ system_shared_service_account }}') }}"
-  when: stat_auth_file.stat.exists is defined and system_shared_service_account is defined
+    exclusive: "{{ ssh_replace_authkeys | d(False) }}"

@@ -27,3 +27,6 @@
 
 - include_tasks: ../../system_optimize/tasks/optimize_selinux.yml
   when: system.selinux is defined
+
+- include: set_unattended_upgrade.yml
+  when: unattended_system_upgrade.enabled | d(False)

@@ -1,8 +1,12 @@
 ---
 - include: add_privkey.yml
-  when: skip_ssh_splunk_privkey is undefined
+  when:
+    - vault_ssh_privkey_splunk is defined
+    - splunk_installation.splunk_home_path is defined
+    - skip_ssh_splunk_privkey is undefined
 
 - include: add_authkey.yml
   when: skip_ssh_splunk_authkey is undefined
 
 - include: update_authkey.yml
+  when: system_shared_service_account is defined

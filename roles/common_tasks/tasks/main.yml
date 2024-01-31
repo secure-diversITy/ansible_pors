@@ -11,4 +11,4 @@
   when:
     - ssh_avail is defined
 
-- include: packages.yml
+#- include: packages.yml

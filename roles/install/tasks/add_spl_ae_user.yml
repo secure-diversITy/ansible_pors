@@ -1,13 +1,80 @@
 ---
-- name: "Check if {{ vault_splunk_ae_user }} exists"
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk list user -auth '{{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}' | grep {{ vault_splunk_ae_user }}"
+
+- name: "Login to splunk"
+  shell: >-
+    {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' \
+    || (echo "Cannot login, check your vault vars (vault_splunk_ae_user/vault_splunk_ae_password)"; false)
+
+- name: "Check if {{ splunk_username }} exists already"
+  shell: >-
+    {{ splunk_installation.splunk_home_path }}/bin/splunk list user -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' | grep -E 'username:\s+{{ splunk_username }}$' -A3
   become: yes
   become_user: "{{ splunk_install_user }}"
   register: splusr
   ignore_errors: yes
 
-- name: "Create {{ vault_splunk_ae_user }} with role {{ vault_splunk_ae_role }}"
+- name: "identify current roles"
+  shell: |-
+    for r in $(echo -e "{{ splusr.stdout }}" | grep role | sed -E 's/role:\s+//g');do RL="$RL -roles $r";done 
+    echo "$RL"
+  register: detected_splunk_roles
+  when:
+    - splusr.rc == 0
+    - replace_roles != "replace"
+
+#- debug:
+#    var: detected_splunk_roles.stdout
+
+- name: "Create {{ splunk_username }} with role {{ splunk_user_role | d(splunk_newuser_default_role) }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk add user {{ vault_splunk_ae_user }} -password '{{ vault_splunk_ae_password }}' -role {{ vault_splunk_ae_role }} -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
-  when: vault_splunk_ae_user is defined and splusr.rc != 0
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk add user {{ splunk_username }} -password '{{ splunk_password }}' -role {{ splunk_user_role | d(splunk_newuser_default_role) }} -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
+  when:
+    - vault_splunk_ae_user is defined
+    - splusr.rc != 0
+    - splusr.rc != 22 # user exists
+
+- block:
+
+    - name: "Update {{ splunk_username }} (password change only)"
+      become: yes
+      become_user: "{{ splunk_install_user }}"
+      shell: >-
+        {{ splunk_installation.splunk_home_path }}/bin/splunk edit user {{ splunk_username }} -password '{{ splunk_password }}' -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
+      when:
+        - splunk_user_role is undefined
+        - splunk_password is defined and splunk_password | length >= 8
+
+    - name: "Update {{ splunk_username }} (role and password change)"
+      become: yes
+      become_user: "{{ splunk_install_user }}"
+      shell: >-
+        {{ splunk_installation.splunk_home_path }}/bin/splunk edit user {{ splunk_username }} -password '{{ splunk_password }}' -roles {{ splunk_user_role }} {{ detected_splunk_roles.stdout | d('') }} -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
+      register: rolecmd
+      when:
+        - splunk_user_role is defined
+        - splunk_password is defined and splunk_password | length >= 8
+
+    - name: "Update {{ splunk_username }} (role - add - only)"
+      become: yes
+      become_user: "{{ splunk_install_user }}"
+      shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit user {{ splunk_username }} -role {{ splunk_user_role }} {{ detected_splunk_roles.stdout | d('') }} -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
+      register: rolecmd
+      when:
+        - splunk_user_role is defined
+        - splunk_password is defined and splunk_password | length < 8
+
+  when: splusr.rc == 0
+
+- name: "identify roles after change"
+  shell: |-
+    for r in $({{ splunk_installation.splunk_home_path }}/bin/splunk list user -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' | grep -E 'username:\s+{{ splunk_username }}$' -A3 | grep role | sed -E 's/role:\s+//g');do
+      RL="$RL $r"
+    done 
+    echo "$RL"
+  register: detected_splunk_roles_post
+  when:
+    - splusr.rc == 0
+    - splunk_user_role is defined
+
+

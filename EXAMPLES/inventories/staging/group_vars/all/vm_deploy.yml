@@ -23,7 +23,10 @@ vsphere:
     # VMware will try to boot over PXE on each boot which is usually useless
     # set this to True to disable PXE boot when deploying a new VM
     disablepxeboot: True
-    
+
+    # set "True" to enable CPU + RAM hotplug for the deployed VMs
+    enable_hotplug: True
+ 
     host:
        # you can specify as much vsphere centers as you wish.
        # vsphere-hostname-01 is just an example any should be replaced by the hostname

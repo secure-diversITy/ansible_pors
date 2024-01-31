@@ -27,6 +27,7 @@ git_pors_data_push: no
 pors_allow_autoupgrade_requirements: false
 system_default_shell: /bin/bash
 pors_touch_dir: /var/lib/pors
+pors_managed_marker: 'Managed by PORS/Ansible - manual changes might get overwritten on next run'
 
 ###### splunk_repository.yml #######
 
@@ -113,6 +114,9 @@ logstream_ulimit_data_hard: unlimited
 splunk_auth:
   admin_password: "{{ vault_splunk_admin_password }}"
   splunk_secret: "{{ vault_splunk_secret }}"
+
+# a default role when creating users in splunk (except admin)
+splunk_newuser_default_role: user
 
 ###### splunk_configuration.yml ########
 

@@ -14,7 +14,7 @@
 
   # Create a VM from a template
   - name: create the VM
-    vmware_guest:
+    community.vmware.vmware_guest:
       hostname: '{{ vsphere.host[vsphere_var].dest }}'
       username: '{{ vsphere.host[vsphere_var].user }}'
       password: '{{ vsphere.host[vsphere_var].password }}'
@@ -44,8 +44,23 @@
         - "{{ server_dns1 }}"
         - "{{ server_dns2 }}"
 
-  - name: Disable VMEM swap (if defined)
-    vmware_guest:
+  - name: "Set hotplug options (if defined)"
+    community.vmware.vmware_guest:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        esxi_hostname: "{{ vsphere_esx_host }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        name: '{{ server_hostname }}'
+        hardware:
+          hotadd_memory: true
+          hotremove_cpu: true
+          hotadd_cpu: true
+    when: vsphere.enable_hotplug | d(False)
+
+  - name: "Disable VMEM swap (if defined)"
+    community.vmware.vmware_guest:
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -55,8 +70,8 @@
         name: '{{ server_hostname }}'
         customvalues:
             # fit memory into RAM. Whenever possible, avoid settings lower 100%.
-            - key: prefvmx.minVmMemPct
-              value: 100
+            #- key: prefvmx.minVmMemPct
+            #  value: 100
             # Memory-trimming tries to detect unused virtualRAM and gives it back to the host
             # improve responsiveness of a VM when set to 0
             - key: MemTrimRate
@@ -69,8 +84,8 @@
               value: "TRUE"
     when: vsphere.disablevmem is defined and vsphere.disablevmem == true
 
-  - name: Disable PXE boot (if defined)
-    vmware_guest:
+  - name: "Disable PXE boot (if defined)"
+    community.vmware.vmware_guest:
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -80,8 +95,8 @@
         name: '{{ server_hostname }}'
         customvalues:
             # do not try to boot over PXE (boot faster)
-            - key: vmxnet.noOprom
-              value: "true"
+            - key: ethernet0.opromsize
+              value: "0"
             - key: vmxnet2.noOprom
               value: "true"
             - key: vmxnet3.noOprom

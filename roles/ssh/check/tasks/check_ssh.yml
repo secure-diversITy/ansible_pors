@@ -1,6 +1,7 @@
 ---
 
 - name: "Wait for SSH coming up (timeout: {{ wait_timeout | default(240)}}s)"
+  become: no
   wait_for:
     port: 22
     host: '{{ (server_hostname|default(ansible_ssh_host)|default(ansible_host))|default(inventory_hostname) }}'

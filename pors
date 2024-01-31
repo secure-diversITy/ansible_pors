@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-14"
+VERSIONNUM="4.1-18"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -575,12 +575,6 @@ declare PBSYSDISKFORMAT="${PBDIRSYSTEM}/disk_format.yml"
 ## @showinitializer
 declare PBBASEINSTALL="${PBDIRSYSTEM}/ae_system_base.yml"
 
-## @var PBSYSKERNEL
-## @brief Install/Set/Update the kernel
-## @details El-Repo kernel
-## @showinitializer
-declare PBSYSKERNEL="${PBDIRSYSTEM}/ae_system_kernel.yml"
-
 ## @var PBSYSUPGRADE
 ## @brief System Upgrade
 ## @details Refreshes cache DB and starting a full system upgrade
@@ -703,7 +697,7 @@ declare DEFUPGDELAY=1m
 
 # test all playbooks
 # gen: egrep '^declare \w+=|^export \w+=' pors |cut -d = -f1 |grep PB | cut -d " " -f2 | sed 's/^/$/g' | egrep -v "DIR|PBDEPLAPP" |tr "\n" " "
-PBS="$PBENAPP $PBREGENDEPLOY $PBDEPLSYSC $PBGETTARGETS $PBUPGRADE $PBSHINSTALL $PBSHRELOAD $PBSPLACT $PBINSTALL $PBINSTALLLOGSTREAM $PBCONFMN $PBCONFPEER $PBCONFSH $PBCONFHF $PBDLSPL $PBVCINFO $PBVCGETVHOSTSTATES $PBVCVMDEPLOY $PBVCSHOW $PBVMNEWDISK $PBVMDISKFORMAT $PBBASEINSTALL $PBSYSKERNEL $PBSYSUPGRADE $PBSSHCHK $PBSYSREBOOT $PBCREATEUSER"
+PBS="$PBENAPP $PBREGENDEPLOY $PBDEPLSYSC $PBGETTARGETS $PBUPGRADE $PBSHINSTALL $PBSHRELOAD $PBSPLACT $PBINSTALL $PBINSTALLLOGSTREAM $PBCONFMN $PBCONFPEER $PBCONFSH $PBCONFHF $PBDLSPL $PBVCINFO $PBVCGETVHOSTSTATES $PBVCVMDEPLOY $PBVCSHOW $PBVMNEWDISK $PBVMDISKFORMAT $PBBASEINSTALL $PBSYSUPGRADE $PBSSHCHK $PBSYSREBOOT $PBCREATEUSER"
 
 for pb in $PBS;do
     #find $PBDIR -name ${pb/*\/}
@@ -2585,7 +2579,7 @@ F_SHEXEC(){
         [ $? -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
     fi
 
-    ARGS="{'target':'$LIMITLIST','shelper_action':'$SHEXE','shelper_custom':'$SHCUST','shc_site':'$SITESEL'}"
+    ARGS="{'target':'$LIMITLIST','shelper_action':'$SHEXE','shelper_custom':'$SHCUST','shc_site':'$SITESEL','upgrade_shelper':'False'}"
     F_ABIN "${HOSTFILE}" "$PBSHRELOAD" "executing ${SHEXE}${SHCUST} ..." "--limit $LIMITLIST -e $ARGS"
     AERR=$?
     [ $RUNMODE != "batch" ] && F_ERRLOG "$AERR" "$SHEXE $SHCUST for:\n\n$SHOSTST" "$LOG"
@@ -3301,8 +3295,9 @@ F_ADDSERVICEUSER(){
     if [ ! -z "$OS_SERVICE_USER" ];then
         [ ! -z $OS_SERVICE_USER_EXTRAGROUPS ] && _GRP="$OS_SERVICE_USER_EXTRAGROUPS"
         F_ADDSYSUSER "$_HOST" "$OS_SERVICE_USER" "$OS_SERVICE_USER_EXTRAGROUPS"
+        ERR=$?
         F_PORSACTION "nogit" "$FUNCNAME | OS service account $OS_SERVICE_USER created on $HOST"
-        return $?
+        return $ERR
     else
         F_LOG $FUNCNAME "SKIPPING: No OS_SERVICE_USER specified"
     fi
@@ -5411,14 +5406,18 @@ F_STARTVMDEP(){
         if [ -z "$VMSDOMAIN" ];then VMHOSTF=$VMHOST; else VMHOSTF="${VMHOST}.${VMSDOMAIN}"; fi
 
         if [ $VMERR -eq 0 ];then
+            F_LOG $FUNCNAME "checking if hosts is ready"
             HSETOK=99
             while [ $HSETOK -ne 0 ];do
-                grep "${VMHOSTF}" "$HOSTFILE" -q
+                grep -E "^${VMHOSTF}$" "$HOSTFILE" -q
                 HSETOK=$?
                 if [ $HSETOK -ne 0 ];then
-                    F_DIALOG --yes-label "Edit hosts file" --no-label Cancel --yesno "\nThe server is not in $HOSTFILE.\nIt must be added now before we can continue.\n\n${VMHOSTF}\n(mouse to select, ctrl+shift+C to copy)\n\nmust be added to $HOSTFILE before you can continue.\nWhen you press OK $EDITBIN will be used to open it." 16 100
+                    F_LOG $FUNCNAME "host ${VMHOSTF} is missing in $HOSTFILE"
+                    F_DIALOG --yes-label "Edit hosts file" --no-label Cancel --yesno "\nThe server is not in $HOSTFILE or outcommented.\nIt must be added now before we can continue.\n\n${VMHOSTF}\n(mouse to select, ctrl+shift+C to copy)\n\nmust be added to $HOSTFILE before you can continue.\nWhen you press OK $EDITBIN will be used to open it." 16 100
                     [ $? -eq 1 ] && F_LOG $FUNCNAME "Aborted by user" && HSETOK=4 && return 4
                     $EDITBIN $HOSTFILE
+                else
+                    F_LOG $FUNCNAME "host ${VMHOSTF} is in $HOSTFILE"
                 fi
             done
 
@@ -5863,7 +5862,7 @@ F_BASEINSTALL(){
 
     unset ABINARGS
     if [ -f "$TMPHWPROFILE" ];then
-        ABINARGS="-e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN'}"
+        ABINARGS="-e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','target':'$SELHOSTS'}"
     fi
 
     # check for playbook hook
@@ -5932,13 +5931,9 @@ F_SYSUPGRADE(){
     FORERR=$?
 
     if [ $FORERR -eq 0 ];then
-        if [ $? -eq 0 ];then
             F_LOG $FUNCNAME "System packages or upgrade(s) have been installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
             F_SYSREBOOT "$SELHOSTS" $AUTOREBOOT
             LASTERR=$?
-        else
-            F_LOG $FUNCNAME "Rebooting handling skipped by user"
-        fi
     else
         LASTERR=$FORERR
     fi
@@ -6327,6 +6322,7 @@ F_MENUMAIN(){
                         ;;
                         "Upgrade System")
                         F_SYSUPGRADE
+                        UERR=$?; [ $UERR -ne 0 ] && F_ERRLOG $UERR "Upgrading System"
                         ;;
 		esac
 	     done

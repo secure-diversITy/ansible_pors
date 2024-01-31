@@ -17,7 +17,7 @@
 - name: splunk restartweb
   become: true
   become_user: "{{ splunk_install_user }}"
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart splunkweb --accept-license --answer-yes -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart splunkweb --accept-license --answer-yes -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   when: ((splunk_restartweb is defined and splunk_restartweb) or ( splunk_action is defined and splunk_action == "restartweb"))
   no_log: true
   register: action_result
@@ -25,7 +25,7 @@
 - name: splunk custom
   become: true
   become_user: "{{ splunk_install_user }}"
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk {{ splunk_cmdparams }} --accept-license --answer-yes -auth {{ vault_splunk_admin_user }}:{{ vault_splunk_admin_password }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk {{ splunk_cmdparams }} --accept-license --answer-yes -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   when: splunk_action is defined and splunk_action == "custom" and splunk_cmdparams is defined
   no_log: true
   register: action_result

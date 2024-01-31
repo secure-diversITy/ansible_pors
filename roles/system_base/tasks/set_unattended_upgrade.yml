@@ -1,0 +1,51 @@
+---
+
+- name: "Applying unattended upgrades config for {{ ansible_os_family }}"
+  block:
+
+    - name: "Install unattended upgrade tool"
+      package:
+        name:
+          - dnf-automatic
+        state: present
+
+    - name: "Configure unattended upgrades"
+      community.general.ini_file:
+        path: /etc/dnf/automatic.conf
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        values: "{{ item.valuelist }} # {{ pors_managed_marker }}"
+        exclusive: true
+      loop: "{{ unattended_system_upgrade.redhat.conf_dnf + [{ 'section':'commands', 'option':'apply_updates', 'valuelist':'yes' }] }}"
+
+      when: unattended_system_upgrade.redhat.conf_dnf is defined
+
+    - name: "Set timer for unattended upgrades"
+      community.general.ini_file:
+        create: yes
+        owner: root
+        mode: 0640
+        path: /etc/systemd/system/dnf-automatic.timer.d/override.conf
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        values: "{{ item.valuelist }} # {{ pors_managed_marker }}"
+      register: systemd_override
+      loop: "{{ unattended_system_upgrade.redhat.conf_timer }}"
+      when: unattended_system_upgrade.redhat.conf_timer is defined
+
+    - name: "Activate timer for unattended upgrades"
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+        name: dnf-automatic.timer
+        enabled: yes
+        state: restarted
+      when:
+        - unattended_system_upgrade.redhat.conf_timer is defined
+        - systemd_override.changed | d(False)
+
+  when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int > 8
+
+#- name: "Applying unattended upgrades config for {{ ansible_os_family }}"
+#  block:
+#
+#  when: ansible_os_family == 'Debian'

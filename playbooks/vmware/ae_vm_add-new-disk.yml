@@ -5,17 +5,19 @@
 
   tasks:
     - name: Gather disk facts from {{ server_hostname }}
-      vmware_guest_facts:
+      community.vmware.vmware_vm_info:
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
         validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
-        datacenter: "{{ vsphere_datacenter }}"
-        name: '{{ server_hostname }}'
+#        datacenter: "{{ vsphere_datacenter }}"
+        vm_name: '{{ server_hostname }}'
       register: vgf
 
     - name: debug out
-      debug: msg="disk facts:{{vgf}}"
+      debug:
+        msg: |
+          disk vgf:{{ vgf.virtual_machines }}
       when: debug_on is defined
 
     - name: Shutdown {{ server_hostname }} if needed
@@ -27,11 +29,13 @@
         name: '{{ server_hostname }}'
         esxi_hostname: "{{ vsphere_esx_host }}"
         state: shutdownguest
-      when: vgf.instance['hw_power_status'] != 'poweredOff'
+      when: item.power_state != 'poweredOff'
+      loop: "{{ vgf.virtual_machines }}"
 
-    - name: Waiting for shutdown...
+    - name: Rest after shutdown
       command: sleep 1m
-      when: vgf.instance['hw_power_status'] != 'poweredOff'
+      when: item.power_state != 'poweredOff'
+      loop: "{{ vgf.virtual_machines }}"
 
     - name: "Hint: disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }}"
       debug: msg="You have selected {{ server_disk_type }} - Please be patient as this might take a while and can even timeout on large disks (e.g. > 50 TB). If that happens you have to increase the 'async' value within 'playbooks/vmware/ae_vm_add-new-disk.yml'. Watch the vCenter for the progress."
@@ -56,7 +60,7 @@
       poll: 20
       when: server_disk_type == "eagerzeroedthick"
        
-    - name: "Add  disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (normal provisioning)"
+    - name: "Add disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (normal provisioning)"
       vmware_guest_disk:
             hostname: '{{ vsphere.host[vsphere_var].dest }}'
             username: '{{ vsphere.host[vsphere_var].user }}'
@@ -72,3 +76,6 @@
               datastore: "{{ vsphere_datastore }}"
               type: "{{ server_disk_type }}"
       when: server_disk_type != "eagerzeroedthick"
+
+    - name: start VM (this task will wait for IP)
+      include_tasks: vcenter_poweron-vm.yml 
