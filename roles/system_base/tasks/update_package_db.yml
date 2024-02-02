@@ -1,13 +1,22 @@
 ---
 
 - name: "update pkg cache (debian)"
-  apt:
+  ansible.builtin.apt:
     update_cache: true
   when: ansible_facts['os_family'] == "Debian"
 
-- name: "update pkg cache (redhat)"
-  dnf:
-    update_cache: true
+- block:
+
+    - name: "update pkg cache (redhat >= 9.x)"
+      ansible.builtin.dnf:
+        update_cache: true
+      when: ansible_distribution_version.split('.')[0] | int > 8
+
+    - name: "update pkg cache (redhat =< 9.x)"
+      ansible.builtin.yum:
+        update_cache: true
+      when: ansible_distribution_version.split('.')[0] | int < 9
+
   when: ansible_facts['os_family'] == "RedHat"
 
 - name: "update pkg cache (suse)"
