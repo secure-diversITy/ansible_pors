@@ -9,7 +9,7 @@
   pre_tasks:
     - name: Check if custom template exists
       stat:
-        path: "{{ custom_data_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2"
+        path: "{{ custom_data_dir }}/roles/common/templates/ae_deploy_apps.yml.j2"
       register: custom_templ
 
   tasks:
@@ -20,7 +20,7 @@
     when: deploy_type == "custom" and deploy_sub_apps is defined
 
   - name: Create ae_deploy_apps.yml (pors)
-    template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+    template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
     when:
@@ -29,8 +29,8 @@
         - deploy_sub_apps is defined
         - app_roles.stdout_lines is defined
 
-  - name: Create ae_deploy_apps.yml (custom)
-    template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+  - name: Create ae_deploy_apps.yml (custom overwrite)
+    template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
     when:
@@ -45,7 +45,7 @@
     when: deploy_type == "all"
 
   - name: Create ae_deploy_apps.yml (pors)
-    template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+    template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
     when:
@@ -53,8 +53,8 @@
         - deploy_type == "all"
         - app_roles.stdout_lines is defined
 
-  - name: Create ae_deploy_apps.yml (custom)
-    template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps_{{ target_env  }}.yml.j2
+  - name: Create ae_deploy_apps.yml (custom overwrite)
+    template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
     when:
