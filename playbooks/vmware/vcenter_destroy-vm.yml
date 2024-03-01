@@ -1,0 +1,36 @@
+---
+- hosts: '{{ server_hostname }}*'
+  gather_facts: false
+  connection: local
+
+  tasks:
+
+  - name: "Destroying the VM now.."
+    debug:
+      msg: "Please be patient or watch the progress at the vCenter"
+
+  - name: power off VM
+    connection: local
+    vmware_guest:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        esxi_hostname: "{{ vsphere_esx_host }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        name: "{{ server_hostname | regex_replace('\\..*','') }}"
+        folder: "/{{ vsphere_datacenter }}/vm"
+        state: poweredoff
+
+  - name: destroy VM 
+    connection: local
+    vmware_guest:
+        hostname: '{{ vsphere.host[vsphere_var].dest }}'
+        username: '{{ vsphere.host[vsphere_var].user }}'
+        password: '{{ vsphere.host[vsphere_var].password }}'
+        validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+        esxi_hostname: "{{ vsphere_esx_host }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        name: "{{ server_hostname | regex_replace('\\..*','') }}"
+        delete_from_inventory: false
+        state: absent

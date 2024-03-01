@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-19"
+VERSIONNUM="4.1-21"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -521,11 +521,15 @@ declare PBVCVMDEPLOY="${PBDIRVMWARE}/vcenter_deploy-vm.yml"
 ## @showinitializer
 declare PBVCSHOW="${PBDIRVMWARE}/vcenter_show-avail.yml"
 
-
 ## @var PBVCVMPOWERON
 ## @brief powers on a vSphere VM (without any conditions required) and wait until fully started
 ## @showinitializer
 PBVCVMPOWERON="${PBDIRVMWARE}/vcenter_always_poweron-vm.yml"
+
+## @var PBVCVMDESTROY
+## @brief powers on a vSphere VM (without any conditions required) and wait until fully started
+## @showinitializer
+PBVCVMDESTROY="${PBDIRVMWARE}/vcenter_destroy-vm.yml"
 
 ## @var PBVMNEWDISK
 ## @brief Add an additional disk to an existing VM
@@ -4720,12 +4724,15 @@ F_VSPHERE_SELDS(){
 ## @fn F_VSPHERE_DEPLOY()
 ## @brief Deploys the vSphere VM
 ## @param 1 required: the full path to the hardware profile to source
+## @param 2 optional: destructive mode if "destroy_deploy" or non-destructive if "refonfig_only"
 ## @details The actual doing is done here while it all starts in F_DEPLOYVM
 F_VSPHERE_DEPLOY(){ 
     F_LOG $FUNCNAME started
     unset HWP
  
-    HWP=$1
+    HWP="$1"
+    DEPLOYMODE="$2"
+
     if [ -z "$HWP" ] || [ ! -f "$HWP" ];then
         F_LOG $FUNCNAME "ERROR: missing hw profile! ABORTED" && return 3
     fi
@@ -4752,6 +4759,17 @@ F_VSPHERE_DEPLOY(){
         ABORTED=0
     fi
 
+    # DELETE if required
+    if [ "$DEPLOYMODE" == "destroy_deploy" ];then
+        F_DIALOG --no-collapse --colors --yesno "\n\nPORS is about to delete an \ZbEXISTING VM\ZB with the following details:\n\n    vCenter:"$'\t\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t\t'"$VCHOST\n\n    Hostname:"$'\t\t\t'"\Zr${VMHOST}.${VMSDOMAIN}\ZR\n    IP:"$'\t\t\t'"$VMIP/$VMNETMASK\n\nDo you really want to continue (ALL DATA LOST!)?\n" 20 80
+        DELIT=$?
+        [ $DELIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
+        F_ABIN $HOSTFILE $PBVCVMDESTROY "Destroying $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOSTF','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${VCDC}'}"
+        DELERR=$?
+        F_LOG $FUNCNAME "deploying ended with code: $DELERR"
+        [ $DELERR -ne 0 ] && return 3
+    fi
+
     # sum up (makes uses of real tab spaces in dialog):
     F_DIALOG --no-collapse --colors --yesno "\n\ZbPORS is about to provision a VM with the following details:\ZB\n\n    vCenter:"$'\t\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t\t'"$VCHOST\n\n    Hostname:"$'\t\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t\t'"$VMCPU\n    RAM:"$'\t\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t\t'"$VMGW\n    DNS servers:"$'\t\t'"$VMDNS1, $VMDNS2\n    Datacenter (OS disk):"$'\t'"$VCDC\n    Datastorage (OS disk):"$'\t'"$VCDS\n    Network:"$'\t\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
@@ -4766,8 +4784,10 @@ F_VSPHERE_DEPLOY(){
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
     [ $DEPERR -ne 0 ] && return 99
 
-    if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ];then
-        # add as many disk(s) as needed
+    # add as many disk(s) as needed
+    if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ]&&[ "$DEPLOYMODE" != "config_only" ];then
+        # let it boot once to get the attached hdd name sorted
+        F_ABIN $HOSTFILE $PBVCVMPOWERON "Powering on $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOSTF','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${VCDC}'}"
 
         VMDISKCNT=0
         while [ $VMDISKCNT -ne $VMDISK ];do
@@ -5422,6 +5442,7 @@ F_STARTVMDEP(){
             done
 
             CHKREQ=1
+            unset DEPLOYARG
             while [ "$CHKREQ" -eq 1 ];do
                 # check if the target exists and offer config only if
                 if [ $VMIP == "dhcp" ];then
@@ -5429,42 +5450,47 @@ F_STARTVMDEP(){
                 else
                     F_PING $VMIP
                 fi
-                if [ $? -ne 0 ];then
-                    case $VM_PROVIDER in
-                        vsphere|vmware)
-                            # switch to vCenter information and actions
-                            #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
-                            F_VSPHERE_DEPLOY "$TMPHWPROFILE"
-                            VMERR=$?
-                            ;;
-                        proxmox|pve)
-                            F_PROXMOX_DEPLOY "$TMPHWPROFILE"
-                            VMERR=$?
-                            ;;
-                        googlecp|gcp)
-                            F_GOOGLECP_DEPLOY "$TMPHWPROFILE"
-                            VMERR=$?
-                            ;;
-                        *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
-                    esac
-                    CHKREQ=$VMERR
-                else
-                    F_DIALOG --extra-button --yes-label "Retry VM Deploy" --extra-label "(Re-)Configure existing" --no-label Cancel --yesno "\nThe server $VMHOST ($VMIP) is PINGABLE!\n\nWe cannot create this system but we can try to configure it.\nThat means all settings of the current selected hardware profile will be set/changed/removed to this system!\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to (re-)configure an existing VM or retry the VM deployment?" 16 100
+                PINGANSW=$?
+                if [ $PINGANSW -eq 0 ];then
+                    F_DIALOG --colors --extra-button --extra-label "Reconfigure (non-destructive)" --ok-label "Redistribute (DESTRUCTIVE)" --cancel-label "Cancel" --default-button "cancel" --yesno "\n\Zb\Z1\ZrWARNING - WARNING - WARNING - WARNING\ZR\Z0\ZB\n\nThe server \Zb$VMHOST ($VMIP)\ZB is PINGABLE!\n\nWe can delete and redistribute the whole system or we can try to reconfigure it.\n\n    \ZbRedistribute:\ZB \Zb\Z1\ZrDELETE + Deploy\ZR\Z0\ZB resulting in a complete new system (no way back - \Zrall data lost!\ZR)\n    \ZbReconfigure:\ZB  current selected hardware profile will be applied (incl. \Zuauto-REBOOTs\ZU)\n\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to reconfigure an existing VM or check the VM deployment?" 18 110
                     ANS=$?
                     F_LOG $FUNCNAME "dialog ended with: $ANS"
 
                     # parse user response and act accordingly
                     case $ANS in
-                        0) # retry deploy
+                        0) # redistribute
+                            CHKREQ=0
+                            DEPLOYARG="destroy_deploy"
                         ;;
                         3) # reconfig
                             CHKREQ=0
+                            DEPLOYARG="config_only"
                         ;;
                         *) # abort
                             CHKREQ=0
                             F_LOG $FUNCNAME "Aborted by user ($ANS)" && return 4
                         ;;
                     esac
+                fi
+                if [ $PINGANSW -eq 0 -o "$DEPLOYARG" == "destroy" ];then
+                    case $VM_PROVIDER in
+                        vsphere|vmware)
+                            # switch to vCenter information and actions
+                            #VCENTER=$(F_VSPHERE_VCGETINFO 2>&1 >/dev/tty)
+                            F_VSPHERE_DEPLOY "$TMPHWPROFILE" "$DEPLOYARG"
+                            VMERR=$?
+                            ;;
+                        proxmox|pve)
+                            F_PROXMOX_DEPLOY "$TMPHWPROFILE" "$DEPLOYARG"
+                            VMERR=$?
+                            ;;
+                        googlecp|gcp)
+                            F_GOOGLECP_DEPLOY "$TMPHWPROFILE" "$DEPLOYARG"
+                            VMERR=$?
+                            ;;
+                        *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
+                    esac
+                    CHKREQ=$VMERR
                 fi
             done
         else
@@ -5840,6 +5866,7 @@ F_BASEINSTALL(){
     export PARENTPID=$BASHPID
     AUTOMODE="$1"
     TMPHWPROFILE="$2"
+    REGENMODE="$DEPLARG"
 
     if [ -z "$AUTOMODE" ];then
         SELHOSTS="$(F_SELHOST)"
@@ -5862,7 +5889,7 @@ F_BASEINSTALL(){
 
     unset ABINARGS
     if [ -f "$TMPHWPROFILE" ];then
-        ABINARGS="-e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','target':'$SELHOSTS'}"
+        ABINARGS="-e {'server_hostname':'$VMHOSTF','server_shortname':'$VMHOST','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','target':'$SELHOSTS','regen_sys':'$DEPLOYARG'}"
     fi
 
     # check for playbook hook

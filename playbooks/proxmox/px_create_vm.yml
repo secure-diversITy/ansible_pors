@@ -5,7 +5,7 @@
   connection: local
 
   vars:
-    server_notes: "Based on {{ proxmox.node[px_var].ansible_template_name }} and deployed by ansible"
+    server_notes: "Based on {{ proxmox.node[px_var].ansible_template_name }} and deployed/re-configured by ansible/PORS"
     ansible_python_interpreter: /usr/bin/python3
     kvm_create: true
     kvm_configure: true

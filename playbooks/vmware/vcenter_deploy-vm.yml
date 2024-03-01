@@ -4,7 +4,7 @@
   connection: local
 
   vars: 
-    server_notes: "Based on {{ vsphere.host[vsphere_var].ansible_template_name }} and deployed by ansible"
+    server_notes: "Based on {{ vsphere.host[vsphere_var].ansible_template_name }} and deployed/re-configured by ansible/PORS"
 
   tasks:
   - set_fact: creationdate="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"

@@ -1,9 +1,11 @@
 ---
 
 # general tasks
-- include: regen_ssh_host_keys.yml
-- include: regen_machine_id.yml
-- include: regen_initrd.yml
+- block:
+    - include: regen_ssh_host_keys.yml
+    - include: regen_machine_id.yml
+    - include: regen_initrd.yml
+  when: regen_sys | d('destroy_deploy') == 'destroy_deploy'
 
 # distro specific tasks
 - include: update_rhsm.yml
