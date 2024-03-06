@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-21"
+VERSIONNUM="4.1-24"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -885,7 +885,7 @@ fi
 ## @details Main function for all ansible-playbook commands (previously 'F_A2BIN')
 ## example args: F_ABIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
 F_ABIN(){
-        F_LOG $FUNCNAME started
+        F_LOG "$FUNCNAME started ($@)"
 	# returns error code of the playbook run
 	#
 	# requires these parameters:
@@ -920,7 +920,7 @@ F_ABIN(){
             fi
 	fi
 
-	F_LOG $FUNCNAME "$ABIN -i $A2HOSTFILE ${A2ARGS} $A2PB"
+	F_LOG $FUNCNAME "$ABIN $A2HOSTFILE ${A2ARGS} $A2PB"
         if [ "$A2HOSTFILE" == "version" ];then
             $ABIN --version
             A2ERR=$?
@@ -3762,7 +3762,7 @@ F_DEPLOYAPP(){
             [ -f $AINVENTORY/$TARGETENV/$PBDEPLAPP ] && rm $AINVENTORY/$TARGETENV/$PBDEPLAPP && F_LOG "$FUNCNAME" "Deleted previous temp playbook"
 
 #            F_LOG $FUNCNAME "will exec: $ABIN -i $HOSTFILE $PBREGENDEPLOY -e \"target=repository target_env=$TARGETENV $DEPTYPE\""
-            F_ABIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE,'data_dir':'$DATADIR'}"
+            F_ABIN $HOSTFILE $PBREGENDEPLOY "Regenerating temporary deploy-app playbook.." "-e {'target':'repository','target_env':'$TARGETENV',$DEPTYPE,'data_dir':'$DATADIR','base_install_dir':'$ADIR'}"
             LASTERR=$?; [ $LASTERR -ne 0 ] && F_LOG $FUNCNAME "ended with $LASTERR" && return $LASTERR
 
             DEPAPPS=$(F_LISTAPPS "$HOSTSELECTION" | cut -d ":" -f 1-2 | egrep "($SUBSETAPPS)" | sed 's/^/\\n - /g')
@@ -5472,7 +5472,7 @@ F_STARTVMDEP(){
                         ;;
                     esac
                 fi
-                if [ $PINGANSW -eq 0 -o "$DEPLOYARG" == "destroy" ];then
+                if [ $PINGANSW -ne 0 -o "$DEPLOYARG" == "destroy_deploy" ];then
                     case $VM_PROVIDER in
                         vsphere|vmware)
                             # switch to vCenter information and actions
@@ -6415,7 +6415,7 @@ F_CHECKVERSION(){
     unset AVERSF AVERS MAXAVERSION MREQAVERSION
     MREQAVERSION=$(echo $REQAVERSION |tr -d ".")
     if [ -f "$ABINX" ];then
-        AVERSF=$(F_ABIN version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && AVERS=$(echo $AVERSF | tr -d ".")
+        AVERSF=$($ABIN --version |head -n 1 | egrep -o "[1-9]+\.[0-9]+\.[0-9]+") && AVERS=$(echo $AVERSF | tr -d ".")
     else
         F_LOG MAIN "ABIN: $ABIN missing!" && return 3
     fi
@@ -6546,8 +6546,8 @@ if [ $? -eq 0 ];then
     ## Makes use of the selected environment so you are able to run e.g. prod and dev the same time
     declare EXECBIT=/tmp/.pors_batch_${TARGETENV}.lock
 
-   # detect running session and kill/ask
-   [ -f $EXECBIT ] && echo -e "\n\nWARNING: It seems PORS is already running by user: $(cat $EXECBIT)! ABORTED!" && F_LOG "$BIN" "PORS is already running by $(cat $EXECBIT). ABORTED!" && F_EXIT 4
+    # detect running session and kill/ask
+    [ -f $EXECBIT ] && echo -e "\n\nWARNING: It seems PORS is already running by user: $(cat $EXECBIT)! ABORTED!" && F_LOG "$BIN" "PORS is already running by $(cat $EXECBIT). ABORTED!" && F_EXIT 4
     echo "$CALLUSR" > $EXECBIT && chmod o+w $EXECBIT
 
     ## @var PORS_TEMPDIR
@@ -6559,7 +6559,7 @@ if [ $? -eq 0 ];then
     # check uncommitted changes & commit if needed
     F_DATACOMMIT "manual changes" "data directory has been altered outside of PORS - committed the current state before actually starting.."
 
-   # run
+    # run
     if [ "$BPLAY" ];then
         F_LOG MAIN "$ABIN -i $HOSTFILE $BPLAY -e \"target=$BTARGET accept_hostkey=true $BPLAYARGS\""
         $ABIN -i $HOSTFILE $BPLAY -e "target=$BTARGET accept_hostkey=true $BPLAYARGS $TARGETSITE" $PLAYNOISE >> $LOG 2>&1
