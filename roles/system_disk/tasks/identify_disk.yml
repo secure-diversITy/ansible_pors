@@ -1,0 +1,17 @@
+---
+
+# requires disk.UUID=TRUE in the vmx - which should be handled by PORS
+# on new VMs already
+- name: "get device name"
+  shell: |
+    eval $(lsblk -SniPp -o NAME,SERIAL -e 11 | tr '[:upper:]' '[:lower:]' | grep "{{ server_disk_dev }}")
+    if [ -z "$name" ];then
+      echo "ERROR: cannot identify disk device name for {{ server_disk_dev }}"
+      echo "Is 'disk.UUID=TRUE' set in the VM's vmx?"
+      exit 3
+    else
+      echo "$name"
+    fi
+  args:
+    executable: /bin/bash
+  register: part_dev_name

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-24"
+VERSIONNUM="4.1-28"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -537,12 +537,6 @@ PBVCVMDESTROY="${PBDIRVMWARE}/vcenter_destroy-vm.yml"
 ## @showinitializer
 declare PBVMNEWDISK="${PBDIRVMWARE}/ae_vm_add-new-disk.yml"
 
-## @var PBVMDISKFORMAT
-## @brief Formatting a given disk in a VM
-## @details ..
-## @showinitializer
-declare PBVMDISKFORMAT="${PBDIRVMWARE}/ae_vm_format-new-disk.yml"
-
 ## @var PBPVEDEPLOY
 ## @brief Deploys a VM to Proxmox
 ## @details Will connect to a Proxmox Node and deploys a new VM to it (based on a given template)
@@ -701,7 +695,7 @@ declare DEFUPGDELAY=1m
 
 # test all playbooks
 # gen: egrep '^declare \w+=|^export \w+=' pors |cut -d = -f1 |grep PB | cut -d " " -f2 | sed 's/^/$/g' | egrep -v "DIR|PBDEPLAPP" |tr "\n" " "
-PBS="$PBENAPP $PBREGENDEPLOY $PBDEPLSYSC $PBGETTARGETS $PBUPGRADE $PBSHINSTALL $PBSHRELOAD $PBSPLACT $PBINSTALL $PBINSTALLLOGSTREAM $PBCONFMN $PBCONFPEER $PBCONFSH $PBCONFHF $PBDLSPL $PBVCINFO $PBVCGETVHOSTSTATES $PBVCVMDEPLOY $PBVCSHOW $PBVMNEWDISK $PBVMDISKFORMAT $PBBASEINSTALL $PBSYSUPGRADE $PBSSHCHK $PBSYSREBOOT $PBCREATEUSER"
+PBS="$PBENAPP $PBREGENDEPLOY $PBDEPLSYSC $PBGETTARGETS $PBUPGRADE $PBSHINSTALL $PBSHRELOAD $PBSPLACT $PBINSTALL $PBINSTALLLOGSTREAM $PBCONFMN $PBCONFPEER $PBCONFSH $PBCONFHF $PBDLSPL $PBVCINFO $PBVCGETVHOSTSTATES $PBVCVMDEPLOY $PBVCSHOW $PBVMNEWDISK $PBBASEINSTALL $PBSYSUPGRADE $PBSSHCHK $PBSYSREBOOT $PBCREATEUSER"
 
 for pb in $PBS;do
     #find $PBDIR -name ${pb/*\/}
@@ -4787,7 +4781,7 @@ F_VSPHERE_DEPLOY(){
     # add as many disk(s) as needed
     if [ $DEPERR -eq 0 ]&&[ "$VMDISK" -ne 0 ]&&[ "$DEPLOYMODE" != "config_only" ];then
         # let it boot once to get the attached hdd name sorted
-        F_ABIN $HOSTFILE $PBVCVMPOWERON "Powering on $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOSTF','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${VCDC}'}"
+        #F_ABIN $HOSTFILE $PBVCVMPOWERON "Powering on $VMHOST ..." "-e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOSTF','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${VCDC}'}"
 
         VMDISKCNT=0
         while [ $VMDISKCNT -ne $VMDISK ];do
@@ -4809,7 +4803,7 @@ F_VSPHERE_DEPLOY(){
             F_LOG $FUNCNAME "adding $VMDISKMNTP"
             F_LOG $FUNCNAME "additional disk config needed. disks left: $VMDISK"
 
-            F_ABIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}'}"
+            F_ABIN $HOSTFILE $PBVMNEWDISK "Adding a new disk to $VMHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'${!VMDISKDC}','vsphere_datastore':'${!VMDISKDS}','server_scnd_disk':'$VMDISK','server_disk_type':'${!VMDISKTYPE}','server_scsi_controller':'$VMSCSI','server_disk_num':'$VMDISKCNT','server_disk_sizegb':'${!VMDISKSIZEGB}','server_disk_dev':'${!VMDISKDEV}','hw_profile':'$HWP'}"
             ADDERR=$?
             [ $ADDERR -ne 0 ] && F_LOG $FUNCNAME "error $ADDERR occured" && return $ADDERR
 
@@ -5347,12 +5341,17 @@ F_STARTVMDEP(){
                             VMDISKDC=${!VMDISKDC}
                         fi
                         DISKEXTRAARGS="vSphere_Datacenter 13 1 ${VMDISKDC} 13 42 40 40 vSphere_Datastorage 14 1 ${VMDISKDS} 14 42 40 40"
+                        # linux device path will be handled by vSphere UUIDs instead
+                        DISKASKPATH="Physical_device_path_within_the_VM 1 1 UNUSED-IN-VSPHERE 1 42 40 0"
                     ;;
-                    *) unset DISKEXTRAARGS ;;
+                    *)
+                        unset DISKEXTRAARGS
+                        DISKASKPATH="Physical_device_path_within_the_VM 1 1 ${!VMDISKDEV} 1 42 40 0"
+                    ;;
                 esac
 
                 DIAOUT=$(F_DIALOG --form "\nSetup your new disk ($VMDISKCNT of $VMDISK) for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)" 25 100 18\
-                            "Physical device path within the VM" 1 1 "${!VMDISKDEV}" 1 42 40 40  \
+                            $DISKASKPATH  \
                             "Filesystem to use (xfs,ext4,..)" 2 1 "${!VMDISKFS}" 2 42 40 20  \
                             "Disk size in GB" 3 1 "${!VMDISKSIZEGB}" 3 42 40 20 \
                             "Disk type (thin|eagerzeroedthick|thick)" 4 1 "${!VMDISKTYPE}" 4 42 40 16 \
@@ -5370,7 +5369,6 @@ F_STARTVMDEP(){
 
                 # normalize the output so it can be parsed correctly
                 NDIAOUT=$(echo -e "$DIAOUT" | tr "\n" "|")
-
                 UVMDISKDEV=$(echo "$NDIAOUT" | cut -d "|" -f 1 | tr -d " ")
                 UVMDISKFS=$(echo "$NDIAOUT" | cut -d "|" -f 2 | tr -d " ")
                 UVMDISKSIZEGB=$(echo "$NDIAOUT" | cut -d "|" -f 3 | tr -d " ")
@@ -5385,6 +5383,7 @@ F_STARTVMDEP(){
                 UVMDISKFSMOVE=$(echo "$NDIAOUT" | cut -d "|" -f 12 | tr -d " ")
                 UVMDISKDC=$(echo "$NDIAOUT" | cut -d "|" -f 13 | tr -d " ")
                 UVMDISKDS=$(echo "$NDIAOUT" | cut -d "|" -f 14 | tr -d " ")
+                UVMDISKDEV=$(echo "$NDIAOUT" | cut -d "|" -f 1 | tr -d " ")
 
                 echo "VMDISK${VMDISKCNT}TYPE=${UVMDISKTYPE}" >> $TMPHWPROFILE
                 echo "VMDISK${VMDISKCNT}FS=${UVMDISKFS}" >> $TMPHWPROFILE
@@ -5723,6 +5722,7 @@ F_FORMATDISK(){
             
         # dynamic variable names..
         VMDISKDEV="VMDISK${VMDISKCNT}DEV"
+        VMDISKDEV_UUID="VMDISK${VMDISKCNT}DEV_UUID"
         VMDISKOPTS="VMDISK${VMDISKCNT}OPTS"
         VMDISKFS="VMDISK${VMDISKCNT}FS"
         VMDISKFSMOVE="VMDISK${VMDISKCNT}FSMOVE"
@@ -5737,6 +5737,9 @@ F_FORMATDISK(){
 
         # special default mount option for SWAP
         [ "${!VMDISKFS}" == "swap" ] && VMDISKOPTS="sw"
+
+        # special handling if uuid is defined (e.g. req. for vSphere)
+        [ ! -z "${!VMDISKDEV_UUID}" ] && F_LOG "$FUNCNAME" "Replacing ${!VMDISKDEV} with ${!VMDISKDEV_UUID}" && VMDISKDEV="${VMDISKDEV_UUID}"
 
         if [ -z "${!VMDISKLVMLV}" ]||[ "${!VMDISKLVMLV}" == "VMDISK${VMDISKCNT}LVMLV" ];then
             F_LOG "$FUNCNAME" "Will configure without LVM.. (reason: >$VMDISKLVMLV<)"

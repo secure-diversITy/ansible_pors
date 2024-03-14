@@ -1,0 +1,16 @@
+---
+
+- name: Set directory owner and group
+  file:
+    path: "{{ logstream_installation.home_path }}"
+    owner: "{{ cribl_install_user }}"
+    group: "{{ cribl_install_group }}"
+    recurse: yes
+  when: 
+    - logstream_installation.set_permissions == true
+
+- name: Set directory permissions
+  file:
+    path: "{{ logstream_installation.home_path }}/"
+    mode: 0750
+  when: logstream_installation.set_permissions == true

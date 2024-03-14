@@ -18,7 +18,7 @@
  
 # ensure daemon is REALLY running ! Do not rely on init, systemd etc!!
 - name: Re-Check daemon status
-  shell: "sleep 10s && ps aux |egrep -v '(ssh|grep|tail|less|vim|vi|patrol)' |grep cribl"
+  shell: "sleep 10s && ps aux |grep -Ev '(ssh|grep|tail|less|vim|vi|patrol)' |grep cribl"
   register: daemon_laststate
   failed_when: daemon_laststate.rc != 0
 

@@ -1,19 +1,19 @@
 ---
-- name: Partitioning {{ server_disk_dev }}
+- name: "Partitioning {{ part_dev_name.stdout }}"
   parted:
-    device: "{{ server_disk_dev }}"
+    device: "{{ part_dev_name.stdout }}"
     number: 1
     label: gpt
     state: present
   when: server_disk_dev is defined
 
-- name: Make {{ server_disk_dev }} a swap device
+- name: "Make {{ part_dev_name.stdout }} a swap device"
   shell: "mkswap {{ server_disk_dev }}1"
   when: server_disk_dev is defined
 
-- name: add {{ server_disk_dev }} to fstab
+- name: "add {{ part_dev_name.stdout }} to fstab"
   mount:
-    src: "{{ server_disk_dev }}1"
+    src: "{{ part_dev_name.stdout }}1"
     path: none
     opts: "{{ server_disk_mountopts | default('sw')}}"
     fstype: swap
@@ -22,5 +22,5 @@
     state: present
   when: server_disk_dev is defined
 
-- name: Enable the new swap space
+- name: "Enable the new swap space"
   shell: swapon -a

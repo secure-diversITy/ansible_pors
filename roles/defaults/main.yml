@@ -207,3 +207,41 @@ system_yum:
         gengrub: True
     # enable (yes) or disable (no) this repo
     extras: "no"
+
+####### dnsmasq defaults #######
+
+# install + enable dnsmasq service?
+configure_install_dnsmasq: false
+
+# configure /etc/dnsmasq.conf
+dnsmasq_configure_conf_path: |-
+  {{- dnsmasq_configure_conf_dir | default("/etc") -}}
+  /{{ dnsmasq_configure_conf_filename | default("dnsmasq.conf") -}}
+
+# should we configure the NetworkManager for dnsmasq?
+# (set to false if you do not have NetworkManager running)
+# will also set /etc/resolv.conf -> localhost/dnsmasq
+dnsmasq_configure_networkmanager: true
+
+# dnsmasq.conf options
+# see all possible keys here: https://github.com/andrewrothstein/ansible-dnsmasq_configure/blob/main/defaults/main.yml
+dnsmasq_configure_privilege_escalate: true
+dnsmasq_configure_activate: true
+dnsmasq_configure_disable_systemd_resolved: false
+dnsmasq_configure_user: dnsmasq
+dnsmasq_configure_group: dnsmasq
+dnsmasq_configure_port: 53
+dnsmasq_configure_listen_addresses:
+  - "{{ ansible_lo['ipv4']['address'] }}"
+dnsmasq_configure_bind_interfaces: true
+dnsmasq_configure_domain_needed: false
+dnsmasq_configure_bogus_priv: true
+dnsmasq_configure_conf_file: /etc/dnsmasq.conf
+dnsmasq_configure_filterwin2k: true
+dnsmasq_configure_strict_order: true
+dnsmasq_configure_no_resolv: false  # must be false when using dnsmasq_configure_networkmanager: true
+dnsmasq_configure_resolv_file: /etc/resolv.conf
+dnsmasq_configure_no_poll: true
+dnsmasq_configure_cache_size: 5000
+dnsmasq_configure_no_negcache: false
+dnsmasq_configure_expand_hosts: true

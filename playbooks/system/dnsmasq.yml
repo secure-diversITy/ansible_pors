@@ -1,0 +1,17 @@
+---
+
+- name: "Install/Configure dnsmasq"
+  hosts: "{{ target }}"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  gather_facts: true
+
+  tasks:
+
+    - include_role:
+        name: common
+        public: yes
+
+    - import_role:
+        name: system_dnsmasq

@@ -15,6 +15,7 @@
     - logstream_upgrade == True
 
 - include: install.yml
+- include: set_perms.yml
 
 - name: "CUSTOM: post-install tasks (if defined)"
   include_role:
@@ -29,5 +30,6 @@
 - include: optimize_initd.yml
   when: ansible_facts.service_mgr != "systemd"
 
+- include: set_perms.yml
 - include: service_start.yml
 - include: sudoperms.yml

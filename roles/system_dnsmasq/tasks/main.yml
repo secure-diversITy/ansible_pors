@@ -1,0 +1,9 @@
+---
+
+- block:
+
+    - include: install.yml
+    - include: configure.yml
+    - include: activate.yml
+
+  when: configure_install_dnsmasq

@@ -43,6 +43,9 @@
         dns_servers:
         - "{{ server_dns1 }}"
         - "{{ server_dns2 }}"
+      advanced_settings:
+        - key: "disk.EnableUUID"
+          value: 'TRUE'
 
   - name: "Set hotplug options (if defined)"
     community.vmware.vmware_guest:

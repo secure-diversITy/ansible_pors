@@ -4,9 +4,9 @@
     path: "{{ server_tmp_mnt }}"
     state: directory
 
-- name: "Mount new disk {{ server_disk_dev }} to temp mount {{ server_tmp_mnt }} (no LVM)"
+- name: "Mount new disk {{ part_dev_name.stdout }} to temp mount {{ server_tmp_mnt }} (no LVM)"
   mount:
-    src: "{{ server_disk_dev }}1"
+    src: "{{ part_dev_name.stdout }}1"
     path: "{{ server_tmp_mnt }}"
     fstype: "{{ server_disk_fs }}"
     state: mounted
@@ -32,9 +32,9 @@
     path: "{{ server_tmp_mnt }}"
     state: absent
 
-- name: "Update fstab -> {{ server_disk_dev }} (no LVM)"
+- name: "Update fstab -> {{ part_dev_name.stdout }} (no LVM)"
   mount:
-    src: "{{ server_disk_dev }}1"
+    src: "{{ part_dev_name.stdout }}1"
     path: "{{ server_disk_mountpoint }}"
     fstype: "{{ server_disk_fs }}"
     state: mounted

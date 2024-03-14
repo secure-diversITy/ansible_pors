@@ -1,0 +1,27 @@
+---
+
+- name: Enabling the dnsmasq service
+  ansible.builtin.service:
+    name: dnsmasq
+    state: restarted
+    enabled: true
+  when:
+    - dnsmasq_configure_activate
+    - not dnsmasq_configure_networkmanager
+
+- block:
+
+    - name: "Disabling the regular dnsmasq service (handled by NM)"
+      ansible.builtin.service:
+        name: dnsmasq
+        state: stopped
+        enabled: false
+
+    - name: "Restarting NetworkManager to start dnsmasq"
+      ansible.builtin.service:
+        name: NetworkManager
+        state: restarted
+
+  when:
+    - dnsmasq_configure_networkmanager
+    - (dnsmasq_nm_setup.changed or dnsmasq_nm_conf.changed or dnsmasq_conf.changed)

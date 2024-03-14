@@ -1,0 +1,7 @@
+---
+
+- name: "Ensure dnsmasq is installed"
+  package:
+    name: dnsmasq
+    state: present
+

@@ -1,0 +1,336 @@
+# dnsmasq.conf
+{% if dnsmasq_configure_port is defined %}
+port={{ dnsmasq_configure_port }}
+{% endif %}
+
+{%- if dnsmasq_configure_domain_needed | default(False) %}
+domain-needed
+{% endif %}
+
+{%- if dnsmasq_configure_bogus_priv | default(False) %}
+bogus-priv
+{% endif %}
+
+{%- if dnsmasq_configure_conf_file is defined %}
+conf-file={{ dnsmasq_configure_conf_file }}
+{% endif %}
+
+{%- if dnsmasq_configure_dnssec | default(False) %}
+dnssec
+{% endif %}
+
+{%- if dnsmasq_configure_dnssec_check_unsigned | default(False) %}
+dnssec-check-unsigned
+{% endif %}
+
+{%- if dnsmasq_configure_filterwin2k | default(False) %}
+filterwin2k
+{% endif %}
+
+{%- if dnsmasq_configure_resolv_file is defined %}
+resolv-file={{ dnsmasq_configure_resolv_file }}
+{% endif %}
+
+{%- if dnsmasq_configure_strict_order | default(False) %}
+strict-order
+{% endif %}
+
+{%- if dnsmasq_configure_no_resolv | default(False) %}
+no-resolv
+{% endif %}
+
+{%- if dnsmasq_configure_no_poll | default(False) %}
+no-poll
+{% endif %}
+
+{%- for server in dnsmasq_configure_servers | default([]) %}
+server=
+  {%- if server.domain is defined %}/{{ server.domain }}/
+  {%- endif %}{{ server.ip }}
+  {%- if server.interface is defined %}@{{ server.interface }}{% endif +%}
+{% endfor %}
+
+{%- for rs in dnsmasq_configure_rev_servers | default([]) %}
+{%   if rs.subnet is defined %}
+rev-server={{ rs.subnet }},{{ rs.nameserver }}
+{%   elif rs.subnets is defined %}
+{%     for s in rs.subnets %}
+rev-server={{ s }},{{ rs.nameserver }}
+{%     endfor %}
+{%   endif %}
+{% endfor %}
+
+{%- for d in dnsmasq_configure_locals | default([]) %}
+local=/{{ d }}/
+{% endfor %}
+
+{%- for a in dnsmasq_configure_addresses | default({}) %}
+address=/{{ a.domain }}/{{ a.ip }}
+{% endfor %}
+
+{%- for s in dnsmasq_configure_ipsets | default([]) %}
+ipset={{ s.domains | join('/') }}/{{ s.sets | join(',') }}
+{% endfor %}
+
+{%- for s in dnsmasq_configure_nftsets | default([]) %}
+ntfset={{ s.domains | join('/') }}/{{ s.sets | join(',') }}
+{% endfor %}
+
+{%- for s in dnsmasq_configure_talks | default([]) %}
+server={{ s.server }}@{{ s.target }}
+{%-  if s.port is defined %}#{{ s.port }}{% endif +%}
+{% endfor %}
+
+{%- if dnsmasq_configure_user is defined %}
+user={{ dnsmasq_configure_user }}
+{% endif %}
+
+{%- if dnsmasq_configure_group is defined %}
+group={{ dnsmasq_configure_group }}
+{% endif %}
+
+{%- for i in dnsmasq_configure_interfaces | default([]) %}
+interface={{ i }}
+{% endfor %}
+
+{%- for ei in dnsmasq_configure_except_interfaces | default([]) %}
+except-interface={{ ei }}
+{% endfor %}
+
+{%- for a in dnsmasq_configure_listen_addresses | default([]) %}
+listen-address={{ a }}
+{% endfor %}
+
+{%- for i in dnsmasq_configure_no_dhcp_interfaces | default([]) %}
+no-dhcp-interface={{ i }}
+{% endfor %}
+
+{%- if dnsmasq_configure_bind_interfaces | default(False) %}
+bind-interfaces
+{% endif %}
+
+{%- if dnsmasq_configure_no_hosts | default(False) %}
+no-hosts
+{% endif %}
+
+{%- for hf in dnsmasq_configure_addn_hosts | default([]) %}
+addn-hosts={{ hf }}
+{% endfor %}
+
+{%- if dnsmasq_configure_expand_hosts | default(False) %}
+expand-hosts
+{% endif %}
+
+{%- for d in dnsmasq_configure_domains | default([]) %}
+domain={{ d.domain }}
+  {%- if d.subnet is defined %},{{ d.subnet }}
+  {%- elif d.range is defined %},{{ d.range.from }},{{ d.range.to }}
+  {%- endif +%}
+{% endfor %}
+
+{%- for r in dnsmasq_configure_dhcp_ranges | default([]) %}
+dhcp-range=
+  {%- if r.subnet is defined %}{{ r.subnet }}
+    {%- if r.static | default(False) | bool %},static{% endif %}
+    {%- if r.ra_only | default(False) | bool %},ra-only{% endif %}
+    {%- if r.ra_stateless | default(False) | bool %},ra-stateless{% endif %}
+    {%- if r.ra_names | default(False) | bool %},ra-names{% endif %}
+    {%- if r.duration is defined %},{{ r.duration }}{% endif %}
+  {%- else %}
+    {%- if r.set is defined %}set:{{ r.set }},{% endif %}
+    {{- r.range.from }},{{ r.range.to }}
+    {%- if r.slaac | default(False) | bool %},slaac{% endif %}
+    {%- if r.netmask is defined %},{{ r.netmask }}{% endif %}
+    {%- if r.prefix is defined %},{{ r.prefix }}{% endif %}
+    {%- if r.duration is defined %},{{ r.duration }}{% endif %}
+  {%- endif +%}
+{% endfor %}
+
+{%- if dnsmasq_configure_enable_ra | default(False) | bool %}
+enable-ra
+{% endif %}
+
+{%- for h in dnsmasq_configure_dhcp_hosts | default([]) %}
+dhcp-host={{ h.mac }}
+  {%- if h.host is defined %},{{ h.host }}{% endif %}
+  {%- if h.address is defined %},{{ h.address }}{% endif %}
+  {%- if h.ipv6 is defined %},{{ h.ipv6 }}{% endif %}
+  {%- if h.duration is defined %},{{ h.duration }}{% endif %}
+  {%- if h.infinite | default(False) | bool %},infinite{% endif %}
+  {%- if h.ignore | default(False) | bool %},ignore{% endif %}
+  {%- if h.ignore_all | default(False) | bool %},id:*{% endif %}
+  {%- if h.set is defined %},set:{{ h.set }}{% endif +%}
+{% endfor %}
+
+{%- if dnsmasq_configure_dhcp_ignore_tag is defined %}
+dhcp-ignore=tag:{{ dnsmasq_configure_dhcp_ignore_tag }}
+{% endif %}
+
+{%- for vc in dnsmasq_configure_dhcp_vendor_classes | default([]) %}
+dhcp-vendorclass=set:{{ vc.set }},{{ vc.includes }}
+{% endfor %}
+
+{%- for uc in dnsmasq_configure_dhcp_user_classes | default([]) %}
+dhcp-userclass=set:{{ uc.set }},{{ uc.includes }}
+{% endfor %}
+
+{%- for m in dnsmasq_configure_dhcp_macs | default([]) %}
+dhcp-mac=set:{{ m.set }},{{ m.mac_pattern }}
+{% endfor %}
+
+{%- if dnsmasq_configure_read_ethers | default(False) %}
+read-ethers
+{% endif %}
+
+{%- for o in dnsmasq_configure_dhcp_options | default([]) %}
+dhcp-option{% if o.force | default(False) | bool %}-force{% endif %}=
+{%-  if o.tag is defined %}{{ o.tag }},{% endif %}{{ o.opt }}
+{%-  if o.val is defined %},{{ o.val }}
+{%-  elif o.vals is defined %}{{ o.vals | join(",") }}
+{%-  endif +%}
+{% endfor %}
+
+{%- for b in dnsmasq_configure_dhcp_boots | default([]) %}
+dhcp-boot=
+{%-  if b.tag is defined %}tag:{{ b.tag }}
+{%-  elif b.tags is defined -%}tag:{{ b.tags | join(",tag:") }}
+{%-  endif %},{{ b.file }}
+{%-  if b.tftp_servername is defined %},{{ b.tftp_servername }}{%  endif %}
+{%-  if b.tftp_servernames is defined %},{{ b.tftp_servernames | join(",") }}{%  endif +%}
+{% endfor %}
+
+{%- for m in dnsmasq_configure_dhcp_matches | default([]) %}
+dhcp-match=
+{%-  if m.set is defined %}set:{{ m.set }}
+{%-  else %}{{ m.opt }}
+{%-  endif %},{{ m.val }}
+{% endfor %}
+
+{%- for pp in dnsmasq_configure_pxe_prompts | default([]) %}
+pxe-prompt={{ pp.prompt | quote }}
+  {%- if pp.wait is defined %},{{ pp.wait }}
+  {%- endif +%}
+{% endfor %}
+
+{%- for ps in dnsmasq_configure_pxe_services | default([]) %}
+pxe-service={{ ps.id }},{{ ps.name | quote }}
+  {%- if ps.image is defined %},{{ ps.image }}{% endif %}
+  {%- if ps.tftp_server is defined %},{{ ps.tftp_server }}{% endif +%}
+{% endfor %}
+
+{%- if dnsmasq_configure_enable_tftp | default(False) %}
+enable-tftp
+{% endif %}
+
+{%- if dnsmasq_configure_tftp_root is defined %}
+tftp-root={{ dnsmasq_configure_tftp_root }}
+{% endif %}
+
+{%- if dnsmasq_configure_tftp_no_fail | default(False) %}
+tftp-no-fail
+{% endif %}
+
+{%- if dnsmasq_configure_tftp_secure | default(False) %}
+tftp-secure
+{% endif %}
+
+{%- if dnsmasq_configure_tftp_no_blocksize | default(False) %}
+tftp-no-blocksize
+{% endif %}
+
+{%- if dnsmasq_configure_dhcp_lease_max is defined %}
+dhcp-lease-max={{ dnsmasq_configure_dhcp_lease_max }}
+{% endif %}
+
+{%- if dnsmasq_configure_dhcp_leasefile is defined %}
+dhcp-leasefile={{ dnsmasq_configure_dhcp_leasefile }}
+{% endif %}
+
+{%- if dnsmasq_configure_dhcp_authoritative | default(False) %}
+dhcp-authoritative
+{% endif %}
+
+{%- if dnsmasq_configure_dhcp_script is defined %}
+dhcp-script={{ dnsmasq_configure_dhcp_script }}
+{% endif %}
+
+{%- if dnsmasq_configure_cache_size is defined %}
+cache-size={{ dnsmasq_configure_cache_size }}
+{% endif %}
+
+{%- if dnsmasq_configure_no_negcache | default(False) %}
+no-negcache
+{% endif %}
+
+{%- if dnsmasq_configure_local_ttl is defined %}
+local-ttl={{ dnsmasq_configure_local_ttl }}
+{% endif %}
+
+{%- if dnsmasq_configure_bogus_nxdomain is defined %}
+bogus-nxdomain={{ dnsmasq_configure_bogus_nxdomain }}
+{% endif %}
+
+{%- for a in dnsmasq_configure_aliases | default([]) %}
+alias={{ a.src }},{{ a.target }}
+  {%- if a.netmask is defined %},{{ a.netmask }}{% endif +%}
+{% endfor %}
+
+{%- if dnsmasq_configure_mx_host is defined %}
+mx-host={{ [ dnsmasq_configure_mx_host.record,
+  dnsmasq_configure_mx_host.target,
+  dnsmasq_configure_mx_host.preference ] | join(",") }}
+{% endif %}
+
+{%- if dnsmasq_configure_mx_target is defined %}
+mx-target={{ dnsmasq_configure_mx_target }}
+{% endif %}
+
+{%- if dnsmasq_configure_localmx | default(False) %}
+localmx
+{% endif %}
+
+{%- if dnsmasq_configure_selfmx | default(False) %}
+selfmx
+{% endif %}
+
+{%- for h in dnsmasq_configure_srv_hosts | default([]) %}
+{%   if h.domain is defined %}
+domain={{ h.domain }}
+{%   endif %}
+srv-host={{ h.name }}
+{%-  if h.target is defined %},{{ h.target }}{% endif %}
+{%-  if h.port is defined %},{{ h.port }}{% endif %}
+{%-  if h.priority is defined %},{{ h.priority }}{% endif %}
+{%-  if h.weight is defined %},{{ h.weight }}{% endif +%}
+{% endfor %}
+
+{%- for p in dnsmasq_configure_ptr_records | default([]) %}
+ptr-record={{ p.name }},{{ p.val | quote }}
+{% endfor %}
+
+{%- for t in dnsmasq_configure_txt_records | default([]) %}
+txt-record={{ t.name }}
+{%-  if t.vals is defined %},{{ t.vals | map('quote') | join(",") }}{% endif +%}
+{% endfor %}
+
+{%- for cn in dnsmasq_configure_cnames | default([]) %}
+cname={{ cn.local }},{{ cn.alias }}
+{% endfor %}
+
+{%- if dnsmasq_configure_log_queries | default(False) %}
+log-queries
+{% endif %}
+
+{%- if dnsmasq_configure_log_dhcp | default(False) %}
+log-dhcp
+{% endif %}
+
+{%- for f in dnsmasq_configure_conf_files | default([]) %}
+conf-file={{ f }}
+{% endfor %}
+
+{%- for d in dnsmasq_configure_conf_dirs | default([]) %}
+conf-dir={{ d.d }}
+  {%- if d.includes is defined %},*{{ d.includes | join(",*") }}{% endif %}
+  {%- if d.excludes is defined %},{{ d.excludes | join(",") }}{% endif +%}
+{% endfor %}

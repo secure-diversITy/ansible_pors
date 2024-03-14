@@ -29,3 +29,6 @@
 
     - include_role:
         name: system_journal
+
+    - include_role:
+        name: system_dnsmasq

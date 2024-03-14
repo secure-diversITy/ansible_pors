@@ -1,21 +1,21 @@
 ---
-- name: partitioning {{ server_disk_dev }}
+- name: "partitioning {{ part_dev_name.stdout }}"
   parted: 
-    device: "{{ server_disk_dev }}" 
+    device: "{{ part_dev_name.stdout }}"
     number: 1
     label: gpt
     state: present
   when: server_disk_dev is defined 
 
-- name: format {{ server_disk_dev }} with {{ server_disk_fs }}
+- name: "format {{ part_dev_name.stdout }} with {{ server_disk_fs }}"
   filesystem:
     fstype: "{{ server_disk_fs }}"
-    dev: "{{ server_disk_dev }}1"
+    dev: "{{ part_dev_name.stdout }}1"
   when: server_disk_dev is defined
 
-- name: add {{ server_disk_dev }} to fstab
+- name: "add {{ part_dev_name.stdout }} to fstab"
   mount:
-    src: "{{ server_disk_dev }}1"
+    src: "{{ part_dev_name.stdout }}1"
     path: "{{ server_disk_mountpoint }}"
     opts: "{{ server_disk_mountopts | default('defaults', true)}}"
     fstype: "{{ server_disk_fs }}"
@@ -24,7 +24,7 @@
     state: present
   when: server_disk_dev is defined
 
-- name: create mountpoint {{ server_disk_mountpoint }} 
+- name: "create mountpoint {{ server_disk_mountpoint }}"
   file:
     path: "{{ server_disk_mountpoint }}"
     mode: '0755'

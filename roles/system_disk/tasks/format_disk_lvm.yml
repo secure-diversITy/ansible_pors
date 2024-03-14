@@ -1,34 +1,34 @@
 ---
 
-- name: partitioning {{ server_disk_dev }}
+- name: "partitioning {{ server_disk_dev }}"
   parted: 
-    device: "{{ server_disk_dev }}" 
+    device: "{{ part_dev_name.stdout }}" 
     number: 1
     flags: [ lvm ]
     label: gpt
     state: present
   when: server_disk_dev is defined
 
-- name: create new lvm volgroup {{ server_lvm_vg }} with {{ server_disk_dev }}1
+- name: "create new lvm volgroup {{ server_lvm_vg }} with {{ part_dev_name.stdout }}1"
   lvg:
     vg: "{{ server_lvm_vg }}"
-    pvs: "{{ server_disk_dev }}1"
+    pvs: "{{ part_dev_name.stdout }}1"
   when: server_disk_dev is defined
 
-- name: create {{ server_lvm_lv }} logical volume in {{ server_lvm_vg }}
+- name: "create {{ server_lvm_lv }} logical volume in {{ server_lvm_vg }}"
   lvol:
     vg: "{{ server_lvm_vg }}"
     lv: "{{ server_lvm_lv }}"
     size: 100%FREE
   when: server_disk_dev is defined
 
-- name: format /dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }} with {{ server_disk_fs }}
+- name: "format /dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }} with {{ server_disk_fs }}"
   filesystem:
     fstype: "{{ server_disk_fs }}"
     dev: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
   when: server_disk_dev is defined
 
-- name: add {{ server_disk_dev }} to fstab
+- name: "add {{ server_disk_dev }} to fstab"
   mount:
     src: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
     path: "{{ server_disk_mountpoint }}"
@@ -39,7 +39,7 @@
     state: present
   when: server_disk_dev is defined
 
-- name: create mountpoint {{ server_disk_mountpoint }} 
+- name: "create mountpoint {{ server_disk_mountpoint }}"
   file:
     path: "{{ server_disk_mountpoint }}"
     mode: '0755'
