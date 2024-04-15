@@ -12,7 +12,7 @@
 - name: "Configure outputs.conf [indexer_discovery] - master_uri state=present (dynamic)"
   ini_file: dest={{ splunk_conf_path }}/outputs.conf
             section=indexer_discovery:{{ item.key }}
-            option=master_uri
+            option=manager_uri
             value="https://{{ groups['masternode'][0] }}:8089"
             state=present
   when:
@@ -25,7 +25,7 @@
 - name: "Configure outputs.conf [indexer_discovery] - master_uri state=present (static)"
   ini_file: dest={{ splunk_conf_path }}/outputs.conf
             section=indexer_discovery:{{ item.key }}
-            option=master_uri
+            option=manager_uri
             value={{ item.value.master_uri }}
             state=present
   when:
@@ -38,7 +38,7 @@
 - name: "Configure outputs.conf [indexer_discovery] - master_uri state=absent (default)"
   ini_file: dest={{ splunk_conf_path }}/outputs.conf
             section=indexer_discovery:{{ item.key }}
-            option=master_uri
+            option=manager_uri
             state=absent
   when:
     - splunk_outputs_conf.indexer_discovery[item.key] is defined
