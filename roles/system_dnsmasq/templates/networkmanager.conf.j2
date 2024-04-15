@@ -1,0 +1,21 @@
+# {{ pors_managed_marker }}
+
+[main]
+dns=dnsmasq
+
+[global-dns]
+searches={% for server in dnsmasq_configure_searchdomains | default([]) %}{{ server }},{% endfor %}
+
+
+[global-dns-domain-*]
+servers={% for server in dnsmasq_configure_servers | default([]) %}{{ server.ip }},{% endfor %}
+
+{% for server in dnsmasq_configure_servers | default([]) %}
+{% if server.domain is defined and server.ip is defined and server.domain != "in-addr.arpa" %}
+
+[global-dns-domain-{{ server.domain }}]
+servers={{ server.ip }}
+
+{% endif %}
+{% endfor %}
+

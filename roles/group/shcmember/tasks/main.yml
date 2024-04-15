@@ -1,7 +1,8 @@
 ---
-- include: state.yml
 
 - include: restart_shcmember.yml
+
+- include: state.yml
 
 #- include: init.yml
 #  when: captain_elected.rc != 0

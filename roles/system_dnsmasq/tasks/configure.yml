@@ -9,14 +9,11 @@
 
 - block:
 
-  - name: "Use dnsmasq in NetworkManager"
-    community.general.ini_file:
-      path: /etc/NetworkManager/conf.d/00-use-dnsmasq.conf
-      section: main
-      option: dns
-      value: dnsmasq
-      no_extra_spaces: true
-      create: true
+  - name: "Configure dnsmasq in NetworkManager"
+    ansible.builtin.template:
+      src: networkmanager.conf.j2
+      dest: '{{ dnsmasq_networkmanager_confd }}/00-use-dnsmasq.conf'
+      mode: '644'
     register: dnsmasq_nm_setup
 
   - name: "Include dnsmasq config in NetworkManager"

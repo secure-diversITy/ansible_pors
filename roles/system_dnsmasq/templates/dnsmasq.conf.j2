@@ -1,4 +1,4 @@
-# dnsmasq.conf
+# {{ pors_managed_marker }}
 {% if dnsmasq_configure_port is defined %}
 port={{ dnsmasq_configure_port }}
 {% endif %}
@@ -48,6 +48,10 @@ server=
   {%- if server.domain is defined %}/{{ server.domain }}/
   {%- endif %}{{ server.ip }}
   {%- if server.interface is defined %}@{{ server.interface }}{% endif +%}
+{% endfor %}
+
+{%- for server in dnsmasq_configure_arpa_servers | default([]) %}
+server=/{{ server.domain | d('in-addr.arpa') }}/{{ server.ip }}
 {% endfor %}
 
 {%- for rs in dnsmasq_configure_rev_servers | default([]) %}
@@ -334,3 +338,7 @@ conf-dir={{ d.d }}
   {%- if d.includes is defined %},*{{ d.includes | join(",*") }}{% endif %}
   {%- if d.excludes is defined %},{{ d.excludes | join(",") }}{% endif +%}
 {% endfor %}
+
+{%- if dnsmasq_configure_all_servers | default(False) %}
+all-servers
+{% endif %}
