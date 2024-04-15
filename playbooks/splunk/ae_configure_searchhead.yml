@@ -1,21 +1,33 @@
 ---
 # HINT: The "hosts" value here is a dynamic group name used in PORS
 
-- name: Configure splunk searchheads
+- name: "Configure splunk searchheads"
   hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
 
-  roles:
-    - system_sshid
-    - group/searchhead
-    - conf/web
-    - conf/outputs
-    - conf/server
-
   vars:
     splunk_restart: True
+
+  tasks:
+    - include_role:
+        name: conf/ldap
+
+    - include_role:
+        name: system_sshid
+
+    - include_role:
+        name: group/searchhead
+
+    - include_role:
+        name: conf/web
+
+    - include_role:
+        name: conf/outputs
+
+    - include_role:
+        name: conf/server
 
   # flush notify handlers to activate the splunk config
   post_tasks:

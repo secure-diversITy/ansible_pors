@@ -1,27 +1,39 @@
 ---
 # HINT: The "hosts" value here is a dynamic group name used in PORS
 
-- name: Configure splunk shcmember
+- name: "Configure a splunk shcmember"
   hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
 
-  roles:
-    - system_sshid
-    - conf/web
-    - conf/outputs
-    - conf/server
-    - group/shcmember
-
   vars:
     splunk_restart: True
 
-  # flush notify handlers to activate the splunk config
+  tasks:
+    - include_role:
+        name: conf/ldap
+
+    - include_role:
+        name: system_sshid
+
+    - include_role:
+        name: conf/web
+
+    - include_role:
+        name: conf/outputs
+
+    - include_role:
+        name: conf/server
+
+    - include_role:
+        name: group/shcmember
+
+  # flush notify handlers to force-activate the splunk config -now-
   post_tasks:
     - meta: flush_handlers
 
-- name: Deploy keys (peernode)
+- name: "Deploy keys (peernode)"
   hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
@@ -29,14 +41,13 @@
 
   vars:
     parsed_groups: "peernode"
-
-  roles:
-    - group/searchhead
-
-  vars:
     splunk_restart: True
 
-  # flush notify handlers to activate the splunk config
+  tasks:
+    - include_role:
+        name: group/searchhead
+
+  # flush notify handlers to force-activate the splunk config
   post_tasks:
     - meta: flush_handlers
 

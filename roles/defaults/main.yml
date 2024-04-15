@@ -120,13 +120,22 @@ splunk_newuser_default_role: user
 
 ###### splunk_configuration.yml ########
 
-splunk_conf_path: /opt/splunk/etc/system/local
+splunk_conf_path: "{{ splunk_installation.splunk_home_path }}/etc/system/local"
 splunk_install_user: splunk
 splunk_install_group: splunk
 splunk_install_user_shell: /bin/bash
 lm_push_license: True
 splunk_ssh_key: "~/.ssh/{{ splunk_install_user }}_ed25519"
 add_local_ssh_config: False
+
+## ldap config ({{ splunk_home_path }}/etc/openldap/ldap.conf)
+splunk_ldap_configure: False
+splunk_ldap_ssl: start_tls
+splunk_ldap_tls_reqcert: never
+splunk_ldap_tls_min: '3.2'
+splunk_ldap_tls_cypher_suite: HIGH
+#splunk_ldap_tls_cacert - no default
+#splunk_ldap_tls_cacertdir - no default
 
 ####### splunk_installation.yml ########
 

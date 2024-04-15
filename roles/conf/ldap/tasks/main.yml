@@ -1,0 +1,4 @@
+---
+
+- include: configure.yml
+  when: splunk_ldap_configure

@@ -33,3 +33,12 @@
 # (if using /opt/pors_repo and you are in the staging environment)
 # Possible values: True | False
 #lm_push_license: True
+
+## configure ldap config ({{ splunk_home_path }}/etc/openldap/ldap.conf)
+#splunk_ldap_configure: False
+#splunk_ldap_ssl: start_tls
+#splunk_ldap_tls_reqcert: never
+#splunk_ldap_tls_min: '3.2'
+#splunk_ldap_tls_cypher_suite: HIGH
+#splunk_ldap_tls_cacert - no default
+#splunk_ldap_tls_cacertdir - no default

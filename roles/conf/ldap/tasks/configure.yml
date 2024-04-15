@@ -1,0 +1,7 @@
+---
+
+- name: "Configure splunk's openldap connection"
+  ansible.builtin.template:
+    src: ldap.j2
+    dest: "{{ splunk_installation.splunk_home_path }}/etc/openldap/ldap.conf"
+    mode: 0600
