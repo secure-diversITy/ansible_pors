@@ -17,5 +17,4 @@
   when:
     - splunk_server_conf.shclustering is defined
     - splunk_server_conf.shclustering.disabled == False
-  no_log: true
   run_once: true
