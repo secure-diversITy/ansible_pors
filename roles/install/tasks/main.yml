@@ -97,6 +97,7 @@
     - set_fact:
         splunk_username: "{{ vault_splunk_ae_user }}"
         splunk_password: "{{vault_splunk_ae_password }}"
+        splunk_user_role: admin
       no_log: true
 
     - set_fact:
@@ -111,13 +112,14 @@
   when:
     - splshcmember.stdout is defined and splshcmember.stdout == "member"
 
-- include: add_spl_ae_user.yml
-  vars:
-    replace_roles: replace
+- block:
+    - include: add_spl_ae_user.yml
+      vars:
+        replace_roles: replace
+    - include_tasks: splunk_stop.yml
+    - include_tasks: splunk_start.yml
+    - include: post_actions.yml
   when: not splunk_upgrade
-
-- include: post_actions.yml
-  when: splunk_upgrade == False
 
 - include: sudoperms.yml
   when: install_splunk_sudoperms is defined and install_splunk_sudoperms == true

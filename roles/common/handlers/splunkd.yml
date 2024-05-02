@@ -9,8 +9,17 @@
   when: (splunk_stop is defined and splunk_stop) or ( splunk_action is defined and splunk_action == "stop")
   register: action_result
 
+#- name: splunk restart
+#  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart --accept-license --answer-yes"
+#  when: ((splunk_restart is defined and splunk_restart) or ( splunk_action is defined and splunk_action == "restart"))
+ # register: action_result
+
 - name: splunk restart
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart --accept-license --answer-yes"
+  become: yes
+  become_user: root
+  shell: "systemctl restart splunk"
+  async: 600
+  poll: 5
   when: ((splunk_restart is defined and splunk_restart) or ( splunk_action is defined and splunk_action == "restart"))
   register: action_result
 

@@ -1,6 +1,18 @@
 ---
 
+- name: "Check if we can get a shc state"
+  shell: |
+     sleep 3m && {{ splunk_installation.splunk_home_path }}/bin/splunk show shcluster-status -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' | grep -i Members
+  args:
+    executable: /bin/bash
+  register: get_shc_state
+  changed_when: get_shc_state.rc == 999
+
 - name: "Check if there is a captain already"
-  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk show shcluster-status -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' |grep elected_captain"
+  shell: |
+    {{ splunk_installation.splunk_home_path }}/bin/splunk show shcluster-status -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}' | grep elected_captain
+  args:
+    executable: /bin/bash
   register: captain_elected
   ignore_errors: yes
+  when: get_shc_state.rc == 0

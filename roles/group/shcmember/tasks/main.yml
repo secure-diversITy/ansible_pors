@@ -4,11 +4,14 @@
 
 - include: state.yml
 
-#- include: init.yml
-#  when: captain_elected.rc != 0
-
 - include: bootstrap.yml
-  when: captain_elected.rc != 0
+  when:
+    - get_shc_state.rc == 0
+    - captain_elected.rc != 0
+
+- include_role:
+    name: common_tasks 
+    tasks_from: monitoring.yml
 
 - include: restart_shcmember.yml
   when: captain_elected.rc != 0

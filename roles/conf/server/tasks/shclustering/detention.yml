@@ -1,0 +1,28 @@
+---
+#####################################################################################################################
+# Configurations for Splunk server.conf
+#####################################################################################################################
+
+#####################################################################################################################
+# [shclustering]
+#####################################################################################################################
+
+- name: "Configure server.conf [shclustering] - detention"
+  community.general.ini_file:
+    dest: "{{ splunk_conf_path }}/server.conf"
+    section: shclustering
+    option: manual_detention
+    value: 'on'
+    state: present
+  when: shc_detention_state | d(False)
+  notify: splunk restart
+
+- name: "Configure server.conf [shclustering] - detention"
+  community.general.ini_file:
+    dest: "{{ splunk_conf_path }}/server.conf"
+    section: shclustering
+    option: manual_detention
+    value: 'off'
+    state: absent
+  when: not shc_detention_state | d(False)
+  notify: splunk restart

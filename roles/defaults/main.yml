@@ -139,6 +139,8 @@ splunk_ldap_tls_cypher_suite: HIGH
 
 ####### splunk_installation.yml ########
 
+splunk_systemd_unit_name: splunk
+
 splunk_ulimit_nofile_softhard: 65536
 splunk_ulimit_nproc_soft: 16000
 splunk_ulimit_nproc_hard: 16000

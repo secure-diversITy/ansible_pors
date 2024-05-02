@@ -3,8 +3,18 @@
 # Restart shcmembers
 #####################################################################################################################
 
-- name: Run splunk restart
-  command: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart"
+- name: "(Re-)Start splunkd"
+  become: yes
+  become_user: root
+  shell: "systemctl restart splunk"
+  async: 600
+  poll: 5
   when:
     - splunk_server_conf.shclustering is defined
     - splunk_server_conf.shclustering.disabled == False
+
+#- name: Run splunk restart
+#  command: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart"
+#  when:
+#    - splunk_server_conf.shclustering is defined
+#    - splunk_server_conf.shclustering.disabled == False

@@ -1,0 +1,5 @@
+---
+
+- name: "Set manual detention: {{ shc_detention_state }}"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit shcluster-config -manual_detention {{ shc_detention_state }}"
+
