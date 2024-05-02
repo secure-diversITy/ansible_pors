@@ -7,11 +7,23 @@
   become: yes
   become_user: "{{ splunk_install_user }}"
 
-  roles:
-    - system_sshid
-    - conf/web
-    - conf/outputs
-    - conf/server
-    - group/licensemaster
+  tasks:
 
+    - include_role:
+        name: system_sshid
 
+    - include_role:
+        name: conf/web
+
+    - include_role:
+        name: conf/outputs
+
+    - include_role:
+        name: conf/server
+
+    - include_role:
+        name: group/licensemaster
+
+    - include_role:
+        name: common_tasks
+        tasks_from: monitoring.yml

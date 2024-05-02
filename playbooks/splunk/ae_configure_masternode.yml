@@ -7,15 +7,29 @@
   become: yes
   become_user: "{{ splunk_install_user }}"
 
-  roles:
-    - system_sshid
-    - conf/web
-    - conf/outputs
-    - conf/server
-#    - group/searchhead
-
   vars:
     splunk_restart: True
+
+  tasks:
+
+    - include_role:
+        name: system_sshid
+
+    - include_role:
+        name: conf/web
+
+    - include_role:
+        name: conf/outputs
+
+    - include_role:
+        name: conf/server
+
+#    - include_role:
+#        name: group/searchhead
+
+    - include_role:
+        name: common_tasks
+        tasks_from: monitoring.yml
 
   # flush notify handlers to activate the splunk config
   post_tasks:

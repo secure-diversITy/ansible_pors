@@ -1,0 +1,21 @@
+---
+
+- name: "Ensure distServerKeys exists"
+  ansible.builtin.file:
+    path: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/"
+    mode: 0700
+    owner: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_user }}"
+    state: directory
+
+- name: "Construct MC short name"
+  ansible.builtin.set_fact:
+    mc_host_split: "{{ groups['dmc'] | first | split('.') }}"
+
+- name: "Deploy key for distributed monitoring console"
+  copy:
+    owner: "{{ splunk_install_user }}"
+    src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ mc_host_split[0] }}"
+    dest: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/"
+    mode: 0640
+  notify: splunk restart

@@ -11,6 +11,7 @@
     splunk_restart: True
 
   tasks:
+
     - include_role:
         name: conf/ldap
 
@@ -29,7 +30,10 @@
     - include_role:
         name: conf/server
 
-  # flush notify handlers to activate the splunk config
+    - include_role:
+        name: common_tasks
+        tasks_from: monitoring.yml
+
   post_tasks:
     - meta: flush_handlers
 
