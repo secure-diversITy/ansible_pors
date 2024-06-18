@@ -9,11 +9,11 @@
   tasks:
   - set_fact: creationdate="{{lookup('pipe','date \"+%Y/%m/%d %H:%M\"')}}"
 
-  - name: Deploying the VM now.. 
+  - name: "Starting VM deploy/reconfigure now.."
     debug: msg="Please be patient or watch the progress at the vCenter"
 
   # Create a VM from a template
-  - name: create the VM
+  - name: "Create the VM"
     community.vmware.vmware_guest:
       hostname: '{{ vsphere.host[vsphere_var].dest }}'
       username: '{{ vsphere.host[vsphere_var].user }}'
@@ -46,6 +46,56 @@
       advanced_settings:
         - key: "disk.EnableUUID"
           value: 'TRUE'
+    when: deploymode != "config_only"
+
+  - name: "Reconfigure VM (block)"
+    block:
+
+      - name: "Shutdown existing VM"
+        connection: local
+        community.vmware.vmware_guest:
+          hostname: '{{ vsphere.host[vsphere_var].dest }}'
+          username: '{{ vsphere.host[vsphere_var].user }}'
+          password: '{{ vsphere.host[vsphere_var].password }}'
+          validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+          esxi_hostname: "{{ vsphere_esx_host }}"
+          datacenter: "{{ vsphere_datacenter }}"
+          name: "{{ server_hostname | regex_replace('\\..*','') }}"
+          folder: "/{{ vsphere_datacenter }}/vm"
+          state: shutdownguest
+          state_change_timeout: 300
+
+      - name: "Reconfigure existing VM"
+        community.vmware.vmware_guest:
+          hostname: '{{ vsphere.host[vsphere_var].dest }}'
+          username: '{{ vsphere.host[vsphere_var].user }}'
+          password: '{{ vsphere.host[vsphere_var].password }}'
+          validate_certs: "{{ vsphere.host[vsphere_var].validate_certs }}"
+          esxi_hostname: "{{ vsphere_esx_host }}"
+          annotation: "{{ server_notes }} - {{ creationdate }}"
+          datacenter: "{{ vsphere_datacenter }}"
+          name: '{{ server_hostname }}'
+          networks:
+          - name: "{{ server_net_name }}"
+            ip: '{{ server_ip }}'
+            netmask: "{{ server_netmask }}"
+            gateway: "{{ server_gateway }}"
+            dns_servers:
+            - "{{ server_dns1 }}"
+            - "{{ server_dns2 }}"
+          hardware:
+            memory_mb: "{{ server_ram_mb }}"
+            num_cpus: "{{ server_cpu_count }}"
+          customization:
+            domain : "{{ server_domain }}"
+            dns_servers:
+            - "{{ server_dns1 }}"
+            - "{{ server_dns2 }}"
+          advanced_settings:
+            - key: "disk.EnableUUID"
+              value: 'TRUE'
+
+    when: deploymode == "config_only"
 
   - name: "Set hotplug options (if defined)"
     community.vmware.vmware_guest:

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-30"
+VERSIONNUM="4.1-31"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -4770,9 +4770,9 @@ F_VSPHERE_DEPLOY(){
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-    F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB'}"
+    F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB','deploymode':'$DEPLOYMODE'}"
 
-    F_ABIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK'}" 
+    F_ABIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK','deploymode':'$DEPLOYMODE'}" 
 #2>&1 >> $LOG
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -5451,7 +5451,7 @@ F_STARTVMDEP(){
                 fi
                 PINGANSW=$?
                 if [ $PINGANSW -eq 0 ];then
-                    F_DIALOG --colors --extra-button --extra-label "Reconfigure (non-destructive)" --ok-label "Redistribute (DESTRUCTIVE)" --cancel-label "Cancel" --default-button "cancel" --yesno "\n\Zb\Z1\ZrWARNING - WARNING - WARNING - WARNING\ZR\Z0\ZB\n\nThe server \Zb$VMHOST ($VMIP)\ZB is PINGABLE!\n\nWe can delete and redistribute the whole system or we can try to reconfigure it.\n\n    \ZbRedistribute:\ZB \Zb\Z1\ZrDELETE + Deploy\ZR\Z0\ZB resulting in a complete new system (no way back - \Zrall data lost!\ZR)\n    \ZbReconfigure:\ZB  current selected hardware profile will be applied (incl. \Zuauto-REBOOTs\ZU)\n\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to reconfigure an existing VM or check the VM deployment?" 18 110
+                    F_DIALOG --colors --extra-button --extra-label "Reconfigure (non-destructive)" --ok-label "Redistribute (DESTRUCTIVE)" --cancel-label "Cancel" --default-button "cancel" --yesno "\n\Zb\Z1\ZrWARNING - WARNING - WARNING - WARNING\ZR\Z0\ZB\n\nThe server \Zb$VMHOST ($VMIP)\ZB is PINGABLE!\n\nWe can delete and redistribute the whole system or we can try to reconfigure it.\n\n    \ZbRedistribute:\ZB \Zb\Z1\ZrDELETE + Deploy\ZR\Z0\ZB resulting in a complete new system (no way back - \Zrall data lost!\ZR)\n    \ZbReconfigure:\ZB  current selected hardware profile will be applied (except \ZuDISK\ZU, will \Zuauto-REBOOT\ZU)\n\nOnly proceed if you understand the impacts including the risk of loosing data!\n\nDo you want to reconfigure an existing VM or check the VM deployment?" 18 110
                     ANS=$?
                     F_LOG $FUNCNAME "dialog ended with: $ANS"
 
@@ -5471,7 +5471,7 @@ F_STARTVMDEP(){
                         ;;
                     esac
                 fi
-                if [ $PINGANSW -ne 0 -o "$DEPLOYARG" == "destroy_deploy" ];then
+                #if [ $PINGANSW -ne 0 -o "$DEPLOYARG" == "destroy_deploy" ];then
                     case $VM_PROVIDER in
                         vsphere|vmware)
                             # switch to vCenter information and actions
@@ -5490,7 +5490,7 @@ F_STARTVMDEP(){
                         *) F_DIAERR 3 "ERROR no valid VM provider selected! Check documentation." && return 3 ;;
                     esac
                     CHKREQ=$VMERR
-                fi
+                #fi
             done
         else
             [ $? -eq 1 ] && IACKEEP=0 
