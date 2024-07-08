@@ -1,11 +1,22 @@
 ---
-- name: Add private key (SSH)
-  shell: "echo -e '{{ vault_ssh_privkey_splunk }}' > {{ splunk_installation.splunk_home_path }}/.ssh/id_rsa"
-  no_log: true
 
-- name: Set perms (SSH key)
-  file:
-    path: "{{ splunk_installation.splunk_home_path }}/.ssh/id_rsa"
+- name: Add private key (SSH)
+  ansible.builtin.copy:
+    content: "{{ vault_ssh_privkey_splunk }}"
+    force: True
+    dest: "{{ splunk_installation.splunk_home_path }}/.ssh/id_rsa"
+    mode: 0600
     owner: "{{ splunk_install_user }}"
-    mode: u=rw,g=,o=
+    group: "{{ splunk_install_group }}"
   when: vault_ssh_privkey_splunk is defined
+#  no_log: true
+
+- name: "Add pub key (SSH)"
+  ansible.builtin.copy:
+    content: "{{ vault_ssh_pubkey_splunk }}"
+    force: True
+    dest: "{{ splunk_installation.splunk_home_path }}/.ssh/id_rsa.pub"
+    mode: 0600
+    owner: "{{ splunk_install_user }}"
+    group: "{{ splunk_install_group }}"
+  when: vault_ssh_pubkey_splunk is defined

@@ -1,7 +1,31 @@
-- name: Set directory permissions for splunk etc
-  file: path={{ splunk_installation.splunk_home_path }}/etc/
-        mode=0750
+---
 
-- name: Set directory permissions for splunk etc/apps
-  file: path={{ splunk_installation.splunk_home_path }}/etc/apps
-        mode=0750
+# DO NOT use the file: module here! it is incredible slow
+# and likely to fail on a large amount of files
+- name: "Set directory permissions for splunk"
+  ansible.builtin.shell: |
+    chown -R {{ splunk_install_user }}:{{ splunk_install_group }} {{ splunk_installation.splunk_home_path }}
+    chmod -R 750 {{ splunk_installation.splunk_home_path }}
+
+- name: "Set directory permissions for splunk/etc"
+  ansible.builtin.file:
+    path: "{{ splunk_installation.splunk_home_path }}/etc/"
+    mode: 0750
+
+- name: "Set directory permissions for splunk/etc/apps"
+  ansible.builtin.file:
+    path: "{{ splunk_installation.splunk_home_path }}/etc/apps"
+    mode: 0750
+
+- name: "Check for an existing mongo key"
+  ansible.builtin.stat:
+    path: "{{ splunk_installation.splunk_home_path }}/var/lib/splunk/kvstore/mongo/splunk.key"
+  no_log: "{{ debug_off }}"
+  register: mkey
+  ignore_errors: yes
+
+- name: "Set directory permissions for mongo key"
+  ansible.builtin.file: 
+    path: "{{ splunk_installation.splunk_home_path }}/var/lib/splunk/kvstore/mongo/splunk.key"
+    mode: 0600
+  when: mkey.stat.exists is defined and mkey.stat.exists

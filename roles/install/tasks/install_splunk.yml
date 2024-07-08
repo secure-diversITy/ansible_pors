@@ -14,10 +14,4 @@
   command: rm "{{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}"
   when: splunk_installation.delete_package_after_install != false
 
-- name: Set permissions for $SPLUNK_HOME 
-  shell: "chown -R {{ splunk_install_user }}:{{ splunk_install_group }} {{ splunk_installation.splunk_home_path }}"
-  when: splunk_installation.package_format == "tgz"
-
-- name: Set directory permissions for splunk
-  shell: "chmod 750 -R {{ splunk_installation.splunk_home_path }}/"
-  when: splunk_installation.package_format == "tgz"
+- include_tasks: set_perms.yml

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-31"
+VERSIONNUM="4.1-40"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -687,7 +687,7 @@ declare VALIDROLES="activeinput deployer deploymentserver generic heavyforwarder
 ## @var DEFUPGDELAY
 ## @brief Guided upgrade default wait time
 ## @details The time PORS should wait between upgrading hosts when guided upgrade has been chosen
-declare DEFUPGDELAY=1m
+declare DEFUPGDELAY=10s
 
 #################################################################################################
 # NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT | NO CHANGES BEHIND THIS POINT 
@@ -822,6 +822,7 @@ F_ENDSESS(){
 F_EXIT(){
     F_LOG $FUNCNAME "started with $1"
     ERRCODE=$1
+    [ -z "$ERRCODE" ] && ERRCODE=0
 
     F_ENDSESS
 
@@ -923,13 +924,14 @@ F_ABIN(){
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
                     F_LOG $FUNCNAME "Will execute (EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /DONE: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /RUNNING: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
                 else
                     F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /DONE: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /RUNNING: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
+                F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
                 $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG
 	        A2ERR="${PIPESTATUS[0]}"
             fi
@@ -3469,6 +3471,11 @@ F_UPGRADE(){
                 # target environment must be set always
                 echo -e "\n[all:vars]\ntarget_env=${TARGETENV}\n" > $UTMPGRP
 
+                # always set the masternode
+                echo '[masternode]' >> $UTMPGRP
+                F_SELHOST masternode >> $UTMPGRP
+                echo -e "\n\n" >> $UTMPGRP
+
 	        echo '[tmpupgrade]' >> $UTMPGRP
 	        for h in $UPGRADEHOSTS;do echo "$h" >> $UTMPGRP; done
 
@@ -3500,8 +3507,13 @@ F_UPGRADE(){
             UPERR=${PIPESTATUS[0]}
             F_LOG $FUNCNAME "Upgrade $UPGTYPE for:\n\n$UPGRADEHOSTST ended with: $UPERR"
             F_PORSACTION "nogit" "$FUNCNAME | upgraded $UPGTYPE to $STAGEDVER on $UPGRADEHOSTST"
+            UPOS=$(F_GETANSIBLEVAR "system.upgrade_os")
+            if [ $? -eq 0 ] && [ "$UPOS" == True ] && [ $UPERR -eq 0 ];then
+                F_SYSREBOOT "$UPGRADEHOSTS" autoreboot
+            fi
             return $UPERR
     fi
+    
     F_LOG $FUNCNAME ended
 }
 
@@ -3580,17 +3592,17 @@ F_GUIDEDUPGRADE(){
 
     F_LOG $FUNCNAME "hostsel: $HOSTSELECTION"
 
-    FORMARGS='50 100 35 '      # height, width, form height
+    FORMARGS='55 100 35 '      # height, width, form height
 
     FLINE=1
     for tg in $HOSTSELECTION;do
-        FORMARGS+=' '"$tg"' '$FLINE' 1 1 '$FLINE' 40 4 3'
+        FORMARGS+=' '"$tg"' '$FLINE' 1 '$FLINE' '$FLINE' 40 4 3'
         FLINE=$((FLINE + 1))
     done
 
     F_LOG $FUNCNAME "FORMARGS: $FORMARGS"
 
-    UPGORDER=$(F_DIALOG --colors --form "\nPuzzle your custom order for upgrading $UPGTYPE to \Zb\Zuv${STAGEDVER}\ZB\ZU\n\nHowto:\nweight each target group with a number from 001-999 (or 1-9, 01-99, 001-999).\nThe upgrade will be done from LOW to HIGH based on these numbers.\n\n\nNote: upgrades do NOT happen in parallel but \Zbsequentially\ZB.\n\nWARNING:\n\ZbTHERE IS NO WAIT BETWEEN EACH HOST SO JUST SELECT WHAT YOU WANT TO UPGRADE IN ONE RUN!!!\ZB\n" \
+    UPGORDER=$(F_DIALOG --colors --form "\nPuzzle your custom order for upgrading $UPGTYPE to \Zb\Zuv${STAGEDVER}\ZB\ZU\n\nHowto:\nweight each target group with a number from 001-999 (or 1-9, 01-99, 001-999).\nThe upgrade will be done from LOW to HIGH based on these numbers.\n\n\nNote: upgrades do NOT happen in parallel but \Zbsequentially\ZB.\n\n\Zb\ZuWARNING\ZB\ZU\nTHERE IS NO WAY TO INTERRUPT (other then CTRL+C) SO JUST SELECT WHAT YOU WANT TO UPGRADE IN ONE RUN!!!\n\nIf you have OS upgrades enabled the systems will be rebooted \Zb\ZuAUTOMATICALLY!\ZU\ZB\n\n" \
                $FORMARGS \
                3>&1 1>&2 2>&3 )
     if [ $? -ne 0 ];then
@@ -3609,9 +3621,8 @@ F_GUIDEDUPGRADE(){
     SORTO=$(echo -e "$SORTED" | sed 's/\n/,/g')
     F_LOG $FUNCNAME "$SORTO"
 
-    FORMARGS=' '"WAIT delay"' '$DEFUPGDELAY' 1 1 'Wait time between each host' 40 4 3'
-    UPGDELAY=$(F_DIALOG --colors --form "\nThe default WAIT time between each host is >$DEFUPGDELAY< (s = seconds, m = minutes).\nYou can set a different value here if you like:" \
-               $FORMARGS \
+    UPGDELAY=$(F_DIALOG --colors --form "\nThe default WAIT time between each host is >$DEFUPGDELAY< (s = seconds, m = minutes).\n\ZbPORS will always wait until a reboot has finished (i.e. system is reachable again).\ZB\n\nYou can set an additional wait time \Zuon top\ZU if you like:\n" \
+               15 82 2 "Wait time between each host (s=sec,m=mins)" 1 1 $DEFUPGDELAY 1 45 5 4 \
                3>&1 1>&2 2>&3 )
     if [ $? -ne 0 ];then
         F_LOG $FUNCNAME "aborted on user request"
@@ -3620,7 +3631,7 @@ F_GUIDEDUPGRADE(){
 
     F_LOG $FUNCNAME "UPGDELAY=$UPGDELAY"
 
-    F_DIALOG --colors --scrollbar --yesno "\n\nWill upgrade $UPGTYPE \Zb\Zuv${STAGEDVER}\ZB\ZU in this order:\n\n${SORTO}\n\nAre you sure?" 30 100
+    F_DIALOG --colors --scrollbar --yesno "\n\nWill upgrade $UPGTYPE \Zb\Zuv${STAGEDVER}\ZB\ZU in this order:\n\n${SORTO}\n\nThis includes AUTOMATIC REBOOTS!\n\nAre you sure?" 30 100
     RET=$?
     if [ $RET -ne 0 ];then
         F_LOG $FUNCNAME "aborted on user request"
@@ -3630,9 +3641,9 @@ F_GUIDEDUPGRADE(){
             F_UPGRADE "$UPGTYPE" "${utg/*:/}"
             UPERR=$?
             [ $UPERR -ne 0 ] && break
-            sleep $DEFUPGDELAY
+            sleep $UPGDELAY
         done
-        F_ERRLOG "$UPERR" "Upgrade to $UPGTYPE v${STAGEDSPLVER} for:\n\n$SORTED" "$LOG"
+        F_ERRLOG "$UPERR" "Upgrade to $UPGTYPE v${STAGEDVER} for:\n\n$SORTED" "$LOG"
     fi
 
     F_LOG $FUNCNAME ended

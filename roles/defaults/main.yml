@@ -28,6 +28,7 @@ pors_allow_autoupgrade_requirements: false
 system_default_shell: /bin/bash
 pors_touch_dir: /var/lib/pors
 pors_managed_marker: 'Managed by PORS/Ansible - manual changes might get overwritten on next run'
+in_app_deploy_play: False
 
 ###### splunk_repository.yml #######
 
@@ -47,6 +48,10 @@ tokenauth:
     git_ro_token: "{{ vault_git_ro_token }}"
 
 use_git_apps_filter: false
+
+# should we always REMOVE an app before cloning?
+# must be formatted as strings like 'true' or 'false' (default)
+app_clean_install: 'false'
 
 ####### hooks.yml ########
 

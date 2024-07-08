@@ -55,6 +55,27 @@
     attr: -i
   when: splunksysdfile is defined and splunksysdfile.stat.exists
 
+- name: "Disable boot start"
+  shell: |
+    {{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start
+    {{ splunk_installation.splunk_home_path }}/bin/splunk disable boot-start --no-prompt -systemd-managed 1 -systemd-unit-file-name {{ splunk_systemd_unit_name }}
+  when: splunk_upgrade
+
+#- block:
+#
+#    - name: "Backup previous polkit rules"
+#      copy:
+#        remote_src: True
+#        src: "/etc/polkit-1/rules.d/10-Splunkd.rules"
+#        dest: "/etc/polkit-1/rules.d/10-Splunkd.rules.upgr-{{ splunkversionnum }}"
+#
+#    - name: "Remove previous polkit rules"
+#      file:
+#        path: "/etc/polkit-1/rules.d/10-Splunkd.rules"
+#        state: absent
+#
+#  when: splunk_upgrade
+
 - name: "Enable Splunk boot-start (systemd)"
   shell: |
     {{ splunk_installation.splunk_home_path }}/bin/splunk enable boot-start -user {{ splunk_install_user }} --answer-yes --accept-license --no-prompt -systemd-managed 1 -systemd-unit-file-name {{ splunk_systemd_unit_name }} -create-polkit-rules 1

@@ -1,9 +1,20 @@
-- name: Deploy Apps
+---
+
+- name: "Deploy Apps"
   hosts: "{{ '{{ target }}' }}"
   remote_user: "{{ '{{ pors_ssh_user }}' }}"
   become: yes
   become_user: "{{ '{{ splunk_install_user }}' }}"
   strategy: free
-  
+
+  vars:
+
+    skip_ssh_splunk_authkey: True
+    in_app_deploy_play: True
+
   roles:
+
+    - role: system_sshid
+      tags: always
+  
 {{ app_roles.stdout_lines | link_app_list(target_env) | to_nice_yaml | indent(4, true) }}

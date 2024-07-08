@@ -1,18 +1,4 @@
 ---
-- name: Upgrade System
-  hosts: "*:!pors_server"
-  remote_user: "{{ pors_ssh_user }}"
-  become: yes
-  become_user: root
-  strategy: free
-  gather_facts: False
-
-  pre_tasks:
-    - setup:
-      when: system.upgrade_os is defined and system.upgrade_os == True
-
-  roles:
-    - { role: system_upgrade, when: system.upgrade_os is defined and system.upgrade_os == True }
 
 - name: Upgrade Splunk
   hosts: "*:!pors_server"
@@ -35,11 +21,30 @@
         splunk_type: "{{ spltype }}"
       when: spltype is defined
 
-    - setup:
-      when: system.upgrade_os is undefined or system.upgrade_os == False
+    - name: "Collecting system information"
+      setup:
+#      when: system.upgrade_os is undefined or system.upgrade_os == False
 
   roles:
     - splunk_info
     - install
 
 - ansible.builtin.import_playbook: ../shelper/ae_install_shelper.yml
+
+- name: Upgrade System
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  strategy: free
+  gather_facts: False
+
+  pre_tasks:
+    - name: "Collecting system information"
+      setup:
+      when: system.upgrade_os is defined and system.upgrade_os == True
+
+  roles:
+    - { role: system_upgrade, when: system.upgrade_os is defined and system.upgrade_os == True }
+
+

@@ -8,7 +8,7 @@
 {{ app_variable }}:
   {{ deployment.dir }}:
     install: true
-    clean_install: false
+    clean_install: {{ app_clean_install | d('false') }}
     delete: false
 {% if filename is defined and filename != "" %}
     bundle_dir: {{ app_dir }}

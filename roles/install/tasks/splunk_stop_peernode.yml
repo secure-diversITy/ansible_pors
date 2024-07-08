@@ -1,11 +1,23 @@
 ---
 
-- name: "Check & enable rolling upgrade mode"
-  shell: |
-    {{ splunk_installation.splunk_home_path }}/bin/splunk show cluster-status --verbose | grep -qi 'rolling upgrade is in progress' \
-        || {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init cluster-peers
+- block:
+
+    - name: "Login to Cluster Leader"
+      shell: |
+        {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
+      register: splauth
+      retries: 15
+      delay: 20
+      until: splauth.rc == 0
+      delegate_to: "{{ groups['masternode'][0] }}"
+
+    - name: "Check & enable rolling upgrade mode"
+      shell: |
+        {{ splunk_installation.splunk_home_path }}/bin/splunk show cluster-status --verbose | grep -qi 'rolling upgrade is in progress' \
+            || {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init cluster-peers
+      delegate_to: "{{ groups['masternode'][0] }}"
+
   when: idxc_rolling_upgrade
-  delegate_to: "{{ groups['masternode'][0] }}"
 
 # check if this is an indexer peer and take offline if (will fail after 30 min >retries< wait time)
 - name: Take Splunk offline (indexer cluster peer)
