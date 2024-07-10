@@ -1,5 +1,6 @@
 ---
-- name: System upgrade
+
+- name: "System upgrade"
   ansible.builtin.package: 
     state: latest
     name: '*'

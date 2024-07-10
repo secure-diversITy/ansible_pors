@@ -1,0 +1,16 @@
+- name: "System upgrade reboot check"
+  hosts: "*"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  strategy: free
+  gather_facts: True
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
+
+  tasks:
+
+    - include_role:
+        name: system_upgrade
+        tasks_from: check_reboot.yml

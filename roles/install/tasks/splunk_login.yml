@@ -5,7 +5,7 @@
   shell: |
     {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
   register: splauth
-  retries: 15
+  retries: 5
   delay: 20
   until: splauth.rc == 0
 

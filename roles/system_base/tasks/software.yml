@@ -42,6 +42,7 @@
     name:
         - python3-libselinux
         - nmap-ncat
+        - yum-utils
   when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int > 6
 
 - name: vSphere requirements (RHEL)

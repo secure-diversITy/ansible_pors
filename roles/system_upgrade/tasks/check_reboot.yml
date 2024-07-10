@@ -1,0 +1,81 @@
+---
+
+- name: "Remove a previous result"
+  become: no
+  connection: local
+  ansible.builtin.file:
+    path: "{{ pors_temp_dir }}/{{ inventory_hostname }}.reboot"
+    state: absent
+
+- name: "Check if a reboot is required"
+  block:
+
+    - name: "Check if a reboot is required (Deb*)"
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_check_deb
+
+    - name: "Collect reboot information"
+      ansible.builtin.set_fact:
+        reboot_required_deb: "{{ reboot_check_deb.stat.exists }}"
+
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: "Check if a reboot is required"
+  block:
+
+    - name: "Check if a reboot is required (Redhat*)"
+      ansible.builtin.shell: |
+        needs-restarting --reboothint
+        if [ $? -ne 0 ];then echo 1; else echo 0;fi
+      register: reboot_check_dnf
+
+    - name: "Collect reboot information"
+      ansible.builtin.set_fact:
+        reboot_required_rh: "{{ reboot_check_dnf.rc }}"
+
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: "Check if a reboot is required"
+  block:
+
+    - name: "Check if a reboot is required (Suse*)"
+      ansible.builtin.shell: |
+        zypper needs-restarting --reboothint
+        if [ $? -ne 0 ];then echo 1; else echo 0;fi
+      register: reboot_check_zyp
+
+    - name: "Collect reboot information"
+      ansible.builtin.set_fact:
+        reboot_required_zyp: "{{ reboot_check_zyp.rc }}"
+
+  when: ansible_facts['os_family'] == "Suse"
+
+- name: "Check if a reboot is required (Kernel)"
+  ansible.builtin.shell: |
+    HIGHEST_KERNEL=$(find /boot/vmlinuz-* ! -name '*.sig' | sort -V | tail -n 1 | sed 's|.*vmlinuz-||')
+    RUNNING_KERNEL=$(uname -r)
+    #echo "Highest Kernel: $HIGHEST_KERNEL | Running Kernel: $RUNNING_KERNEL"
+    [ "$HIGHEST_KERNEL" != "$RUNNING_KERNEL" ] && echo 1 && exit
+    echo 0
+  args:
+    executable: /bin/bash
+  register: reboot_check_kern
+
+- name: "Collect reboot information (Kernel)"
+  ansible.builtin.set_fact:
+    reboot_required_kernel: "{{ reboot_check_kern.stdout }}"
+
+- name: "Catch reboot result"
+  ansible.builtin.set_fact:
+    reboot_required: >-
+      {% if reboot_required_kernel is defined and reboot_required_kernel == "1" %}True{% elif reboot_required_rh is defined and reboot_required_rh == "1" %}True{% elif reboot_required_deb is defined and reboot_required_deb %}True{% elif reboot_required_zyp is defined and reboot_required_zyp == "1" %}True{% else %}False{% endif %}
+
+- name: "Write reboot result"
+  connection: local
+  become: no
+  ansible.builtin.copy:
+    content: "reboot_required={{ reboot_required }}"
+    dest: "{{ pors_temp_dir }}/{{ inventory_hostname }}.reboot"
+  when: reboot_required
+

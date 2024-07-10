@@ -154,6 +154,9 @@ splunk_ulimit_fsize_hard: unlimited
 splunk_ulimit_data_soft: unlimited
 splunk_ulimit_data_hard: unlimited
 
+# removes temporary files after a successfull install/upgrade
+splunk_install_cleanup: True
+
 ####### system_base.yml ########
 
 shared_service_account_as_root: False

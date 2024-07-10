@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-40"
+VERSIONNUM="4.1-45"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -585,6 +585,12 @@ declare PBSYSUPGRADE="${PBDIRSYSTEM}/ae_system_upgrade.yml"
 ## @showinitializer
 declare PBSSHCHK="${PBDIRSYSTEM}/ae_ssh.yml"
 
+## @var PBSYSREBCHECK
+## @brief a general system reboot check
+## @details checks with several methods if a system reboot is required
+## @showinitializer
+declare PBSYSREBCHECK="${PBDIRSYSTEM}/system_upgrade_rebootcheck.yml"
+
 ## @var PBSYSREBOOT
 ## @brief general system reboot (linux)
 ## @details reboots a remote system
@@ -924,10 +930,10 @@ F_ABIN(){
                 [ ! -s $VAULTTEMPFILE ] && [ "$ENABLEVAULT" == "yes" ] && F_VAULTPW
                 if [ ! -z "$EVARFILE" ];then
                     F_LOG $FUNCNAME "Will execute (EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e @$EVARFILE"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /RUNNING: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} -e "@${EVARFILE}" 2>&1 | tee -a $LOG | grep --line-buffered -E 'TASK |started TASK:' | sed --unbuffered -E 's/(\s+\[started TASK: )(.*)( on .*)\]/PROCESSING: [\2]/g;s/TASK \[/    - DONE: \[/g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
                 else
                     F_LOG $FUNCNAME "Will execute (no EVARFILE):\n$ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG}"
-	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered 'TASK ' | sed --unbuffered -E 's/TASK /RUNNING: /g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
+	            $ABIN $PLAYNOISE -i $A2HOSTFILE $A2PB ${A2ARGS} ${A2VAULTARG} 2>&1 | tee -a $LOG | grep --line-buffered -E 'TASK |started TASK:' | sed --unbuffered -E 's/(\s+\[started TASK: )(.*)( on .*)\]/PROCESSING: [\2]/g;s/TASK \[/    - DONE: \[/g;s/\*+//g' | sed --unbuffered -e '/.\{100\}/ s/^\(.\{35\}\).*\(.\{60\}\)$/\1[...]\2/' | F_DIALOG --scrollbar --colors --progressbox "$BOXTITLE" 30 120
                 fi
 	        A2ERR="${PIPESTATUS[0]}"
             else
@@ -1582,6 +1588,29 @@ F_DIAERR(){
 	echo "$FUNCNAME finished" >> $LOG
 }
 
+## @fn F_DIAERR_A()
+## @brief display a dialog error box using automatic height/width
+## @param 1: error code (required)
+## @param 2: task name (required)
+## @details simple error dialog. Use F_ERRLOG instead if you need an option to show the log file.
+F_DIAERR_A(){
+    echo "$FUNCNAME started with args: $1,$2" >> $LOG
+    ERRC="$1"
+    TASK="$2"
+    unset MSG
+
+    if [ "$ERRC" != "0" ];then
+        MSG="\nERROR:\n\n$TASK\n\nended with errorcode >$ERRC<!"
+    else
+        MSG="\nSUCCESS:\n\nTASK\n\nended successfully"
+    fi
+
+    MSGLH=$(F_MSGLEN "$MSG")
+    MSGLENGTH="${MSGLH/:*/}"
+    MSGHEIGHT="${MSGLH/*:/}"
+    F_DIALOG --colors --msgbox "$MSG" $MSGHEIGHT $MSGLENGTH
+}
+
 ## @fn F_ERRLOG()
 ## @brief dialog box very similar to F_DIAERR but givin an option to display a given logfile
 ## @param 1 required: error code number
@@ -1619,22 +1648,32 @@ F_ERRLOG(){
 F_WAITBOX(){
         unset MSG
 	MSG="$1"
-        MINLENGTH=$(F_MSGLEN "PORS v$VERSION/$MAXAVERSION (${TARGETENV})")
-        MSGLENGTH=$(F_MSGLEN "$MSG")
-        [ "$MSGLENGTH" -lt "$MINLENGTH" ] && MSGLENGTH=$MINLENGTH
+        #MINLENGTH=$(F_MSGLEN "PORS v$VERSION/$MAXAVERSION (${TARGETENV})"| cut -d ':' -f1)
+        MSGLENGTH=$(F_MSGLEN "$MSG" | cut -d ':' -f1)
+        #[ "$MSGLENGTH" -lt "$MINLENGTH" ] && MSGLENGTH=$MINLENGTH
 	F_DIALOG --infobox "\n$MSG" 5 $MSGLENGTH
 }
 
 ## @fn F_MSGLEN()
-## @brief specify the length of a message
-## @return Message length
-## @param 1 required: the message length
+## @brief calculate the length and height of a message
+## @details this allows to set dynamic dialog windows in its height and width
+## @return Message length and height (format: "length:height")
+## @param 1 required: the full message
 F_MSGLEN(){
     F_LOG $FUNCNAME "started with $1"
     MSG="$1"
-    MSGLENGTH=$((${#MSG} + 6))
-    F_LOG $FUNCNAME "calculated a message length of: $MSGLENGTH"
-    echo $MSGLENGTH
+    MSGLENGTHR=$(echo -e "$MSG" | wc -L)
+    MSGLENGTH=$(( MSGLENGTHR + 6 ))
+    MSGHEIGHTR=$(echo -e "$MSG" | wc -l)
+    MSGHEIGHT=$(( MSGHEIGHTR + 5 ))
+
+    MINMSG="PORS v$VERSION/$MAXAVERSION (${TARGETENV})"
+    MINLENGTH=$((${#MINMSG} + 6))
+    [ "$MSGLENGTH" -lt "$MINLENGTH" ] && MSGLENGTH=$MINLENGTH
+
+    F_LOG $FUNCNAME "calculated a message length of: $MSGLENGTH and height of: $MSGHEIGHT"
+    echo "$MSGLENGTH":"$MSGHEIGHT"
+
     F_LOG $FUNCNAME ended
 }
 
@@ -3088,6 +3127,7 @@ F_SELHOST(){
 ## @exception on abort: return 4, on failure: F_ERRLOG dialog
 F_INSTALLSPL(){
     F_LOG $FUNCNAME "started with $1"
+    [ -z "$HOSTFILE" ] && F_HOSTFILE
 
     SPLTYPE="$1"
     # this installs pure splunk (i.e. with common configuration but without any specific configuration)
@@ -4540,7 +4580,7 @@ F_VAULTPW(){
         $VBINX view $DEFAULTVAULT --vault-password-file $VAULTTEMPFILE 1> /dev/null 2>> $LOG
         if [ $? -ne 0 ];then
             RETRY=1
-            F_DIAERR 9 "Oops password is incorrect. Try again.."
+            F_DIAERR_A 9 "Oops password is incorrect. Try again.."
             unset FPW
             rm $VAULTTEMPFILE
         else
@@ -5968,17 +6008,19 @@ F_SYSUPGRADE(){
         [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user on summary page" && return 4
     fi
 
+    F_PORSACTION "nogit" "$FUNCNAME | System upgrade will be executed on: $SELHOSTS"
     F_ABIN $HOSTFILE $PBSYSUPGRADE "Upgrading $SELHOSTS ..." "--limit $AHOSTLIST"
     FORERR=$?
 
     if [ $FORERR -eq 0 ];then
-            F_LOG $FUNCNAME "System packages or upgrade(s) have been installed for:\n$SELHOSTS\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
-            F_SYSREBOOT "$SELHOSTS" $AUTOREBOOT
-            LASTERR=$?
+        F_PORSACTION "nogit" "$FUNCNAME | A system upgrade has been executed successfully for: $SELHOSTS"
+        F_LOG $FUNCNAME "System packages or upgrade(s) have been installed for:\n$SELHOSTS\n\nA REBOOT MIGHT BE REQUIRED!\nReboot handler will be initiated ..."
+        F_SYSREBOOT "$SELHOSTS" $AUTOREBOOT
+        LASTERR=$?
     else
+        F_PORSACTION "nogit" "$FUNCNAME | Error ($FORERR) occured during the system upgrade on: $SELHOSTS"
         LASTERR=$FORERR
     fi
-    F_PORSACTION "nogit" "$FUNCNAME | System packages or upgrade(s) have been installed for: $SELHOSTS"
     F_LOG $FUNCNAME "ended with $LASTERR"
 
     F_DIALOG --msgbox "\nSystem upgrade completed for\n\n$(echo $SELHOSTS | tr ' ' '\n')" 20 80
@@ -5990,25 +6032,63 @@ F_SYSUPGRADE(){
 ## @brief reboots a remote system
 ## @param 1 required: the host or a list of hosts (space separated) to be rebooted
 ## @param 2 optional: ask for a reboot (empty) or not (when set to: "autoreboot")
+## @param 2 optional: requires param2: can be 0 (default, do not skip reboot checks) or 1 (skip any reboot check)
 ## @details tbd
 F_SYSREBOOT(){ 
     REBHOSTS="$1"
     ASKUSER=$2
+    SKIPREBCHECK="$3"
+    [ -z "$SKIPREBCHECK" ] && SKIPREBCHECK=0
+
     F_LOG $FUNCNAME "started with $REBHOSTS $ASKUSER"
     [ -z "$REBHOSTS" ] && F_LOG $FUNCNAME "ERROR: no host given" && return 3
 
+    if [ $SKIPREBCHECK -eq 0 ];then
+        # check if a reboot is necessary, if so a chk file will be created at
+        # $PORS_TEMPDIR/{{inventory_hostname}}.reboot
+        F_ABIN $HOSTFILE $PBSYSREBCHECK "Checking reboot requirements on $REBHOSTS ..." "--limit $(echo $REBHOSTS | tr ' ' ':')"
+    else
+        F_LOG "$FUNCNAME" "WARNING: skipped reboot checks due to SKIPREBCHECK=1"
+    fi
+    RBCHKERR=$?
+
+    if [ $RBCHKERR -ne 0 ];then
+        if [ $ASKUSER == "autoreboot" ];then
+            F_LOG "$FUNCNAME" "WARNING: skipped rebooting due to requirement check fail!"
+        else
+            F_DIALOG --scrollbar --yesno "\n\nThe check if a reboot is necessary failed unfortunately\n\nDo you want to proceed and initiate a reboot regardless?\n" 20 80
+            if [ $? -ne 0 ];then
+                F_LOG "$FUNCNAME" "Skipped rebooting process due to user answer"
+                return
+            else
+                SKIPREBCHECK=1
+            fi
+        fi
+    fi   
+ 
     for host in $REBHOSTS;do
         honly=${host/:*}
-        if [ $ASKUSER == "autoreboot" ];then
-            F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
-            F_PORSACTION "nogit" "$FUNCNAME | rebooted $honly"
-        else
-            F_DIALOG --scrollbar --yesno "\n\nThe server\n\n$host\n\nrequires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
-            if [ $? -eq 0 ];then
+        [ $SKIPREBCHECK -eq 1 ] && touch $PORS_TEMPDIR/${honly}.reboot
+
+        if [ $RBCHKERR -eq 0 ] && [ -f $PORS_TEMPDIR/${honly}.reboot ];then
+            if [ $ASKUSER == "autoreboot" ];then
                 F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
-                F_PORSACTION "nogit" "$FUNCNAME | rebooted $honly"
+                F_PORSACTION "nogit" "$FUNCNAME | (auto) rebooted $honly"
             else
-                F_LOG "$FUNCNAME" "Skipped rebooting $honly"
+                F_DIALOG --scrollbar --yesno "\n\nThe server\n\n$host\n\nrequires a reboot!\n\nDo you want to initiate a reboot NOW?" 20 50
+                if [ $? -eq 0 ];then
+                    F_ABIN $HOSTFILE $PBSYSREBOOT "Rebooting $honly ..." "-e {'target':'$honly'}" || break
+                    F_PORSACTION "nogit" "$FUNCNAME | rebooted $honly"
+                else
+                    F_LOG "$FUNCNAME" "Skipped rebooting $honly due to user answer"
+                fi
+            fi
+        else
+            if [ $RBCHKERR -ne 0 ];then
+                F_LOG "$FUNCNAME" "Skipped rebooting $honly due to requirement check or previous failure(s)"
+                false
+            else
+                F_LOG "$FUNCNAME" "Skipped rebooting $honly as its not necessary"
             fi
         fi
     done
@@ -6044,6 +6124,8 @@ F_CHECKSSH(){
 ## @details tbd
 F_GETANSIBLEVAR(){
     F_LOG $FUNCNAME "started with $1"
+    F_HOSTFILE
+
     REQVAR="$1"
     VARTMP="/tmp/pors/ansible_${REQVAR}.var"
 
@@ -6566,9 +6648,11 @@ if [ $? -eq 0 ];then
 
     ## @var PORS_TEMPDIR
     ## @brief Temporary directory defined within ansible config
-    ## @details ..
+    ## @details Note: can't use "F_GETANSIBLEVAR pors_temp_dir" here as this would require an unlocked vault which happens later first
     ## @showinitializer
-    declare PORS_TEMPDIR=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
+    PORS_TEMPDIRINV=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
+    [ -z "$PORS_TEMPDIRINV" ] && PORS_TEMPDIRINV=$(grep pors_temp_dir $DEFAULTSYML | cut -d ":" -f 2)
+    declare PORS_TEMPDIR="$PORS_TEMPDIRINV"
 
     # check uncommitted changes & commit if needed
     F_DATACOMMIT "manual changes" "data directory has been altered outside of PORS - committed the current state before actually starting.."
@@ -6705,9 +6789,11 @@ else
 
     ## @var PORS_TEMPDIR
     ## @brief Temporary directory defined within ansible config
-    ## @details ..
+    ## @details Note: can't use "F_GETANSIBLEVAR pors_temp_dir" here as this would require an unlocked vault which happens later first
     ## @showinitializer
-    declare PORS_TEMPDIR=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
+    PORS_TEMPDIRINV=$(grep pors_temp_dir $AINVENTORY/$TARGETENV/group_vars/all/pors.yml | cut -d ":" -f 2)
+    [ -z "$PORS_TEMPDIRINV" ] && PORS_TEMPDIRINV=$(grep pors_temp_dir $DEFAULTSYML | cut -d ":" -f 2)
+    declare PORS_TEMPDIR="$PORS_TEMPDIRINV"
 
     # pre-setup DATADIR
     DATADIRS="$DATADIR/custom/roles $DATADIR/custom/playbooks"
