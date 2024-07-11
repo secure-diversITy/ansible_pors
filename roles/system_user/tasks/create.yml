@@ -4,9 +4,11 @@
   service:
     name: sssd.service
     state: stopped
+  when: sssd_workaround
 
 - name: "Clear SSSd cache"
   shell: sss_cache -E || true
+  when: sssd_workaround
 
 - name: "Create {{ user_name }} unix group ({{ username_uid }})"
   group:
@@ -82,3 +84,4 @@
   service:
     name: sssd.service
     state: started
+  when: sssd_workaround

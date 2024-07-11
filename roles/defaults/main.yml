@@ -163,6 +163,9 @@ shared_service_account_as_root: False
 test_shared_service_account: False
 system_enable_sysprep: True
 
+# disable SSSD before creating a user and enable again afterwards
+sssd_workaround: False
+
 ntp_enabled: true
 ntp_timezone: Europe/Berlin
 ntp_manage_config: true
