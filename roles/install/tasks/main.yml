@@ -107,10 +107,11 @@
 
   when: not splunk_upgrade
 
-- include: splunk_login.yml
 - include_tasks: splunk_start_shcmember.yml 
   when:
     - splshcmember.stdout is defined and splshcmember.stdout == "member"
+
+- include: splunk_login.yml
 
 - block:
     - include: add_spl_ae_user.yml

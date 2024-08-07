@@ -5,7 +5,12 @@
   shell: |
     {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
   register: splauth
-  retries: 5
+  retries: "{{ splunk_login_retries | d(5) | int }}"
   delay: 20
+  #ignore_errors: "{{ splunk_login_error_ignore | d(False) | bool }}"
+  ignore_errors: true
   until: splauth.rc == 0
 
+- name: "(Re)add PORS account to splunk"
+  include_tasks: add_spl_user_passwd.yml
+  when: splauth.rc != 0

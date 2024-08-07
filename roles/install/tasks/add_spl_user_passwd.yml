@@ -1,0 +1,53 @@
+---
+
+- name: Check if passwd file exists
+  ansible.builtin.stat:
+    path: "{{ splunk_installation.splunk_home_path }}/etc/passwd"
+  register: has_passwd_file
+
+- name: Check if passwd file exists
+  ansible.builtin.stat:
+    path: "{{ splunk_installation.splunk_home_path }}/etc/auth/splunk.secret"
+  register: has_secret_file
+
+# example stdout:
+# 201 parsed from: "HTTP/1.1 201 Created"
+# 400 parsed from: "HTTP/1.1 400 Bad Request" (e.g. password does not match requirements)
+- name: "Add/change splunk user: {{ vault_splunk_ae_user }}"
+  ansible.builtin.shell: |
+    RESP=$({{ splunk_installation.splunk_home_path }}/bin/splunk cmd splunkd rest --noauth POST /services/authentication/users "name={{ vault_splunk_ae_user }}&password={{ vault_splunk_ae_password }}&roles={{ vault_splunk_ae_role }}" 2>&1)
+    RET=$(echo "$RESP" | head -n1 | cut -d ' ' -f2 | cut -b1)
+    echo "$RESP"
+    exit $RET
+  register: useradded
+  failed_when: useradded.rc != 2
+  ignore_errors: true
+  no_log: true
+  when:
+    - has_passwd_file.stat.exists
+    - has_secret_file.stat.exists
+    - (vault_splunk_ae_user is defined and vault_splunk_ae_password is defined)
+
+- name: "Check result"
+  fail:
+    msg: |
+      FAILED TO CREATE/CHANGE LOCAL SPLUNK USER: "{{ vault_splunk_ae_user }}"
+
+      Errorcode was: "{{ useradded.rc }}"
+
+      Message:
+      {{ useradded.stdout }}
+
+  when: useradded.rc != 2
+
+- name: "Restart splunkd"
+  shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk restart --accept-license --answer-yes"
+
+# login to allow any later commands to run w/o auth
+- name: "Try to login to splunk"
+  shell: |
+    {{ splunk_installation.splunk_home_path }}/bin/splunk login -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'
+  register: splauth
+  retries: 5 
+  delay: 20
+  until: splauth.rc == 0

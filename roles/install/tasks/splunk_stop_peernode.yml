@@ -17,6 +17,15 @@
             || {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init cluster-peers
       delegate_to: "{{ groups['masternode'][0] }}"
 
+    - name: "Hint: manual splunk upgrade-finalize cluster-peers required!"
+      debug:
+        msg: |
+
+            You have to finalize manually at the very end as PORS is not aware of the overall state.
+            Execute this on the Manager Node once fully completed:
+
+            $> splunk upgrade-finalize cluster-peers
+
   when: idxc_rolling_upgrade
 
 # check if this is an indexer peer and take offline if (will fail after 30 min >retries< wait time)

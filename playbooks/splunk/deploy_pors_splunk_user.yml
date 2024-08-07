@@ -1,0 +1,26 @@
+---
+
+- name: "Add/Change splunk user offline"
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  gather_facts: True
+  strategy: free
+
+  vars:
+    splunk_upgrade: False
+
+  handlers:
+    - include: ../../roles/common/handlers/splunkd.yml
+
+  tasks:
+
+    - include_role:
+        name: install
+        tasks_from: splunk_login.yml
+
+#    - include_role:
+#        name: install
+#        tasks_from: add_spl_user_passwd.yml
+#      when: splauth.rc != 0

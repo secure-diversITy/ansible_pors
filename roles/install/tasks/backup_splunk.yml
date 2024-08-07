@@ -4,18 +4,40 @@
   become_user: root
   shell: "rm -rf {{ splunk_installation.remote_backup_path }}/splunk/*"
 
+- name: "Ensure backup path exists"
+  file:
+    path: "{{ splunk_installation.remote_backup_path }}"
+    state: directory
+    mode: 0700
+
+- name: "Starting backup..."
+  debug:
+    msg: "backing up: {{ splunk_installation.backup_path }} now.."
+
 # do not use copy due to its limitations
 # copy facility does not scale to lots of files
-- name: Backup the current splunk dir
+- name: Backup before upgrade
   become: yes
   become_user: root
-  shell: "rsync -a --outbuf=None --exclude '*/kvstore/' --exclude '*/xxxxxxxxxxxxxxxxxx_training_summary/' --exclude '*/xxxxxxxxxxxxxxxxxx_summary_dev/' {{ splunk_installation.splunk_home_path }}/  {{ splunk_installation.remote_backup_path }}/splunk/"
+  community.general.archive:
+    path: "{{ splunk_installation.backup_path }}"
+    dest: "{{ splunk_installation.remote_backup_path }}/backup_{{ inventory_hostname_short }}_{{ lookup('pipe','date \"+%Y-%m-%d_%H-%M\"') }}.gz"
+    format: gz
 
+- name: "Upload backup to {{ splunk_installation.backup_upload_server }}"
+  ansible.posix.synchronize:
+    mode: pull
+    src: "rsync://{{ inventory_hostname }}{{ splunk_installation.remote_backup_path }}/backup_{{ inventory_hostname_short }}_{{ lookup('pipe','date \"+%Y-%m-%d_%H-%M\"') }}.gz"
+    dest: "{{ splunk_installation.remote_backup_path }}"
+  delegate_to: "{{ splunk_installation.backup_upload_server }}"
+  when: splunk_installation.backup_upload
+
+# do not use copy due to its limitations
+# copy facility does not scale to lots of files
+#- name: Backup the current splunk dir
+#  become: yes
+#  become_user: root
+#  shell: "rsync -a --outbuf=None --exclude '*/kvstore/' --exclude '*/xxxxxxxxxxxxxxxxxx_training_summary/' --exclude '*/xxxxxxxxxxxxxxxxxx_summary_dev/' {{ splunk_installation.splunk_home_path }}/  {{ splunk_installation.remote_backup_path }}/splunk/"
+#
 #  shell: "cp -a {{ splunk_installation.splunk_home_path }}/* {{ splunk_installation.remote_backup_path }}/splunk/"
-
-        
-#  synchronize:  archive=yes
-#                compress=no
-#                src={{ splunk_installation.splunk_home_path }}
-#                dest={{ splunk_installation.remote_backup_path }}
 

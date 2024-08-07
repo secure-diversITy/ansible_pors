@@ -20,7 +20,7 @@
 - name: "Check for an existing mongo key"
   ansible.builtin.stat:
     path: "{{ splunk_installation.splunk_home_path }}/var/lib/splunk/kvstore/mongo/splunk.key"
-  no_log: "{{ debug_off }}"
+#  no_log: "{{ debug_off }}"
   register: mkey
   ignore_errors: yes
 

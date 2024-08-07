@@ -1,11 +1,26 @@
 ---
 # do not use copy due to its limitations
 # copy facility does not scale to lots of files
+#- name: Backup the current splunk dir
+#  become: yes
+#  become_user: root
+#  synchronize:
+#    archive: yes
+#    compress: yes
+#    src: "{{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}"
+#    dest: "{{ splunk_installation.remote_backup_path }}"
+
+- name: "Ensure backup path exists"
+  file: "{{ splunk_installation.remote_backup_path }}"
+  state: directory
+  mode: 0700
+
+# do not use copy due to its limitations
+# copy facility does not scale to lots of files
 - name: Backup the current splunk dir
   become: yes
   become_user: root
-  synchronize:  archive=yes
-                compress=no
-                src="{{ splunk_installation.remote_package_temp_path }}/{{ splunk_installation.package_file }}"
-                dest={{ splunk_installation.remote_backup_path }}
-
+  community.general.archive:
+    path: "{{ splunk_installation.backup_path }}"
+    dest: "{{ splunk_installation.remote_backup_path }}"
+    format: gz

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-45"
+VERSIONNUM="4.1-46"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -6039,6 +6039,7 @@ F_SYSREBOOT(){
     ASKUSER=$2
     SKIPREBCHECK="$3"
     [ -z "$SKIPREBCHECK" ] && SKIPREBCHECK=0
+    [ -z "$HOSTFILE" ]&& F_HOSTFILE
 
     F_LOG $FUNCNAME "started with $REBHOSTS $ASKUSER"
     [ -z "$REBHOSTS" ] && F_LOG $FUNCNAME "ERROR: no host given" && return 3
