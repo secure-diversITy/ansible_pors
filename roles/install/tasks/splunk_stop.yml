@@ -28,7 +28,7 @@
 
 # ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
 - name: Re-Check Splunk Status
-  shell: "ps aux | grep splunkd | grep -Ev '(ssh|grep|tail|less|vim|vi|patrol|ansible)'"
+  shell: "ps aux | grep 'splunkd ' | grep -Ev '(ssh|grep|tail|less|vim|vi|patrol|ansible)'"
   async: 1800
   poll: 0
   register: splunk_laststate
