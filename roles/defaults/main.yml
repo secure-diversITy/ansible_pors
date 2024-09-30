@@ -191,6 +191,8 @@ systemd_journal_compress: "yes"
 systemd_journal_system_max_use: 1G
 systemd_journal_system_max_file_size: 200M
 systemd_journal_restart_state: restarted
+systemd_journal_max_retention_sec: 7d
+
 
 ####### proxmox defaults #######
 

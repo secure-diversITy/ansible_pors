@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-46"
+VERSIONNUM="4.1-47"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -4437,8 +4437,13 @@ F_ADDPEER(){
         ITMPGRP="${AINVENTORY}/${TARGETENV}/${FUNCNAME}_hosts"
         > $ITMPGRP
 
+        ASITES=$(F_GETSITES)
+        OPTIONS=($(for i in $ASITES;do echo "${i} use_space-bar_to_select off"; done))
+        SITESEL=$(F_DIALOG --radiolist "Please choose a site you want to configure.\n\nNOTE: It is not possible to configure multiple sites in one run." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+        [ $? -ne 0 ] && return $?
+
         [ $RUNMODE != "batch" ] && F_DIALOG --infobox "\nPlease standby until all hostnames from your target groups are generated" 5 80
-        SHOSTS="$(F_EXPANDHOSTS peernode $ITMPGRP clean | sed 's/site._.*//g')"
+        SHOSTS=$(F_EXPANDHOSTS ${SITESEL}_peernode $ITMPGRP clean) # | sed 's/site._.*//g')"
         [ "$SHOSTS" == ABORTED ] && return 4
 
         OPTIONS=($(for i in ${SHOSTS};do echo "${i} use_space-bar_to_select off"; done))

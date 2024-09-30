@@ -21,6 +21,14 @@
   notify:
    - restart journald
 
+- name: "Set the journald log retention time"
+  lineinfile:
+    dest: /etc/systemd/journald.conf
+    regexp: ^MaxRetentionSec=
+    line: MaxRetentionSec={{ systemd_journal_max_retention_sec }}
+  notify:
+   - restart journald
+
 - name: enable/disable compression
   lineinfile:
     dest: /etc/systemd/journald.conf
