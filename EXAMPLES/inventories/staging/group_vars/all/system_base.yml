@@ -57,18 +57,24 @@ system:
 # activated and configured by PORS during the system / VM installation
 unattended_system_upgrade:
 
-    # enables/disables configuration
+    # when "True" unattended updates will be activated
     enabled: False
+
+    # setting "enabled" to "False" will not disable a previously
+    # activated unattended update configuration.
+    # force disabling unattended updates is possible by setting
+    #forcedisable: True # this will overwrite "enabled:" setting above!
+    forcedisable: False
 
     # specific settings for RedHat-(based) systems.
     # NOTE: only v8 or later are supported by PORS.
     # every unspecified option will be skipped and the default is used
+    #
     #redhat:
-
       # configuration of /etc/dnf/automatic.conf:
     #  conf_dnf:
     #    - { 'section':'', 'option':'', 'valuelist':''}
-    #    e.g. to enable just security updates instead of all packages:
+        # to enable just security updates instead of ALL packages:
     #    - { 'section':'commands', 'option':'upgrade_type', 'valuelist':'security'}
 
       # configuration of /etc/systemd/system/dnf-automatic.timer.d/override.conf:

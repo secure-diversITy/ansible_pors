@@ -41,7 +41,8 @@
         state: restarted
       when:
         - unattended_system_upgrade.redhat.conf_timer is defined
-        - systemd_override.changed | d(False)
+      # do not use: systemd_override.changed | d(False)
+      # as this prevents re-activating a previously enabled and then disabled setup
 
   when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int > 8
 

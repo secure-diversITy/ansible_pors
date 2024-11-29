@@ -1,0 +1,16 @@
+- name: Manage unattended system updates
+  hosts: "{{ target }}"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  strategy: free
+  gather_facts: true
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
+
+  tasks:
+
+    - include_role:
+        name: system_base
+        tasks_from: unattended_upgrade.yml
