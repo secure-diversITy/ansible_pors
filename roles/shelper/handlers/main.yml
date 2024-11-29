@@ -28,7 +28,7 @@
   register: shelper_result
 
 - name: shelper reload_all
-  shell: "timeout -s HUP -k 360s 300s {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
+  shell: "timeout -s HUP -k {{ shelper_reload_kill_timeout }} {{ shelper_reload_run_timeout }} {{ shelper_installation.shelper_path }}/shelperreload all --batch -auth '{{ vault_splunk_ae_user }}:{{ vault_splunk_ae_password }}'"
   register: shelper_result
 
 - name: shelper reload_apps

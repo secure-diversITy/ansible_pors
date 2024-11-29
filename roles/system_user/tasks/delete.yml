@@ -6,3 +6,19 @@
     group: "{{ user_name }}"
     force: "{{ remove_all_files | d(false) }}"
     state: absent
+
+- name: "Remove >{{ user_name }}< from passwordless sudo"
+  lineinfile:
+    dest: /etc/sudoers.d/ansible_admin
+    state: absent
+    regexp: '^{{ user_name }}'
+    line: '{{ user_name }}    ALL=(ALL)    NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+    create: no
+
+- name: Set proper sudoers file permissions
+  file:
+    path: /etc/sudoers.d/ansible_admin
+    modification_time: preserve
+    access_time: preserve
+    mode: 0440

@@ -274,3 +274,8 @@ dnsmasq_configure_expand_hosts: true
 # strict => True will override all-servers - Always
 dnsmasq_configure_strict_order: True
 dnsmasq_configure_all_servers: False
+
+######### shelper defaults ######
+
+shelper_reload_kill_timeout: '12m'
+shelper_reload_run_timeout: '11m'
