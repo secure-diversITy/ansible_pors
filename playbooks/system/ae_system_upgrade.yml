@@ -19,5 +19,5 @@
 
     - include_role:
         name: system_base
-        tasks_from: set_unattended_upgrade.yml
+        tasks_from: unattended_upgrade.yml
       when: unattended_system_upgrade.enabled | d(False)
