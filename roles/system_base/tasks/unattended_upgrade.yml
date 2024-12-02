@@ -4,6 +4,7 @@
   when:
     - unattended_system_upgrade.enabled | d(False)
     - not unattended_system_upgrade.forcedisable | d(False)
+    - not unattended_system_upgrade_forcedisable | d(False)
 
 - include: disable_unattended_updates.yml
   when: 
