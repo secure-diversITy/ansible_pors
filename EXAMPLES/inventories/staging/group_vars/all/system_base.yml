@@ -62,7 +62,9 @@ unattended_system_upgrade:
 
     # setting "enabled" to "False" will not disable a previously
     # activated unattended update configuration.
-    # force disabling unattended updates is possible by setting
+    # to achieve this you have 2 options:
+    #   1. specify "forcedisable: True" here
+    #   2. specify "unattended_system_upgrade_forcedisable: True" anywhere else
     #forcedisable: True # this will overwrite "enabled:" setting above!
     forcedisable: False
 
