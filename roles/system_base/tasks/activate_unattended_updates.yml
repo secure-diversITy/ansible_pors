@@ -28,7 +28,7 @@
         path: /etc/systemd/system/dnf-automatic.timer.d/override.conf
         section: "{{ item.section }}"
         option: "{{ item.option }}"
-        values: "{{ item.valuelist }} # {{ pors_managed_marker }}"
+        values: "{{ item.valuelist }}"
       register: systemd_override
       loop: "{{ unattended_system_upgrade.redhat.conf_timer }}"
       when: unattended_system_upgrade.redhat.conf_timer is defined

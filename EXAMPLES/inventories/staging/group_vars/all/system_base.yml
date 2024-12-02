@@ -82,10 +82,9 @@ unattended_system_upgrade:
       # configuration of /etc/systemd/system/dnf-automatic.timer.d/override.conf:
     #  conf_timer:
     #    - { 'section':'', 'option':'', 'valuelist':''}
-    #  e.g to schedule the run every Tuesday starting at 7 o'clock with a random delay of 60mins:
+    #  e.g to schedule the run every Tuesday starting at 7 o'clock with a random delay range of 45 minutes:
     #    - { 'section':'Timer', 'option':'OnCalendar', 'valuelist':'[ "", "Tue *-*-* 07:00:00" ]' }  # the first "" is IMPORTANT! this will reset any defaults!
-    #    - { 'section':'Timer', 'option':'OnCalendar', 'valuelist':'Tue *-*-* 07:00:00'}
-    #    - { 'section':'Timer', 'option':'RandomizedDelaySec', 'valuelist':'60m'}
+    #    - { 'section':'Timer', 'option':'RandomizedDelaySec', 'valuelist':'45m'}
 
     # specific settings for Debian-(based) systems
     #debian:
