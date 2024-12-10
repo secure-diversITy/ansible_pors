@@ -14,6 +14,8 @@
         - telnet
         - bash-completion
         - polkit
+        - tar
+        - curl
     state: present
 
 - name: Install user-defined packages

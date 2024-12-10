@@ -1,12 +1,16 @@
 ---
 
-- name: "Ensure SSSd is not running"
-  service:
-    name: sssd.service
-    state: stopped
+- block:
 
-- name: "Clear SSSd cache"
-  shell: sss_cache -E || true
+    - name: "Ensure SSSd is not running"
+      service:
+        name: sssd.service
+        state: stopped
+
+    - name: "Clear SSSd cache"
+      shell: sss_cache -E || true
+
+  when: "'sssd' in ansible_facts.packages"
 
 - name: "Create Splunk unix group ({{ splunk_install_user_gid }})"
   ansible.builtin.group:
@@ -54,3 +58,5 @@
   service:
     name: sssd.service
     state: started
+  when: "'sssd' in ansible_facts.packages"
+

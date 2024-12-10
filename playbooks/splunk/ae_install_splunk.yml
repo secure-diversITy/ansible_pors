@@ -21,4 +21,8 @@
   tasks:
 
     - include_role:
+        name: system_base
+        tasks_from: software.yml
+
+    - include_role:
         name: install
