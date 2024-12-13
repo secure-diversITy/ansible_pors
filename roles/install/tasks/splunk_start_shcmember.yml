@@ -6,8 +6,18 @@
   block:
 
     # disable detention mode
+    # if the lock cannot be obtained we need to wait until it is free again.
+    # "Conf is currently being modified by process xxx. Failed to obtain config lock.  Exiting."
     - name: "Disable detention mode (SH cluster)"
-      shell: "{{ splunk_installation.splunk_home_path }}/bin/splunk edit shcluster-config -manual_detention off"
+      ansible.builtin.shell: |
+        CNT=0
+        while [ "$CNT" -lt 5 ];do
+          CNT=$((CNT +1))
+          {{ splunk_installation.splunk_home_path }}/bin/splunk edit shcluster-config -manual_detention off && break
+          ERR=$?
+          sleep 20
+        done
+        exit $ERR
 
     - name: "Hint: manual splunk upgrade-finalize shcluster-members required!"
       debug:

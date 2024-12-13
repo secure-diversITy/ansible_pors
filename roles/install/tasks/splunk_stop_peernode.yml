@@ -13,8 +13,13 @@
 
     - name: "Check & enable rolling upgrade mode"
       shell: |
-        {{ splunk_installation.splunk_home_path }}/bin/splunk show cluster-status --verbose | grep -qi 'rolling upgrade is in progress' \
-            || {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init cluster-peers
+        INITDONE=$({{ splunk_installation.splunk_home_path }}/bin/splunk show cluster-status --verbose | grep -ci 'rolling upgrade is in progress')
+        if [ "$INITDONE" -eq 0 ];then
+          {{ splunk_installation.splunk_home_path }}/bin/splunk upgrade-init cluster-peers \
+            || {{ splunk_installation.splunk_home_path }}/bin/splunk show cluster-status --verbose | head -n 50
+        else
+          echo "skipped already initialized rolling-restart"
+        fi
       delegate_to: "{{ groups['masternode'][0] }}"
 
     - name: "Hint: manual splunk upgrade-finalize cluster-peers required!"
