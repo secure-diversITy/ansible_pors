@@ -3,4 +3,5 @@
 - name: "Gather package facts"
   package_facts:
     manager: auto
+  no_log: true
 

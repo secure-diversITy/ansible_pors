@@ -3,7 +3,7 @@
 ## @file	pors.sh
 ## @brief       PORS is an UI for managing your whole Splunk infrastructure with Ansible
 ## @author	Thomas Fischer <mail -AT- sedi -DOT- one>
-## @date        2017-2024
+## @date        2017-2025
 ## @copyright	AGPL v3
 ## @details     
 ##    This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-52"
+VERSIONNUM="4.1-53"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -3536,7 +3536,7 @@ F_UPGRADE(){
             fi
             SHOWREBHINT=$(F_GETANSIBLEVAR "system.upgrade_os")
             if [ $? -eq 0 ] && [ "$SHOWREBHINT" == "True" ];then
-                AUTOREBOOT=$(F_GETANSIBLEVAR "system_autoreboot_after_manual_upgrade")
+                AUTOREBOOT=$(F_GETANSIBLEVAR "system.autoreboot_after_manual_upgrade")
                 F_LOG $FUNCNAME "System packages or upgrade(s) have been installed for:\n$UPGRADEHOSTST\n\nA REBOOT IS REQUIRED!\nReboot handler will be initiated ..."
                 F_SYSREBOOT "$UPGRADEHOSTS" $AUTOREBOOT
                 LASTERR=$?

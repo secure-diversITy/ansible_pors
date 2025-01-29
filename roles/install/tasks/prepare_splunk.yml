@@ -10,7 +10,7 @@
     - name: "Clear SSSd cache"
       shell: sss_cache -E || true
 
-  when: "'sssd' in ansible_facts.packages"
+  when: "'sssd' in ansible_facts.packages or 'sssd-common' in ansible_facts.packages"
 
 - name: "Create Splunk unix group ({{ splunk_install_user_gid }})"
   ansible.builtin.group:
@@ -58,5 +58,5 @@
   service:
     name: sssd.service
     state: started
-  when: "'sssd' in ansible_facts.packages"
+  when: "'sssd' in ansible_facts.packages or 'sssd-common' in ansible_facts.packages"
 

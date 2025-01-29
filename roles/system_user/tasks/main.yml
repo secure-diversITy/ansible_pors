@@ -20,6 +20,11 @@
     - user_name == ansible_ssh_user
     - delete_user is defined and delete_user | bool
 
+# gather package facts
+- include_role:
+    name: install
+    tasks_from: package.yml
+
 - include: delete.yml
   when: delete_user is defined and delete_user | bool 
 

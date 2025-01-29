@@ -6,13 +6,13 @@
       service:
         name: sssd.service
         state: stopped
-      when: sssd_workaround
 
     - name: "Clear SSSd cache"
       shell: sss_cache -E || true
-      when: sssd_workaround
 
-  when: "'sssd' in ansible_facts.packages"
+  when:
+    - sssd_workaround
+    - "'sssd' in ansible_facts.packages or 'sssd-common' in ansible_facts.packages"
 
 - name: "Create {{ user_name }} unix group ({{ username_uid }})"
   group:
@@ -90,4 +90,4 @@
     state: started
   when:
     - sssd_workaround
-    - "'sssd' in ansible_facts.packages"
+    - "'sssd' in ansible_facts.packages or 'sssd-common' in ansible_facts.packages"

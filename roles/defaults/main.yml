@@ -163,20 +163,6 @@ shared_service_account_as_root: False
 test_shared_service_account: False
 system_enable_sysprep: True
 
-# after a triggered OS upgrade (system.upgrade_os must be set to True)
-# should PORS reboot automatically without asking?
-#
-# note:
-# this does NOT set unattended reboots in unattended_system_upgrade!
-# it will apply only during the PORS system upgrade process, e.g. within
-# a splunk upgrade or after a VM deploy or when starting it manually
-# via the PORS menu.
-# leave empty to explicitly disable autoreboot or set "autoreboot"
-# in your group / host vars sytem_base.yml file to enable it.
-# if you do not override the following default will be used 
-# (i.e. ask before reboot)
-system_autoreboot_after_manual_upgrade: ""
-
 # disable SSSD before creating a user and enable again afterwards
 sssd_workaround: False
 
