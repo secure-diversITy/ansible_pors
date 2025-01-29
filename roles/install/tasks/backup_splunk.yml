@@ -25,6 +25,7 @@
     format: gz
 
 - name: "Upload backup to {{ splunk_installation.backup_upload_server }}"
+  become: no
   ansible.posix.synchronize:
     mode: pull
     src: "rsync://{{ inventory_hostname }}{{ splunk_installation.remote_backup_path }}/backup_{{ inventory_hostname_short }}_{{ lookup('pipe','date \"+%Y-%m-%d_%H-%M\"') }}.gz"

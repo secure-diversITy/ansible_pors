@@ -1,0 +1,24 @@
+---
+
+- name: Backup Splunk
+  hosts: "*:!pors_server"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: root
+  strategy: free
+  gather_facts: False 
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
+
+  pre_tasks:
+
+    - name: "Collecting system information"
+      setup:
+
+  tasks:
+
+    - include_role:
+        name: install
+        tasks_from: backup_splunk.yml
+
