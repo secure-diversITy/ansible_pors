@@ -1,6 +1,6 @@
 ---
 - name: Install base packages
-  package:
+  ansible.builtin.package:
     name:
         - git
         - vim
@@ -19,7 +19,7 @@
     state: present
 
 - name: Install user-defined packages
-  package:
+  ansible.builtin.package:
     name: "{{ packages }}"
     state: present
   when: packages is defined
@@ -29,7 +29,7 @@
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_conditionals.html#ansible-facts-os-family
 
 - name: SuSE specific packages
-  package:
+  ansible.builtin.package:
     name:
         - python-xml
         - systemd-sysvinit
@@ -40,25 +40,18 @@
   when: ansible_facts['os_family'] == "Suse"
 
 - name: RHEL specific packages
-  package:
+  ansible.builtin.package:
     name:
         - python3-libselinux
         - nmap-ncat
-        - yum-utils
+#        - yum-utils
   when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] | int > 6
 
 - name: vSphere requirements (RHEL)
-  package:
+  ansible.builtin.package:
     name:
         - open-vm-tools
   when:
     - ansible_facts['os_family'] == "RedHat"
     - ansible_virtualization_type == "VMware"
-
-#- name: enable NTPd
-#  systemd:
-#    daemon_reload: yes
-#    name: ntp
-#    enabled: yes
-#    state: started
 

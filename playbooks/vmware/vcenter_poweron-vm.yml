@@ -1,7 +1,9 @@
 ---
 - name: power on VM and wait for IP
   connection: local
-  vmware_guest:
+  community.vmware.vmware_guest:
+      proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+      proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
       hostname: '{{ vsphere.host[vsphere_var].dest }}'
       username: '{{ vsphere.host[vsphere_var].user }}'
       password: '{{ vsphere.host[vsphere_var].password }}'

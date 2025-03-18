@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-53"
+VERSIONNUM="4.1-55"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -4797,7 +4797,7 @@ F_VSPHERE_DEPLOY(){
     VCHOST="$VM_VSPHERE_ESX"
     VCDC="$VM_VSPHERE_DC"
     VCDS="$VM_VSPHERE_DS"
-    VCNET="$VM_VSPHERE_NETNAME"
+    VCNET="$VCNET"
 
     F_LOG "$FUNCNAME" "VCENTER,VMHOST,VMCPU,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VCHOST,VCDC,VCDS,VCNET,VMGUESTOS,VMDISK,VMDISKTYPE,VMDISKSIZEGB,VMDISKOPTS,VMDISKDEV"
     F_LOG "$FUNCNAME" "$VCENTER,$VMHOST,$VMCPU,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VCHOST,$VCDC,$VCDS,$VCNET,$VMGUESTOS,$VMDISK,$VMDISKTYPE,$VMDISKSIZEGB,$VMDISKOPTS,$VMDISKDEV"
@@ -4822,14 +4822,14 @@ F_VSPHERE_DEPLOY(){
     fi
 
     # sum up (makes uses of real tab spaces in dialog):
-    F_DIALOG --no-collapse --colors --yesno "\n\ZbPORS is about to provision a VM with the following details:\ZB\n\n    vCenter:"$'\t\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t\t'"$VCHOST\n\n    Hostname:"$'\t\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t\t'"$VMCPU\n    RAM:"$'\t\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t\t'"$VMIP/$VMNETMASK\n    Gateway:"$'\t\t\t'"$VMGW\n    DNS servers:"$'\t\t'"$VMDNS1, $VMDNS2\n    Datacenter (OS disk):"$'\t'"$VCDC\n    Datastorage (OS disk):"$'\t'"$VCDS\n    Network:"$'\t\t\t'"$VCNET\n\nDo you want to continue?\n" 30 80
+    F_DIALOG --no-collapse --colors --yesno "\n\ZbPORS is about to provision a VM with the following details:\ZB\n\n    vCenter:"$'\t\t\t'"\Zb$VCENTER\ZB\n    ESX:"$'\t\t\t'"$VCHOST\n\n    Hostname:"$'\t\t\t'"${VMHOST}.${VMSDOMAIN}\n    CPU:"$'\t\t\t'"$VMCPU\n    RAM:"$'\t\t\t'"$VMRAM_GB GB ($VMRAM_MB MB)\n    IP:"$'\t\t\t'"$VMIP/$VMNETCIDR ($VCNET)\n    IP2:"$'\t\t\t'"$VMIP2/$VMNETCIDR2 ($VCNET2)\n    Gateway:"$'\t\t\t'"$VMGW\n    DNS servers:"$'\t\t'"$VMDNS1, $VMDNS2 $VMDNS3\n    Datacenter (OS disk):"$'\t'"$VCDC\n    Datastorage (OS disk):"$'\t'"$VCDS\n\nDo you want to continue?\n" 30 80
     DEPLOYIT=$?
 
     [ $DEPLOYIT -ne 0 ] && F_LOG $FUNCNAME "Aborted by user" && return 4
 
-    F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS', 'server_scnd_disk':'$VMDISK','server_disk_type':'$VMDISKTYPE','server_disk_sizegb':'$VMDISKSIZEGB','deploymode':'$DEPLOYMODE'}"
+    F_LOG $FUNCNAME "Will start provisionining with: $PBVCVMDEPLOY -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_scnd_ip':'$VMIP2','server_scnd_netmask':'$VMNETMASK2','server_scnd_gateway':'$VMGW2','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_dns3':'$VMDNS3','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','server_scnd_net_name':'$VCNET2','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK','deploymode':'$DEPLOYMODE'}" 
 
-    F_ABIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK','deploymode':'$DEPLOYMODE'}" 
+    F_ABIN $HOSTFILE $PBVCVMDEPLOY "Deploying $VMHOST to $VCHOST ..." "--limit ${VMHOST}.${VMSDOMAIN} -e {'vsphere_var':'$VCENTER','server_hostname':'$VMHOST','server_ram_mb':'$VMRAM_MB','server_cpu_count':'$VMCPU','server_ip':'$VMIP','server_netmask':'$VMNETMASK','server_gateway':'$VMGW','server_scnd_ip':'$VMIP2','server_scnd_netmask':'$VMNETMASK2','server_scnd_gateway':'$VMGW2','server_dns1':'$VMDNS1','server_dns2':'$VMDNS2','server_dns3':'$VMDNS3','server_domain':'$VMSDOMAIN','vsphere_esx_host':'$VCHOST','vsphere_datacenter':'$VCDC','server_net_name':'$VCNET','server_scnd_net_name':'$VCNET2','vsphere_datastore':'$VCDS','vsphere_guestos':'$VMGUESTOS','server_scnd_disk':'$VMDISK','deploymode':'$DEPLOYMODE'}" 
 #2>&1 >> $LOG
     DEPERR=$?
     F_LOG $FUNCNAME "deploying ended with code: $DEPERR"
@@ -5128,7 +5128,7 @@ F_CALCNETMASK(){
 F_STARTVMDEP(){ 
     F_LOG $FUNCNAME started
 
-    unset SROLE VENDOR VMHOST VMSDOMAIN VMCPU VMRAM_GB VMIP VMNETMASK VMGW VMDNS1 VMDNS2 VM_PROVIDER
+    unset SROLE VENDOR VMHOST VMSDOMAIN VMCPU VMRAM_GB VMIP VMNETMASK2 VMIP2 VMNETMASK2 VMGW VMGW2 VMDNS1 VMDNS2 VM_PROVIDER
 
     FINISHED=0
     ABORTED=0
@@ -5195,7 +5195,7 @@ F_STARTVMDEP(){
     VALIDROLESTXT=$(for r in $VALIDROLES;do echo "$r\n";done)
 
     while [ $FINISHED -eq 0 ];do
-        DIAOUT=$(F_DIALOG --colors --extra-button --extra-label "Available Roles" --mixedform "\nSetup your new VM - Use arrow keys to switch between\n(no validation so be careful what you type..)\n\nAvailable server role names are PREDEFINED, press \ZbAvailable Roles\ZB to find all valid role names" 30 100 20  \
+        DIAOUT=$(F_DIALOG --colors --extra-button --extra-label "Available Roles" --mixedform "\nSetup your new VM - Use arrow keys to switch between\n(no validation so be careful what you type..)\n\nAvailable server role names are PREDEFINED, press \ZbAvailable Roles\ZB to find all valid role names" 40 100 30  \
                 "VM Provider" 1 1 "$VM_PROVIDER" 1 25 40 10 0\
                 "----------------------------------------------------------------" 2 1 "-" 2 99 0 0 2\
                 "Splunk Server Role" 3 1 "$SELECTED_SERVER_ROLE" 3 25 40 60 0\
@@ -5204,12 +5204,21 @@ F_STARTVMDEP(){
                 "Server Domain Name" 6 1 "$VMSDOMAIN" 6 25 40 60 0\
                 "CPU count" 7 1 "$VMCPU" 7 25 40 4 0\
                 "RAM (GB)" 8 1 "$VMRAM_GB" 8 25 40 5 0\
-                "Host IP (or 'dhcp')" 9 1 "$VMIP" 9 25 40 15 0\
-                "CIDR (0-32) or Netmask" 10 1 "$VMNETMASK" 10 25 40 15 0\
-                "Gateway IP" 11 1 "$VMGW" 11 25 40 15 0\
-                "DNS #1" 12 1 "$VMDNS1" 12 25 40 15 0\
-                "DNS #2" 13 1 "$VMDNS2" 13 25 40 15 0\
+                "NIC-1:" 9 1 "-" 9 99 0 0 2\
+                " Host IP (or 'dhcp')" 10 1 "$VMIP" 10 25 40 15 0\
+                " CIDR or Netmask" 11 1 "$VMNETMASK" 11 25 40 15 0\
+                " Gateway IP" 12 1 "$VMGW" 12 25 40 15 0\
+                " vSphere Network" 13 1 "$VCNET" 13 25 40 15 0\
+                "NIC-2:" 14 1 "-" 14 99 0 0 2\
+                " Host IP (or 'dhcp')" 15 1 "$VMIP2" 15 25 40 15 0\
+                " CIDR or Netmask" 16 1 "$VMNETMASK2" 16 25 40 15 0\
+                " Gateway IP" 17 1 "$VMGW2" 17 25 40 15 0\
+                " vSphere Network" 18 1 "$VCNET2" 18 25 40 15 0\
+                "DNS #1" 19 1 "$VMDNS1" 19 25 40 15 0\
+                "DNS #2" 20 1 "$VMDNS2" 20 25 40 15 0\
+                "DNS #3" 21 1 "$VMDNS3" 21 25 40 15 0\
                 3>&1 1>&2 2>&3)
+
         WERR=$?
         [ $WERR -eq 3 ] && F_DIALOG --colors --cr-wrap --msgbox "\n\ZbValid Splunk Server Role Names\ZB\n(only these listed roles are supported in PORS)\n\n$VALIDROLESTXT\nTo copy press SHIFT then use the mouse to select an entry then press: CTRL+SHIFT+C\n\nGo back and paste with: CTRL+SHIFT+P" 28 52 && continue
         [ $WERR -eq 1 ] && F_LOG "$FUNCNAME" "Aborted by user" && ABORTED=1 && FINISHED=1 && return 4
@@ -5225,11 +5234,22 @@ F_STARTVMDEP(){
         VMSDOMAIN=$(echo $NDIAOUT | cut -d "|" -f4 | tr -d " ")
         VMCPU=$(echo $NDIAOUT | cut -d "|" -f5 | tr -d " ")
         VMRAM_GB=$(echo $NDIAOUT | cut -d "|" -f6 | tr -d " ")
+
+        # network interface 1
         VMIP=$(echo $NDIAOUT | cut -d "|" -f7 | tr -d " ")
         VMNETMASK=$(echo $NDIAOUT | cut -d "|" -f8 | tr -d " ")
         VMGW=$(echo $NDIAOUT | cut -d "|" -f9 | tr -d " ")
-        VMDNS1=$(echo $NDIAOUT | cut -d "|" -f10 | tr -d " ")
-        VMDNS2=$(echo $NDIAOUT | cut -d "|" -f11 | tr -d " ")
+        VCNET=$(echo $NDIAOUT | cut -d "|" -f10 | tr -d " ")
+
+        # network interface 2
+        VMIP2=$(echo $NDIAOUT | cut -d "|" -f11 | tr -d " ")
+        VMNETMASK2=$(echo $NDIAOUT | cut -d "|" -f12 | tr -d " ")
+        VMGW2=$(echo $NDIAOUT | cut -d "|" -f13 | tr -d " ")
+        VCNET2=$(echo $NDIAOUT | cut -d "|" -f14 | tr -d " ")
+
+        VMDNS1=$(echo $NDIAOUT | cut -d "|" -f15 | tr -d " ")
+        VMDNS2=$(echo $NDIAOUT | cut -d "|" -f16 | tr -d " ")
+        VMDNS3=$(echo $NDIAOUT | cut -d "|" -f17 | tr -d " ")
 
         # check if the splunk server role is valid
         ROLEOK=0
@@ -5245,6 +5265,12 @@ F_STARTVMDEP(){
         else
             VMNETCIDR=$(F_CALCCIDR "$VMNETMASK")
         fi
+        if [ ${#VMNETMASK2} -le 2 ]; then
+            VMNETCIDR2="$VMNETMASK2"
+            VMNETMASK2=$(F_CALCNETMASK "$VMNETMASK2")
+        else
+            VMNETCIDR2=$(F_CALCCIDR "$VMNETMASK2")
+        fi
 
         # prepare IaC config
         VMHOSTWDATE="${VMHOST}_$(date +%Y%m%d-%H%M%S)"
@@ -5253,8 +5279,8 @@ F_STARTVMDEP(){
         cat ${HWCONFIG}common.config $TMPHWPROFILE | egrep -v '^#|^$' >> $TMPHWPROFILE
         [ "$HWPROFILE" != "Common" ] && echo -e "\n\n### The following is sourced from: ${HWCONFIG}${HWPROFILE}.config" >> $TMPHWPROFILE && cat ${HWCONFIG}${HWPROFILE}.config | egrep -v '^#|^$' >> $TMPHWPROFILE
 
-        F_LOG "$FUNCNAME" "VMHOST,VMCPU,VMRAM_GB,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMDNS1,VMDNS2,VMSDOMAIN,VM_PROVIDER,VMNETCIDR"
-        F_LOG "$FUNCNAME" "$VMHOST,$VMCPU,$VMRAM_GB,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMDNS1,$VMDNS2,$VMSDOMAIN,$VM_PROVIDER,$VMNETCIDR"
+        F_LOG "$FUNCNAME" "VMHOST,VMCPU,VMRAM_GB,VMRAM_MB,VMIP,VMNETMASK,VMGW,VMIP2,VMNETMASK2,VMGW2,VMDNS1,VMDNS2,VMDNS3,VMSDOMAIN,VM_PROVIDER,VMNETCIDR,VMNETCIDR2"
+        F_LOG "$FUNCNAME" "$VMHOST,$VMCPU,$VMRAM_GB,$VMRAM_MB,$VMIP,$VMNETMASK,$VMGW,$VMIP2,$VMNETMASK2,$VMGW2,$VMDNS1,$VMDNS2,$VMDNS3,$VMSDOMAIN,$VM_PROVIDER,$VMNETCIDR,$VMNETCIDR2"
 
         if [ -z "$VMHOST" -o -z "$VMCPU" -o -z "$VMRAM_GB" -o -z "$VMIP" -o -z "$VMNETMASK" -o -z "$VMGW" -o -z "$VMDNS1" -o -z "$VMDNS2" -o -z "$VMNETCIDR" ];then
             F_DIAERR 3 "A required field is missing.. try again"
@@ -5266,12 +5292,11 @@ F_STARTVMDEP(){
             echo -e "\n\n# The following are user defined values which might override the above defaults\n" >> $TMPHWPROFILE
             case $VM_PROVIDER in
                 vsphere|vmware)
-                    PROVOUT=$(F_DIALOG --colors --form "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)\n\n\ZbNote:\ZB\nDatastore and Datacenter defaults can be overwritten per disk within the hardware profile by specifying VMDISKxDS and VMDISKxDC variables.\n" 30 100 20  \
+                    PROVOUT=$(F_DIALOG --colors --form "\nSetup your VM Provider $VM_PROVIDER for $VMHOST - Use arrow keys to switch between\n(no validation so be careful what you type..)\n\n\ZbNote:\ZB\nDatastore and Datacenter defaults can be overwritten per disk within the hardware profile by specifying VMDISKxDS and VMDISKxDC variables.\n" 20 100 6\
                                 "vCenter" 1 1 "$VM_VSPHERE_VCENTER" 1 22 60 70 \
                                 "ESXi host" 2 1 "$VM_VSPHERE_ESX" 2 22 60 70 \
                                 "Datastore (OS disk)" 3 1 "$VM_VSPHERE_DS" 3 22 60 70  \
                                 "Datacenter (OS disk)" 4 1 "$VM_VSPHERE_DC" 4 22 60 70  \
-                                "Network Name" 5 1 "$VM_VSPHERE_NETNAME" 5 22 60 70 \
                                 3>&1 1>&2 2>&3)
                     VMERR=$?
                     # normalize the output so it can be parsed correctly
@@ -5280,13 +5305,11 @@ F_STARTVMDEP(){
                     VM_VSPHERE_ESX=$(echo $NDIAOUT | cut -d "|" -f2 | tr -d " ")              
                     VM_VSPHERE_DS=$(echo $NDIAOUT | cut -d "|" -f3 | tr -d " ")              
                     VM_VSPHERE_DC=$(echo $NDIAOUT | cut -d "|" -f4 | tr -d " ")              
-                    VM_VSPHERE_NETNAME=$(echo $NDIAOUT | cut -d "|" -f5 | tr -d " ")
 
                     echo "VM_VSPHERE_VCENTER=$VM_VSPHERE_VCENTER" >> $TMPHWPROFILE
                     echo "VM_VSPHERE_ESX=$VM_VSPHERE_ESX" >> $TMPHWPROFILE
                     echo "VM_VSPHERE_DS=$VM_VSPHERE_DS" >> $TMPHWPROFILE
                     echo "VM_VSPHERE_DC=$VM_VSPHERE_DC" >> $TMPHWPROFILE
-                    echo "VM_VSPHERE_NETNAME=$VM_VSPHERE_NETNAME" >> $TMPHWPROFILE
                 ;;
                 proxmox|pve)
 		    F_DIALOG --infobox "\nParsing Ansible variables ..." 5 40
@@ -5353,10 +5376,19 @@ F_STARTVMDEP(){
         echo "VMRAM_GB=$VMRAM_GB" >> $TMPHWPROFILE
         VMRAM_MB=$((VMRAM_GB * 1024))
         echo "VMRAM_MB=$VMRAM_MB" >> $TMPHWPROFILE
+
         echo "VMIP=$VMIP" >> $TMPHWPROFILE
         echo "VMNETMASK=$VMNETMASK" >> $TMPHWPROFILE
         echo "VMNETCIDR=$VMNETCIDR" >> $TMPHWPROFILE
         echo "VMGW=$VMGW" >> $TMPHWPROFILE
+        echo "VCNET=$VCNET" >> $TMPHWPROFILE
+
+        echo "VMIP2=$VMIP2" >> $TMPHWPROFILE
+        echo "VMNETMASK2=$VMNETMASK2" >> $TMPHWPROFILE
+        echo "VMNETCIDR2=$VMNETCIDR2" >> $TMPHWPROFILE
+        echo "VMGW2=$VMGW2" >> $TMPHWPROFILE
+        echo "VCNET2=$VCNET2" >> $TMPHWPROFILE
+ 
         echo "VMDNS1=$VMDNS1" >> $TMPHWPROFILE
         echo "VMDNS2=$VMDNS2" >> $TMPHWPROFILE
         echo "VMSDOMAIN=$VMSDOMAIN" >> $TMPHWPROFILE
@@ -5500,11 +5532,11 @@ F_STARTVMDEP(){
             CHKREQ=1
             unset DEPLOYARG
             while [ "$CHKREQ" -eq 1 ];do
-                # check if the target exists and offer config only if
+                # check if the target exists and offer config-only, if
                 if [ $VMIP == "dhcp" ];then
-                    F_PING $VMHOST
+                    F_PING $VMHOST || F_PING $VMHOST2
                 else
-                    F_PING $VMIP
+                    F_PING $VMIP || F_PING $VMIP2
                 fi
                 PINGANSW=$?
                 if [ $PINGANSW -eq 0 ];then
@@ -5823,7 +5855,7 @@ F_FORMATDISK(){
             [ $ERR -ne 0 ] && F_LOG $FUNCNAME "error $ERR occured" && return $ERR
         fi
     done
-    F_SYSREBOOT "$VMHOSTF" autoreboot
+    F_SYSREBOOT "$VMHOSTF" autoreboot 1
     F_LOG $FUNCNAME ended
 }
 
@@ -6298,11 +6330,12 @@ F_DATAPUSH(){
 ## @return Exit code of the ping command (all non zero means the system cannot be reached)
 F_PING(){
     F_LOG $FUNCNAME "started with $1"
+    local pip="$1"
     unset T
     T="$1"
     [ -z "$T" ] && return 3
 
-    F_WAITBOX "... checking for $VMHOST ($VMIP)"
+    F_WAITBOX "... checking for $VMHOST ($pip)"
 
     ping -c 3 -W 2 $T >> $LOG 2>&1
     RET=$?

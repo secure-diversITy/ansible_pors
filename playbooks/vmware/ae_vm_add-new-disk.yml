@@ -6,6 +6,8 @@
   tasks:
     - name: Gather disk facts from {{ server_hostname }}
       community.vmware.vmware_vm_info:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -22,6 +24,8 @@
 
     - name: Shutdown {{ server_hostname }} if needed
       vmware_guest:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -43,6 +47,8 @@
 
     - name: "Add disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (full wipe --> long wait timeout)"
       vmware_guest_disk:
+            proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+            proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
             hostname: '{{ vsphere.host[vsphere_var].dest }}'
             username: '{{ vsphere.host[vsphere_var].user }}'
             password: '{{ vsphere.host[vsphere_var].password }}'
@@ -63,6 +69,8 @@
        
     - name: "Add disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (normal provisioning)"
       vmware_guest_disk:
+            proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+            proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
             hostname: '{{ vsphere.host[vsphere_var].dest }}'
             username: '{{ vsphere.host[vsphere_var].user }}'
             password: '{{ vsphere.host[vsphere_var].password }}'

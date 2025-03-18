@@ -1,6 +1,6 @@
 ---
 
-- name: "partitioning {{ server_disk_dev }}"
+- name: "Partitioning {{ server_disk_dev }}"
   parted: 
     device: "{{ part_dev_name.stdout }}" 
     number: 1
@@ -9,27 +9,43 @@
     state: present
   when: server_disk_dev is defined
 
-- name: "create new lvm volgroup {{ server_lvm_vg }} with {{ part_dev_name.stdout }}1"
-  lvg:
+- name: "Check if we need to create a LVM volume group"
+  ansible.builtin.shell: >
+    pvs --nosuffix --noheadings  --separator "," -o +pv_name | grep ',{{ server_lvm_vg }},' | cut -d ',' -f 7 | tr '\n' ',' | sed -E 's/,$//g'
+  register: lgrpdevs
+
+- name: "Create new lvm volgroup {{ server_lvm_vg }} with {{ part_dev_name.stdout }}1"
+  community.general.lvg:
     vg: "{{ server_lvm_vg }}"
     pvs: "{{ part_dev_name.stdout }}1"
-  when: server_disk_dev is defined
+  when:
+    - server_disk_dev is defined
+    - lgrpdevs.stdout is undefined or (lgrpdevs.stdout is defined and lgrpdevs.stdout | length < 4)
 
-- name: "create {{ server_lvm_lv }} logical volume in {{ server_lvm_vg }}"
-  lvol:
+- name: "Extend existing lvm volgroup {{ server_lvm_vg }} with {{ part_dev_name.stdout }}1"
+  community.general.lvg:
+    vg: "{{ server_lvm_vg }}"
+    pvs: "{{ lgrpdevs.stdout }},{{ part_dev_name.stdout }}1"
+#    pvresize: true
+  when:
+    - server_disk_dev is defined
+    - lgrpdevs.stdout is defined and lgrpdevs.stdout | length > 4
+
+- name: "Create {{ server_lvm_lv }} logical volume in {{ server_lvm_vg }}"
+  community.general.lvol:
     vg: "{{ server_lvm_vg }}"
     lv: "{{ server_lvm_lv }}"
     size: 100%FREE
   when: server_disk_dev is defined
 
-- name: "format /dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }} with {{ server_disk_fs }}"
-  filesystem:
+- name: "Format /dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }} with {{ server_disk_fs }}"
+  community.general.filesystem:
     fstype: "{{ server_disk_fs }}"
     dev: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
   when: server_disk_dev is defined
 
-- name: "add {{ server_disk_dev }} to fstab"
-  mount:
+- name: "Add {{ server_disk_dev }} to fstab"
+  ansible.posix.mount:
     src: "/dev/mapper/{{ server_lvm_vg }}-{{ server_lvm_lv }}"
     path: "{{ server_disk_mountpoint }}"
     opts: "{{ server_disk_mountopts }}"
@@ -39,8 +55,8 @@
     state: present
   when: server_disk_dev is defined
 
-- name: "create mountpoint {{ server_disk_mountpoint }}"
-  file:
+- name: "Create mountpoint {{ server_disk_mountpoint }}"
+  ansible.builtin.file:
     path: "{{ server_disk_mountpoint }}"
     mode: '0755'
     state: directory

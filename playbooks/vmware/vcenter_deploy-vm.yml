@@ -15,6 +15,8 @@
   # Create a VM from a template
   - name: "Create the VM"
     community.vmware.vmware_guest:
+      proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+      proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
       hostname: '{{ vsphere.host[vsphere_var].dest }}'
       username: '{{ vsphere.host[vsphere_var].user }}'
       password: '{{ vsphere.host[vsphere_var].password }}'
@@ -28,13 +30,17 @@
       template: "{{ vsphere.host[vsphere_var].ansible_template_name }}"
       datastore: "{{ vsphere_datastore }}"
       networks:
-      - name: "{{ server_net_name }}"
-        ip: '{{ server_ip }}'
-        netmask: "{{ server_netmask }}"
-        gateway: "{{ server_gateway }}"
-        dns_servers:
-        - "{{ server_dns1 }}"
-        - "{{ server_dns2 }}"
+        - name: "{{ server_net_name }}"
+          ip: '{{ server_ip }}'
+          netmask: "{{ server_netmask }}"
+          gateway: "{{ server_gateway }}"
+          dns_servers:
+            - "{{ server_dns1 }}"
+            - "{{ server_dns2 }}"
+        - name: "{{ server_scnd_net_name }}"
+          ip: '{{ server_scnd_ip }}'
+          netmask: "{{ server_scnd_netmask }}"
+          gateway: "{{ server_scnd_gateway }}"
       hardware:
         memory_mb: "{{ server_ram_mb }}"
         num_cpus: "{{ server_cpu_count }}"
@@ -54,6 +60,8 @@
       - name: "Shutdown existing VM"
         connection: local
         community.vmware.vmware_guest:
+          proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+          proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
           hostname: '{{ vsphere.host[vsphere_var].dest }}'
           username: '{{ vsphere.host[vsphere_var].user }}'
           password: '{{ vsphere.host[vsphere_var].password }}'
@@ -67,6 +75,8 @@
 
       - name: "Reconfigure existing VM"
         community.vmware.vmware_guest:
+          proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+          proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
           hostname: '{{ vsphere.host[vsphere_var].dest }}'
           username: '{{ vsphere.host[vsphere_var].user }}'
           password: '{{ vsphere.host[vsphere_var].password }}'
@@ -76,13 +86,17 @@
           datacenter: "{{ vsphere_datacenter }}"
           name: '{{ server_hostname }}'
           networks:
-          - name: "{{ server_net_name }}"
-            ip: '{{ server_ip }}'
-            netmask: "{{ server_netmask }}"
-            gateway: "{{ server_gateway }}"
-            dns_servers:
-            - "{{ server_dns1 }}"
-            - "{{ server_dns2 }}"
+            - name: "{{ server_net_name }}"
+              ip: '{{ server_ip }}'
+              netmask: "{{ server_netmask }}"
+              gateway: "{{ server_gateway }}"
+              dns_servers:
+              - "{{ server_dns1 }}"
+              - "{{ server_dns2 }}"
+            - name: "{{ server_scnd_net_name }}"
+              ip: '{{ server_scnd_ip }}'
+              netmask: "{{ server_scnd_netmask }}"
+              gateway: "{{ server_scnd_gateway }}"
           hardware:
             memory_mb: "{{ server_ram_mb }}"
             num_cpus: "{{ server_cpu_count }}"
@@ -99,6 +113,8 @@
 
   - name: "Set hotplug options (if defined)"
     community.vmware.vmware_guest:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -114,6 +130,8 @@
 
   - name: "Disable VMEM swap (if defined)"
     community.vmware.vmware_guest:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -139,6 +157,8 @@
 
   - name: "Disable PXE boot (if defined)"
     community.vmware.vmware_guest:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'

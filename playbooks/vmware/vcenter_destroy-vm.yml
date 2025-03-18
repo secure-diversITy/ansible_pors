@@ -1,17 +1,30 @@
 ---
 - hosts: '{{ server_hostname }}*'
+  remote_user: "{{ pors_ssh_user }}"
   gather_facts: false
-  connection: local
+
+  vars:
+    ansible_ssh_user: "{{ pors_ssh_user }}"
 
   tasks:
 
+  - name: "Execute any pre-destroy commands"
+    become: yes
+    ansible.builtin.shell: "{{ custom_pre_destroy_cmd }}"
+    when: custom_pre_destroy_cmd is defined
+    delegate_to: "{{ server_hostname }}"
+
   - name: "Destroying the VM now.."
+    become: no
     debug:
       msg: "Please be patient or watch the progress at the vCenter"
 
-  - name: power off VM
+  - name: Power off VM
+    become: no
     connection: local
-    vmware_guest:
+    community.vmware.vmware_guest:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
@@ -22,9 +35,12 @@
         folder: "/{{ vsphere_datacenter }}/vm"
         state: poweredoff
 
-  - name: destroy VM 
+  - name: Destroy VM 
+    become: no
     connection: local
-    vmware_guest:
+    community.vmware.vmware_guest:
+        proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
+        proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
         username: '{{ vsphere.host[vsphere_var].user }}'
         password: '{{ vsphere.host[vsphere_var].password }}'
