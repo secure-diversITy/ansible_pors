@@ -26,6 +26,7 @@
 
     - include_role:
         name: system_ntp
+      when: ntp_manage_config | d(False) | bool
 
     - include_role:
         name: system_journal

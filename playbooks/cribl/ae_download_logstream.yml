@@ -1,5 +1,6 @@
 ---
-- hosts: pors_server
+- hosts: localhost
+  connection: local
   tasks:
 
   - name: Check/Create repo dir

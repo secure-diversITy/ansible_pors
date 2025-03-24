@@ -44,7 +44,8 @@
     append: yes
     comment: "created by PORS"
     shell: "{{ user_shell | d(system_default_shell) }}"
-    password: "{{ user_pass | password_hash('sha512') }}"
+    password: >-
+      {% if user_pass is undefined or (user_pass is defined and user_pass == "DISABLED") %}!{% else %}{{ user_pass | password_hash('sha512') }}{% endif %}
     expires: -1
     state: present
   when: username_gid is defined
@@ -58,10 +59,16 @@
     append: yes
     comment: "created by PORS"
     shell: "{{ user_shell | d(system_default_shell) }}"
-    password: "{{ user_pass | password_hash('sha512') }}"
+    password: >-
+      {% if user_pass is undefined or (user_pass is defined and user_pass == "DISABLED") %}!{% else %}{{ user_pass | password_hash('sha512') }}{% endif %}
     expires: -1
     state: present
   when: username_gid is undefined
+
+- name: "Password condition check"
+  debug:
+    msg: |
+      condcheck={% if user_pass is undefined or (user_pass is defined and user_pass == "DISABLED") %}!{% else %}{{ user_pass | password_hash('sha512') }}{% endif %}
 
 - name: "ensure touch dir exists"
   file:

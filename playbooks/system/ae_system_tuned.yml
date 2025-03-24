@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: "{{ target }}"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
@@ -9,6 +9,11 @@
     ansible_ssh_user: "{{ pors_ssh_user }}"
 
   tasks:
+
+    - include_role:
+        name: common
+        public: yes
+
     - include_role:
         name: system_optimize
         tasks_from: optimize_tuned

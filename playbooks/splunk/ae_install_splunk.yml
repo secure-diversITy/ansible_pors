@@ -26,3 +26,7 @@
 
     - include_role:
         name: install
+
+    - include_role:
+        name: conf/user
+      when: post_install_add_users | d(False)

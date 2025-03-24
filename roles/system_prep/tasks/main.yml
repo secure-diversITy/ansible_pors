@@ -5,7 +5,9 @@
     - include: regen_ssh_host_keys.yml
     - include: regen_machine_id.yml
     - include: regen_initrd.yml
-  when: regen_sys | d('destroy_deploy') == 'destroy_deploy'
+  when:
+    - regen_sys | d('destroy_deploy') != 'config_only'
+    - not skip_regen_sys | d(False)
 
 # distro specific tasks
 - include: update_rhsm.yml

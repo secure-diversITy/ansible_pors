@@ -13,6 +13,9 @@
   tasks:
 
     - include_role:
+        name: conf/user
+
+    - include_role:
         name: system_sshid
 
     - include_role:

@@ -1,11 +1,11 @@
 ---
 
-- name: reboot remote system
-  reboot:
+- name: "Reboot remote system"
+  ansible.builtin.reboot:
     msg: "reboot initiated by PORS"
   register: rebootsys
 
-- name: verify system reboot
-  fail:
+- name: "Verify system reboot"
+  ansible.builtin.fail:
     msg: "ERROR: Failed to reboot the remote system or it has taken too long to boot up again"
   when: rebootsys.rebooted != True

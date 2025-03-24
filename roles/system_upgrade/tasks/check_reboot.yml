@@ -26,7 +26,7 @@
 
     - name: "Check if a reboot is required (Redhat*)"
       ansible.builtin.shell: |
-        needs-restarting --reboothint
+        needs-restarting --reboothint || yum needs-restarting --reboothint
         if [ $? -ne 0 ];then echo 1; else echo 0;fi
       register: reboot_check_dnf
 

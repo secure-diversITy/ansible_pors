@@ -24,6 +24,13 @@
     - hook_post_install_cribl is defined and hook_post_install_cribl == True
     - logstream_upgrade == False
 
+- include: ../../system_optimize/tasks/optimize_tuned.yml
+  when:
+    - splunk_optimize.tuned is defined
+    - splunk_optimize.tuned == True
+
+- include: ../../system_optimize/tasks/optimize_selinux.yml
+
 - include: service_enable.yml
 - include: optimize_ulimit.yml
 

@@ -1,5 +1,5 @@
 ---
-- hosts: pors_server
+- hosts: localhost 
   connection: local
 
   pre_tasks:
@@ -9,5 +9,6 @@
   vars:
     tgzname: "{{ spltype }}-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
 
-  roles:
-    - splunk_download
+  tasks:
+    - include_role:
+        name: splunk_download

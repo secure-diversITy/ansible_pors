@@ -66,8 +66,8 @@ custom:
 ####### group_vars/logstream_all/cribl_configuration.yml ######
 
 cribl_ssh_user: "{{ pors_ssh_user }}"
-cribl_install_user: clintsharp
-cribl_install_group: clintsharp
+cribl_install_user: cribl 
+cribl_install_group: cribl
 cribl_optimize:
     initd: true
 

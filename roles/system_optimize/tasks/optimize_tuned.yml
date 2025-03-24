@@ -1,12 +1,31 @@
-- name: ensure a clean tmp (git)
-  file:
+---
+
+- name: "Ensure a clean tmp (git)"
+  ansible.builtin.file:
     state: absent
     path: "{{ splunk_installation.remote_package_temp_path }}/tuned-profile"
   when: "splunk_optimize.install_tuned_git == true and
          splunk_optimize.tuned_git_url is defined"
 
+- name: "Add private key (git access)"
+  ansible.builtin.copy:
+    content: "{{ vault_ssh_privkey_gitaccess }}"
+    force: True
+    dest: "~/.ssh/id_ed25519"
+    mode: 0600
+  when: vault_ssh_privkey_gitaccess is defined and vault_ssh_privkey_gitaccess | length > 12
+  no_log: true
+
+- name: "Add pub key (git access)"
+  ansible.builtin.copy:
+    content: "{{ vault_ssh_pubkey_gitaccess }}"
+    force: True
+    dest: "~/.ssh/id_ed25519.pub"
+    mode: 0600
+  when: vault_ssh_pubkey_gitaccess is defined and vault_ssh_pubkey_gitaccess | length > 12
+
 - name: Download latest tuned profile (git)
-  git:
+  ansible.builtin.git:
     repo={{ splunk_optimize.tuned_git_url }}
     dest="{{ splunk_installation.remote_package_temp_path }}/tuned-profile"
     version="{{ splunk_optimize.tuned_git_branch }}"
@@ -26,7 +45,7 @@
          splunk_optimize.tuned_tgz_url is defined and THISISFORCEDISABLEDATM is defined"
 
 - name: Download latest tuned profile (web-url via git)
-  git:
+  ansible.builtin.git:
     repo: "{{ splunk_optimize.tuned_tgz_url }}"
     dest: "{{ splunk_installation.remote_package_temp_path }}/splunk_tuned"
     force: yes
@@ -40,12 +59,12 @@
          splunk_optimize.tuned_ansible_repo is defined"
 
 - name: Clean previous tuned profile
-  file:
+  ansible.builtin.file:
     state: absent
     path: "{{ splunk_optimize.tuned_path }}"
 
 - name: Install tuned profile (git)
-  copy: 
+  ansible.builtin.copy:
     force: yes
     remote_src: yes
     src: "{{ splunk_installation.remote_package_temp_path }}/tuned-profile/etc_tuned/"
@@ -66,7 +85,7 @@
          splunk_optimize.tuned_ansible_repo is defined)"
 
 - name: Install tuned profile from tgz (web-url/ansible-repo)
-  shell: "cp -a {{ splunk_installation.remote_package_temp_path }}/tuned*/etc_tuned {{ splunk_optimize.tuned_path }}"
+  ansible.builtin.shell: "cp -a {{ splunk_installation.remote_package_temp_path }}/tuned*/etc_tuned {{ splunk_optimize.tuned_path }}"
   when: "(splunk_optimize.install_tuned_tgz == true and
          splunk_optimize.tuned_tgz_url is defined) or
         (splunk_optimize.install_tuned_ansible == true and
@@ -85,7 +104,7 @@
         state: restarted
 
 - name: Activate tuned profile
-  shell: "tuned-adm profile {{ tuned_name }}"
+  ansible.builtin.shell: "tuned-adm profile {{ tuned_name }}"
   when: "(splunk_optimize.install_tuned_tgz == true and
          splunk_optimize.tuned_tgz_url is defined) or
         (splunk_optimize.install_tuned_ansible == true and
@@ -94,7 +113,20 @@
          splunk_optimize.tuned_git_url is defined)"
 
 # put some delay before verifying otherwise it will FAIL
-#- name: Verify tuned profile
-#  shell: "sleep 3; tuned-adm verify"
-#  when: tuned_version > 2100
+- name: "Verify tuned profile"
+  ansible.builtin.shell: |
+    sleep 5
+    tuned-adm verify || (tail -n 50 /var/log/tuned/tuned.log | grep ERROR; exit 3)
+  ignore_errors: true
+  register: tunereb
 
+- block:
+
+    - include_role:
+        name: system_reboot
+
+    - name: "Re-verify tuned profile"
+      ansible.builtin.shell: |
+        tuned-adm verify || (tail -n 50 /var/log/tuned/tuned.log | grep ERROR; exit 3)
+
+  when: tunereb.rc != 0

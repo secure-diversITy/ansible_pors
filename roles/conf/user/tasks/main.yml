@@ -1,0 +1,8 @@
+---
+
+- include_tasks: add.yml
+  no_log: true
+  loop: "{{ vault_hook_splunk_accounts }}"
+  loop_control:
+    loop_var: splacc
+  when: vault_hook_splunk_accounts is defined

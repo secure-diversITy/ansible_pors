@@ -7,14 +7,10 @@
 
 - name: Download Splunk tgz packages
   get_url:
-      url: "{{ item.value.url }}"
+      url: "{{ splunk_packages.linux_64_tgz[spltype].url }}"
       dest: "{{ repo_base }}/common/packages/{{ spltype }}/{{ tgzname }}"
       owner: "{{ splunk_repository.repository_owner }}"
       group: "{{ splunk_repository.repository_group }}"
       mode: 0644
       tmp_dest: "{{ pors_temp_dir }}"
-  loop: "{{ splunk_packages.linux_64_tgz | dict2items }}"
-    #  when: 
-    #  - splunk_installation.package_format == "tgz"
-    #  - item.key == spltype
 

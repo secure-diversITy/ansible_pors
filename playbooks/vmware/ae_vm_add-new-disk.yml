@@ -20,10 +20,10 @@
       debug:
         msg: |
           disk vgf:{{ vgf.virtual_machines }}
-      when: debug_on is defined
+#      when: debug_on is defined
 
     - name: Shutdown {{ server_hostname }} if needed
-      vmware_guest:
+      community.vmware.vmware_guest:
         proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
         proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
         hostname: '{{ vsphere.host[vsphere_var].dest }}'
@@ -37,7 +37,7 @@
       loop: "{{ vgf.virtual_machines }}"
 
     - name: Rest after shutdown
-      command: sleep 1m
+      command: sleep 30s
       when: item.power_state != 'poweredOff'
       loop: "{{ vgf.virtual_machines }}"
 
@@ -46,7 +46,7 @@
       when: server_disk_type == "eagerzeroedthick"
 
     - name: "Add disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (full wipe --> long wait timeout)"
-      vmware_guest_disk:
+      community.vmware.vmware_guest_disk:
             proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
             proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
             hostname: '{{ vsphere.host[vsphere_var].dest }}'
@@ -68,7 +68,7 @@
       when: server_disk_type == "eagerzeroedthick"
        
     - name: "Add disk no. {{ server_disk_num }} ({{ server_disk_sizegb }} GB) to {{ server_hostname }} (normal provisioning)"
-      vmware_guest_disk:
+      community.vmware.vmware_guest_disk:
             proxy_host: "{{ vsphere.host[vsphere_var].proxy_host | d('') }}"
             proxy_port: "{{ vsphere.host[vsphere_var].proxy_port | d() | int }}"
             hostname: '{{ vsphere.host[vsphere_var].dest }}'

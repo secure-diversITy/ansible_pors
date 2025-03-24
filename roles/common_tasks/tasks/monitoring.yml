@@ -1,5 +1,12 @@
 ---
 
+#- include_role:
+#    name: install
+#    tasks_from: fetch_distserverkeys.yml
+#  delegate_to: "{{ groups['dmc'] | first }}"
+#  delegate_facts: True
+#  run_once: True
+
 - name: "Ensure distServerKeys exists"
   ansible.builtin.file:
     path: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/"
@@ -13,7 +20,7 @@
     mc_host_split: "{{ groups['dmc'] | first | split('.') }}"
 
 - name: "Deploy key for distributed monitoring console"
-  copy:
+  ansible.builtin.copy:
     owner: "{{ splunk_install_user }}"
     src: "{{ splunk_repository.repository_root }}/distServerKeys/{{ mc_host_split[0] }}"
     dest: "{{ splunk_installation.splunk_home_path }}/etc/auth/distServerKeys/"

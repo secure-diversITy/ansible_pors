@@ -8,6 +8,7 @@
   become_user: "{{ splunk_install_user }}"
 
   roles:
+    - conf/user
     - system_sshid
     - conf/web
     - conf/outputs
