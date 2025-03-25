@@ -116,7 +116,7 @@
 - name: "Verify tuned profile"
   ansible.builtin.shell: |
     sleep 5
-    tuned-adm verify || (tail -n 50 /var/log/tuned/tuned.log | grep ERROR; exit 3)
+    tuned-adm verify || (tail -n 50 /var/log/tuned/tuned.log; exit 3)
   ignore_errors: true
   register: tunereb
 

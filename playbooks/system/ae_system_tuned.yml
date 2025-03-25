@@ -4,6 +4,7 @@
   become: yes
   become_user: root
   gather_facts: false
+  serial: "{{ serial_config | d(0) }}"
 
   vars:
     ansible_ssh_user: "{{ pors_ssh_user }}"

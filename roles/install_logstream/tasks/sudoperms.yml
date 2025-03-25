@@ -1,11 +1,18 @@
 ---
-- name: Remove template sudo config (if existent)
-  file:
+
+- name: "Remove template sudo config (if existent)"
+  ansible.builtin.file:
     path: /etc/sudoers.d/splunk-admin
     state: absent
 
-- name: Add app config for sudo
-  copy:
+- name: "Add app config for sudo"
+  ansible.builtin.template:
     src: "{{ repo_base }}/common/sudo/cribl-admin"
     dest: /etc/sudoers.d/cribl-admin
     mode: 0600
+
+- name: "Implement polkit rule"
+  ansible.builtin.template:
+    src: "{{ repo_base }}/common/sudo/cribl-polkit.j2"
+    dest: "/etc/polkit-1/rules.d/10-cribl.rules"
+

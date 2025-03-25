@@ -1,5 +1,7 @@
 ## Created by Ansible
 
 User_Alias              USERSPLUNKADMIN=%splunkadmin
-Cmnd_Alias              CMDSPLUNKADMIN =/bin/su - splunk -c *, /bin/su - splunk,/usr/sbin/tcpdump *
+Cmnd_Alias              CMDSPLUNKADMIN =/bin/su - {{ splunk_install_user }} -c *, /bin/su - {{ splunk_install_user }}, /usr/sbin/tcpdump *, /usr/bin/systemctl * splunk, /usr/bin/systemctl * splunk.service, {{ splunk_installation.splunk_home_path }}/bin/splunk st*, {{ splunk_installation.splunk_home_path }}/bin/splunk restart
 USERSPLUNKADMIN         ALL =(root)      NOPASSWD: CMDSPLUNKADMIN
+
+{{ splunk_install_user }}        ALL=NOPASSWD: /usr/bin/systemctl * splunk, /usr/bin/systemctl * splunk.service
