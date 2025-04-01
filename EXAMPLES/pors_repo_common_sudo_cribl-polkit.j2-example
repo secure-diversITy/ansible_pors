@@ -1,0 +1,10 @@
+polkit.addRule(function(action, subject) {
+  if (action.id == "org.freedesktop.systemd1.manage-units" &&
+  action.lookup("unit") == "cribl.service" &&
+  subject.user == "{{ cribl_install_user }}")
+  {
+  var verb = action.lookup("verb");
+  if (verb == "start" || verb == "stop" || verb == "restart")
+    return polkit.Result.YES;
+  }
+});
