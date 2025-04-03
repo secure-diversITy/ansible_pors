@@ -8,6 +8,7 @@
 
   pre_tasks:
     - name: Check if custom template exists
+      run_once: true
       stat:
         path: "{{ custom_data_dir }}/roles/common/templates/ae_deploy_apps.yml.j2"
       register: custom_templ
@@ -15,11 +16,13 @@
   tasks:
 
   - name: Find app roles (filter a subset)
+    run_once: true
     shell: "ls -1 {{ data_dir }}/custom/roles/apps | grep -E '(^{{ deploy_sub_apps }}$)'"
     register: app_roles
     when: deploy_type == "custom" and deploy_sub_apps is defined
 
   - name: Create ae_deploy_apps.yml (pors)
+    run_once: true
     template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
@@ -30,6 +33,7 @@
         - app_roles.stdout_lines is defined
 
   - name: Create ae_deploy_apps.yml (custom overwrite)
+    run_once: true
     template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
@@ -40,11 +44,13 @@
         - app_roles.stdout_lines is defined
 
   - name: Find app roles (no filtering)
+    run_once: true
     shell: "ls -1 {{ data_dir }}/custom/roles/apps"
     register: app_roles
     when: deploy_type == "all"
 
   - name: Create ae_deploy_apps.yml (pors)
+    run_once: true
     template: src={{ base_install_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
@@ -54,6 +60,7 @@
         - app_roles.stdout_lines is defined
 
   - name: Create ae_deploy_apps.yml (custom overwrite)
+    run_once: true
     template: src={{ custom_data_dir }}/roles/common/templates/ae_deploy_apps.yml.j2
               dest={{ data_dir }}/inventories/{{ target_env }}/ae_deploy_apps.yml
               mode=0640
