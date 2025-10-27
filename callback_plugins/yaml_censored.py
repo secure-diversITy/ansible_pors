@@ -96,7 +96,7 @@ class CallbackModule(Default):
             del abridged_result['invocation']
 
         # Censor the log based on known splunk cmd's
-        HIDE_PARAM = ['-auth .*:.*','-password .*(\s|$)','(http|https|ssh|git)://(.*)@']
+        HIDE_PARAM = ['-auth .*:.*','-password .*(\s|$)','(http|https|ssh|git)://(.*)@','Authorization: Bearer(.*)']
         HIDE_MSG = "**CENSORED-BY-HIDE_PARAM**"
 
         for pattern in HIDE_PARAM:

@@ -36,13 +36,6 @@
 
 - include: install_splunk.yml
 
-- name: "CUSTOM: post-install tasks (if defined)"
-  include_role:
-    name: custom_post_install_splunk
-  when:
-    - hook_post_install_splunk is defined and hook_post_install_splunk == True
-    - splunk_upgrade == False
-
 - include: ../../splunk_info/tasks/installed_version.yml
 
 - include: set_splunk_secret.yml
@@ -124,6 +117,13 @@
 
 - include: sudoperms.yml
   when: install_splunk_sudoperms is defined and install_splunk_sudoperms == true
+
+- name: "CUSTOM: post-install tasks (if defined)"
+  include_role:
+    name: custom_post_install_splunk
+  when:
+    - hook_post_install_splunk is defined and hook_post_install_splunk == True
+    - splunk_upgrade == False
 
 - include: cleanup.yml
   when: splunk_install_cleanup

@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.1-56"
+VERSIONNUM="4.1-57"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -494,6 +494,12 @@ declare PBGHFETCHREPOS="${PBDIRSPLUNK}/github_get_repos.yml"
 ## @details Will connect to the defined repo server and fetches all repository locations (http or ssh - as defined)
 ## @showinitializer
 declare PBGLFETCHREPOS="${PBDIRSPLUNK}/gitlab_get_repos.yml"
+
+## @var PBGETGROUPS
+## @brief Fetch all accessible ansible groups for the current environment
+## @details Fetch all accessible ansible groups for the current environment
+## @showinitializer
+declare PBGETGROUPS="${PBDIRSPLUNK}/get_groups.yml"
 
 ## @var PBVCINFO
 ## @brief Collecting vCenter information
@@ -1253,7 +1259,7 @@ F_HOSTFILE(){
 ## @param 2 optional: automatic/non interactive mode (auto selected group name|empty)
 ## @return list of hosts
 ## @exception on error or abort: abort
-## @details identify targets/hosts of a group. DEPRECATED, use F_EXPANDHOSTS instead.
+## @details identify targets/hosts of a group. DEPRECATED, use F_EXPANDHOSTS with F_SHOWHOSTS instead.
 ## 1. filter out all vars
 ## 2. get all sections and 1 next line
 ## 3. replace [ with newline
@@ -2583,11 +2589,20 @@ F_SHEXEC(){
         SITESEL=$TARGETSITE
     else
         if [ "$TMPGRP" == "deployer" ];then
-            ASITES=$(F_GETSITES)
-            OPTIONS=($(for i in $ASITES;do echo "${i} use_space-bar_to_select off"; done))
-            SITESEL=$(F_DIALOG --radiolist "Please choose a site first.\n\nNOTE: It is not possible to exec on multiple sites in one run." 30 80 30 "${OPTIONS[@]}" 2>&1 >/dev/tty)
-            [ $? -ne 0 ] && return $?
-            TMPGRP="${SITESEL}_deployer"
+            if [ $RUNMODE != "batch" ];then
+                F_WAITBOX "Please standby until deployer hostnames have been identified"
+                HOSTSELECTION=$(F_GETGROUPS | grep deployer | tr '\n' ' ' | sed 's/:$//g')
+                #? [ $? -ne 0 ] && return $?
+                F_LOG $FUNCNAME "F_GETGROUPS $dg"
+                for g in $HOSTSELECTION;do
+                    if [ -z "$depexp" ];then
+                        depexp=$(F_EXPANDHOSTS $g)
+                    else
+                        depexp="$depexp $(F_EXPANDHOSTS $g)"
+                    fi
+                done
+                SHOSTS=$(F_SHOWHOSTS checklist "$depexp")
+            fi
         fi
     fi
     F_LOG $FUNCNAME "Starting calc with $TMPGRP"
@@ -2596,7 +2611,9 @@ F_SHEXEC(){
     if [ -z "$TMPGRP" ];then
         SHOSTS=$(LISTTYPE=checklist F_SELHOST)
     else
-        SHOSTS=$(F_EXPANDHOSTS $TMPGRP)
+        if [ -z "$SHOSTS" ];then
+            SHOSTS=$(F_EXPANDHOSTS $TMPGRP)
+        fi
     fi
     [ "$SHOSTS" == ABORTED ] && return 4
 
@@ -2746,7 +2763,7 @@ F_DLSPLUNK() {
 
     while [ -z "$VERINFO" ];do
         if [ "$SPLTYPE" == "splunkforwarder" ];then
-            VERINFO=$(F_DIALOG --colors --inputbox "This will download splunkforwarder based on a valid filename.\nGuide to get the valid filename:\n\n1) open (select the URL and use CTRL+SHIFT+C to copy / CTRL+SHIFT+mouseclick might work too):\n   \Zuhttps://www.splunk.com/en_us/download/previous-releases/universalforwarder.html#tabs/linux\ZU\n2) find the version you want and choose to download\n3) Cancel the download but identify the full file name including version and hash from the package name\n\nExample:\n\n\Zb${SPLTYPE}-7.0.1-2b5b15c4ee89-Linux-x86_64.tgz\ZB\n\n\nType or paste in the full file name ONLY (i.e. \Zbnot\ZB the full URL) and ensure it matches exact the format: \Zrsplunk-X.X.X-xxxxxxxxxxxx-Linux-x86_64.tgz (X.X.X = version, xxxxxxxxxxxx = hash)\ZR\n\n" 23 110 2>&1 >>/dev/tty || echo 1)
+            VERINFO=$(F_DIALOG --colors --inputbox "This will download splunkforwarder based on a valid filename.\nGuide to get the valid filename:\n\n1) open (select the URL and use CTRL+SHIFT+C to copy / CTRL+SHIFT+mouseclick might work too):\n   \Zuhttps://www.splunk.com/en_us/download/previous-releases/universalforwarder.html#tabs/linux\ZU\n2) find the version you want and choose to download\n3) Cancel the download but identify the full file name including version and hash from the package name\n\nExample:\n\n\Zb${SPLTYPE}-7.0.1-2b5b15c4ee89-Linux-x86_64.tgz\ZB\n\n\nType or paste in the full file name ONLY (i.e. \Zbnot\ZB the full URL) and ensure it matches exact the format: \Zrsplunkforwarder-X.X.X-xxxxxxxxxxxx-Linux-x86_64.tgz (X.X.X = version, xxxxxxxxxxxx = hash)\ZR\n\n" 23 110 2>&1 >>/dev/tty || echo 1)
         else
             VERINFO=$(F_DIALOG --colors --inputbox "This will download splunk based on a valid filename.\nGuide to get the valid filename:\n\n1) open (select the URL and use CTRL+SHIFT+C to copy / CTRL+SHIFT+mouseclick might work too):\n   \Zuhttps://www.splunk.com/en_us/download/previous-releases.html#tabs/linux\ZU\n2) find the version you want and choose to download\n3) Cancel the download but identify the full file name including version and hash from the package name\n\nExample:\n\n\Zbsplunk-7.0.1-2b5b15c4ee89-Linux-x86_64.tgz\ZB\n\n\nType or paste in the full file name ONLY (i.e. \Zbnot\ZB the full URL) and ensure it matches exact the format: \Zrsplunk-X.X.X-xxxxxxxxxxxx-Linux-x86_64.tgz (X.X.X = version, xxxxxxxxxxxx = hash)\ZR\n\n" 23 110 2>&1 >>/dev/tty || echo 1)
         fi 
@@ -3035,6 +3052,7 @@ F_STAGELS(){
 ## @fn F_SELHOST()
 ## @brief Show and choose host(s)
 ## @param 1 specify a target group directly (non interactive - will just output ALL(!) the host(s) of a group)
+## @param 2 prefilter for a given group (requires param1)
 ## @details Parsing the inventory, offering all groups found, parsing groups including childs, remove dups, offer host list and let the user choose
 ## @exception on abort: return 4, on failure: error dialog
 F_SELHOST(){
@@ -4190,6 +4208,16 @@ F_GETSITES(){
     F_LOG $FUNCNAME ended
 }
 
+## @fn F_GETGROUPS()
+## @brief Get all configured groups for the current environment
+## @details ..
+## @return a list of all groups found
+F_GETGROUPS(){
+    F_LOG $FUNCNAME started
+    F_ABIN "$HOSTFILE" "$PBGETGROUPS" "\Za\Z1Grabbing ansible groups ...\Z\n" "-e expandfile='$MYHOME/${TARGETENV}.groups'"
+    cat "$MYHOME/${TARGETENV}.groups"
+    F_LOG $FUNCNAME ended
+}
 
 ## @fn F_ADDMC()
 ## @brief Configures a new peer as MonitoringConsole

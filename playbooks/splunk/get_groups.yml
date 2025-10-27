@@ -1,0 +1,21 @@
+---
+- hosts: pors_server
+  gather_facts: false
+
+  tasks:
+
+    - name: Clean any previous tmp file
+      file:
+          path: "{{ expandfile }}"
+          state: absent
+
+    - name: get groups
+      ansible.builtin.set_fact:
+        pgrps: "{{ pgrps | d('') ~ item + '\n' }}"
+      loop: "{{ groups.keys() }}"
+
+    - name: "Write {{ expandfile }} file"
+      ansible.builtin.shell: |
+        echo -e '{{ pgrps }}' >> {{ expandfile }}
+
+

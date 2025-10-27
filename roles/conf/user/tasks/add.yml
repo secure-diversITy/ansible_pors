@@ -8,6 +8,7 @@
         splunk_username: "{{ splacc.usr }}"
         splunk_password: "{{ splacc.pwd }}"
         splunk_user_role: "{{ splacc.role }}"
+        replace_roles: "nope"
       no_log: true
 
     - include_role:
