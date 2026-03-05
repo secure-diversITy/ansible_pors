@@ -6,7 +6,9 @@
   args:
     executable: /bin/bash
   register: get_shc_state
-  changed_when: get_shc_state.rc == 999
+  failed_when: >-
+    get_shc_state.rc != 0 and
+    "This node is not part of any cluster configuration" not in get_shc_state.stderr
 
 - name: "Check if there is a captain already"
   shell: |
@@ -15,4 +17,4 @@
     executable: /bin/bash
   register: captain_elected
   ignore_errors: yes
-  when: get_shc_state.rc == 0
+  when: not get_shc_state.failed

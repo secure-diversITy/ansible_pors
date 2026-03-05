@@ -89,14 +89,18 @@ splunk_installation:
   # to all indexer peernodes. this way you can search on the peernodes
   # without the need to add them in the UI.
   # Possible values: True | False
-  deploy_key_to_peers: True
+  deploy_key_to_peers: true
+
+  # when configuring splunk you might want to add systems to the monitoring console
+  # "deploy_mc_key: true" will fetch the MC key and make it trusted for the configured target
+  deploy_mc_key: false
 
 # name of the tuned profile (used as directory name, branch identifier, local repo filename, ...)
 tuned_name: "splunk"
 
 splunk_optimize:
-    initd: True
-    tuned: True
+    initd: true
+    tuned: true
 
     #################################################################################################
     # tuned profile settings

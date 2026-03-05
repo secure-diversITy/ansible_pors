@@ -13,6 +13,10 @@
   tasks:
 
     - include_role:
+        name: common
+        public: yes
+
+    - include_role:
         name: conf/user
 
     - include_role:
@@ -30,6 +34,7 @@
     - include_role:
         name: common_tasks
         tasks_from: monitoring.yml
+      when: splunk_installation.deploy_mc_key
 
   # flush notify handlers to activate the splunk config
   post_tasks:

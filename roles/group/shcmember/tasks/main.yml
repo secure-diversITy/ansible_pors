@@ -6,12 +6,13 @@
 
 - include: bootstrap.yml
   when:
-    - get_shc_state.rc == 0
+    - not get_shc_state.failed
     - captain_elected.rc != 0
 
 - include_role:
     name: common_tasks 
     tasks_from: monitoring.yml
+  when: splunk_installation.deploy_mc_key
 
 - include: restart_shcmember.yml
   when: captain_elected.rc != 0

@@ -36,6 +36,7 @@
     - include_role:
         name: common_tasks
         tasks_from: monitoring.yml
+      when: splunk_installation.deploy_mc_key
 
   post_tasks:
     - meta: flush_handlers

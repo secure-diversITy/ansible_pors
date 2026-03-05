@@ -8,14 +8,19 @@
   become_user: "{{ splunk_install_user }}"
 
   vars:
-    splunk_restart: True
-    shc_detention_state: True
+    splunk_restart: true
 
   tasks:
 
     - include_role:
+        name: common
+        public: yes
+
+    - include_role:
         name: conf/server
         tasks_from: shclustering/detention.yml
+      vars:
+          shc_detention_state: true
 
     - include_role:
         name: conf/user
@@ -46,7 +51,7 @@
 
   vars:
     parsed_groups: "peernode"
-    splunk_restart: True
+    splunk_restart: true
 
   tasks:
     - include_role:
@@ -55,15 +60,14 @@
   post_tasks:
 
     - include_role:
-        name: common_tasks
-        tasks_from: monitoring.yml
+        name: common
+        public: yes
 
     - include_role:
         name: conf/server
         tasks_from: shclustering/detention.yml
       vars:
-          shc_detention_state: False
-          #shc_detention_state: True
+          shc_detention_state: false
 
     # flush notify handlers to force-activate the splunk config
     - meta: flush_handlers

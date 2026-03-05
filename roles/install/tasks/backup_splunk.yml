@@ -1,9 +1,4 @@
 ---
-#- name: Clean previous backup
-#  become: yes
-#  become_user: root
-#  ansible.builtin.shell: "rm -rf {{ splunk_installation.backup_target_dir }}/splunk/*"
-
 - name: "Ensure backup path exists"
   ansible.builtin.file:
     path: "{{ splunk_installation.backup_target_dir }}"
@@ -18,32 +13,32 @@
   ansible.builtin.set_fact:
     backup_filename_kvstore: "backup_{{ inventory_hostname_short }}_{{ now(utc=false,fmt='%Y-%m-%d_%H-%M') }}_kvstore"
  
+- name: "Wait for KV store to be ready for backup"
+  ansible.builtin.uri:
+    use_proxy: false
+    body_format: form-urlencoded
+    body:
+      output_mode: json
+    force_basic_auth: true
+    method: GET
+    return_content: true
+    status_code: [200]
+    url_username: "{{ vault_splunk_ae_user }}"
+    url_password: "{{ vault_splunk_ae_password }}"
+    url: https://localhost:{{ splunk_install_management_port }}/services/kvstore/status
+    validate_certs: false
+  check_mode: false
+  register: _splunk_backup_kvstore_status
+  until: >-
+    _splunk_backup_kvstore_status.status == 200 and
+    _splunk_backup_kvstore_status.json.entry[0].content.current.backupRestoreStatus == "Ready" and
+    _splunk_backup_kvstore_status.json.entry[0].content.current.status == "ready"
+  delay: "{{ splunk_installation.backup_kvstore_delay }}"
+  retries: "{{ splunk_installation.backup_kvstore_retries }}"
+  when: splunk_installation.backup_kvstore
+
 - name: "KVstore backup"
   block:
-
-    - name: "Wait for KV store to be ready for backup"
-      ansible.builtin.uri:
-        use_proxy: false
-        body_format: form-urlencoded
-        body:
-          output_mode: json
-        force_basic_auth: true
-        method: GET
-        return_content: true
-        status_code: [200]
-        url_username: "{{ vault_splunk_ae_user }}"
-        url_password: "{{ vault_splunk_ae_password }}"
-        url: https://localhost:{{ splunk_install_management_port }}/services/kvstore/status
-        validate_certs: false
-      check_mode: false
-      register: _splunk_backup_kvstore_status
-      until: >-
-        _splunk_backup_kvstore_status.status == 200 and
-        _splunk_backup_kvstore_status.json.entry[0].content.current.backupRestoreStatus == "Ready" and
-        _splunk_backup_kvstore_status.json.entry[0].content.current.status == "ready"
-      delay: "{{ splunk_installation.backup_kvstore_delay }}"
-      retries: "{{ splunk_installation.backup_kvstore_retries }}"
-
     - name: "Backup KV store"
       ansible.builtin.uri:
         use_proxy: false
@@ -60,8 +55,6 @@
         url_password: "{{ vault_splunk_ae_password }}"
         url: https://localhost:{{ splunk_install_management_port }}/services/kvstore/backup/create
         validate_certs: false
-      when:
-        - _splunk_backup_kvstore_status.json.entry[0].content.current.replicationStatus == "KV store captain"
       changed_when: _splunk_backup_kvstore_result.status == 200
       any_errors_fatal: true
       register: _splunk_backup_kvstore_result
@@ -81,11 +74,11 @@
         url: https://localhost:{{ splunk_install_management_port }}/services/kvstore/status
         validate_certs: false
       check_mode: false
-      register: _splunk_backup_kvstore_status
+      register: _splunk_backup_kvstore_status_after
       until: >-
-        _splunk_backup_kvstore_status.status == 200 and
-        _splunk_backup_kvstore_status.json.entry[0].content.current.backupRestoreStatus == "Ready" and
-        _splunk_backup_kvstore_status.json.entry[0].content.current.status == "ready"
+        _splunk_backup_kvstore_status_after.status == 200 and
+        _splunk_backup_kvstore_status_after.json.entry[0].content.current.backupRestoreStatus == "Ready" and
+        _splunk_backup_kvstore_status_after.json.entry[0].content.current.status == "ready"
       delay: "{{ splunk_installation.backup_kvstore_delay }}"
       retries: "{{ splunk_installation.backup_kvstore_retries }}"
 
@@ -100,7 +93,13 @@
       delegate_to: "{{ inventory_hostname }}"
       when: splunk_installation.backup_upload
 
-  when: splunk_installation.backup_kvstore
+    - name: "Cleanup KVstore Backup"
+      ansible.builtin.shell: |
+        find {{ splunk_installation.splunk_home_path }}/var/lib/splunk/kvstorebackup -type f -name '*.tar.gz' -delete
+      when: splunk_installation.backup_upload
+  when:
+    - splunk_installation.backup_kvstore
+    - _splunk_backup_kvstore_status.json.entry[0].content.current.replicationStatus == "KV store captain"
 
 - name: "Set backup file name"
   ansible.builtin.set_fact:
@@ -133,5 +132,5 @@
 - name: "Cleanup"
   ansible.builtin.shell: |
     find {{ splunk_installation.backup_target_dir }} -type f -name '*.tar.gz' -delete
-    find {{ splunk_installation.splunk_home_path }}/var/lib/splunk/kvstorebackup -type f -name '*.tar.gz' -delete
+  when: splunk_installation.backup_upload
 

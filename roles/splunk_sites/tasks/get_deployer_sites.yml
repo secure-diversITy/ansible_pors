@@ -7,6 +7,6 @@
 
 # find all site's groups
 - set_fact:
-    parsed_groups: "{{ parsed_groups }} + ['{{ item }}']"
+    parsed_groups: "{{ parsed_groups + [item] }}"
   when: "item is match('site.*deployer')"
   loop: "{{ groups.keys() | list }}"
