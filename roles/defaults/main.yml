@@ -157,6 +157,26 @@ splunk_ulimit_data_hard: unlimited
 # removes temporary files after a successfull install/upgrade
 splunk_install_cleanup: True
 
+# default management port
+splunk_install_management_port: 8089
+
+# backup defaults
+splunk_upgrade_backup: false
+splunk_upgrade_backup_target_dir: /opt/backup
+splunk_upgrade_backup_path:
+    - "/opt/splunk/etc"
+    - "/opt/splunk/var"
+splunk_upgrade_backup_exclusion_patterns:
+    - "var/lib/splunk/*"
+    - "var/run/*"
+    - "var/log/*"
+    - "*.pyc"
+splunk_upgrade_backup_kvstore: false
+splunk_upgrade_backup_kvstore_delay: 15
+splunk_upgrade_backup_kvstore_retries: 30
+splunk_upgrade_backup_upload: false
+splunk_upgrade_backup_upload_timeout: 3600 # timeout in seconds
+
 ####### system_base.yml ########
 
 shared_service_account_as_root: False

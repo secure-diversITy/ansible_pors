@@ -29,7 +29,7 @@
 # ensure splunk is REALLY not running anymore! Do not rely on init, systemd etc!!
 - name: "Re-check running Splunk processes"
   shell: >-
-    ps faux | grep '^{{ splunk_install_user }} ' | grep -Ev '(ssh|grep|tail|less|vim|nano|patrol|ansible)'
+    ps faux | grep '^{{ splunk_install_user }} ' | grep -Ev '(ssh|grep|tail|less|vim|nano|patrol|ansible|bash)'
   async: 1800
   poll: 0
   register: splunk_laststate

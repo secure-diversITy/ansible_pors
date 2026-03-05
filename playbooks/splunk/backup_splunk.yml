@@ -1,20 +1,17 @@
 ---
 
+- ansible.builtin.import_playbook: ../shelper/ae_install_shelper.yml
+
 - name: Backup Splunk
   hosts: "*:!pors_server"
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: root
+  gather_facts: true
   strategy: free
-  gather_facts: False 
 
   vars:
-    ansible_ssh_user: "{{ pors_ssh_user }}"
-
-  pre_tasks:
-
-    - name: "Collecting system information"
-      setup:
+    splunk_upgrade: False
 
   tasks:
 

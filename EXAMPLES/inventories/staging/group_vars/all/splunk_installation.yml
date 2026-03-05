@@ -20,7 +20,7 @@ globhash: "70c2fa5ea15d"
 splunkversionnum: "{{ globversion | replace('.','') | int }}"
 
 # construct the full file name
-tgzname: "splunk-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
+tgzname: "splunk-{{ globversion }}-{{ globhash }}-linux-amd64.tgz"
 
 #splunk_ulimit_nofile_soft: 65536
 #splunk_ulimit_nofile_hard: 65536
@@ -46,9 +46,41 @@ splunk_installation:
 
   firewalld_disable: true
 
+  ## BACKUP - START ##############################################################################
+  # see /opt/pors/roles/defaults/main.yml for global defaults
+
   # backup before upgrade (can be true|false)
-  backup: false
-  remote_backup_path: /opt/backup/
+  backup: "{{ splunk_upgrade_backup }}"
+
+  # the local (i.e. on the system to be backed up) path for storing the backup
+  backup_target_dir: "{{ splunk_upgrade_backup_target_dir }}"
+
+  # absolute path, glob, or list of paths or globs for the file or files to compress or archive.
+  backup_path: "{{ splunk_upgrade_backup_path }}"
+
+  # absolute path, glob, or list of paths or globs for the file or files to exclude from path list and glob expansion.
+  backup_exclusion_patterns: "{{ splunk_upgrade_backup_exclusion_patterns }}"
+
+  # KVstore
+  # (in a cluster this will auto select the KVstore captain)
+  backup_kvstore: "{{ splunk_upgrade_backup_kvstore }}"
+  backup_kvstore_delay: "{{ splunk_upgrade_backup_kvstore_delay }}"
+  backup_kvstore_retries: "{{ splunk_upgrade_backup_kvstore_retries }}"
+
+  # upload backup to another place
+  # & cleanup locally
+  backup_upload: "{{ splunk_upgrade_backup_upload }}"
+  backup_upload_timeout: "{{ splunk_upgrade_backup_upload_timeout }}" # timeout in seconds
+
+  # the following server:
+  # - must be defined in your inventory
+  # - requires rsyncd running
+  # (see EXAMPLES/pors-backup.rsyncd.conf-example)
+  #backup_upload_rsync_server: my.rsyncdserver.local
+  # rsyncd.conf module name (stanza name, see above)
+  #backup_upload_rsync_module:
+
+  ## BACKUP - END ##############################################################################
 
   # default no-prompt/silence args for starting splunk non-interactive
   splunk_args_noninteractive: "--answer-yes --accept-license --no-prompt"

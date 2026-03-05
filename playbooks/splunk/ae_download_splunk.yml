@@ -2,8 +2,8 @@
 - hosts: localhost 
   connection: local
 
-  vars:
-    tgzname: "{{ spltype }}-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
+  #vars:
+  #  tgzname: "{{ spltype }}-{{ globversion }}-{{ globhash }}-Linux-x86_64.tgz"
 
   tasks:
     - include_vars: ../../roles/common/defaults/main.yml

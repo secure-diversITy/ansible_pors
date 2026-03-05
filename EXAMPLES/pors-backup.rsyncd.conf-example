@@ -1,0 +1,16 @@
+uid = nobody
+gid = nobody
+use chroot = yes
+max connections = 20
+transfer logging = yes
+dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
+# timeout = 900
+
+[backup]
+	path = /opt/backup/rsync
+	read only = no
+	write only = yes
+#	auth users = splbak:rw # man rsyncd.conf!
+#	secrets file = /etc/rsyncd.users # man rsyncd.conf!
+#	strict modes = yes
+#	hosts allow = <IP-net/mask> # man rsyncd.conf!

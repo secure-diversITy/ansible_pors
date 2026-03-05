@@ -15,6 +15,11 @@
 
 - include: transfer_pkg.yml
 
+- include: backup_splunk.yml
+  when: 
+    - splunk_installation.backup is defined and splunk_installation.backup == true
+    - splunk_upgrade == True
+
 - include: splunk_stop_shcmember.yml
   when:
     - splunk_state.rc == 0
@@ -28,11 +33,6 @@
 - include: splunk_stop.yml
   # this condition will fail on half-installed splunk re-installs
   when: splunk_upgrade == True
-
-- include: backup_splunk.yml
-  when: 
-    - splunk_installation.backup is defined and splunk_installation.backup == true
-    - splunk_upgrade == True
 
 - include: install_splunk.yml
 
