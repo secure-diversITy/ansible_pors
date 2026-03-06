@@ -3,14 +3,24 @@ gid = nobody
 use chroot = yes
 max connections = 20
 transfer logging = yes
-dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
 # timeout = 900
+dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
 
 [backup]
-	path = /opt/backup/rsync
-	read only = no
-	write only = yes
-#	auth users = splbak:rw # man rsyncd.conf!
+        early exec = /opt/rsync-mkdir.sh
+        path = /opt/backup/rsync/%RSYNC_USER_NAME%/%RSYNC_HOST_NAME%
+        read only = no
+        write only = yes
+#       auth users = staging:rw production:rw # man rsyncd.conf!
 #	secrets file = /etc/rsyncd.users # man rsyncd.conf!
 #	strict modes = yes
 #	hosts allow = <IP-net/mask> # man rsyncd.conf!
+
+# rsync-mkdir.sh
+# -----------------------
+##!/bin/bash
+#
+#if [ ! -d "$RSYNC_MODULE_PATH" ];then
+#	mkdir -p "$RSYNC_MODULE_PATH"
+#	chown -R nobody:nobody "$RSYNC_MODULE_PATH/.."
+#fi
