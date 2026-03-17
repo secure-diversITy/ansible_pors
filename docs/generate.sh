@@ -7,7 +7,7 @@ export PROJECT_NUMBER="$(git rev-parse HEAD ; git diff-index --quiet HEAD || ech
 export PROJECT_NUMBER="Generated: $(date +%Y-%m-%d)"
 cd ./docs
 (exec doxygen Doxyfile_extra)
-cd ../github.io/pors/
+cd github.io/pors/
 git checkout develop
 git status
 echo -e "\n\tcd ../github.io/pors/\n\tgit add .\n\tgit commit -a -m 'update documentation'"
