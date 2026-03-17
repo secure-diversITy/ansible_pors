@@ -2,8 +2,8 @@
 
 - name: "Set time+date"
   ansible.builtin.set_fact:
-    #futuredate: "{{ ansible_date_time.year | int + 1 }}1231"
-    futuredate: "20551231"
+    futuredate: "{{ ansible_date_time.year | int + 1 }}1231"
+    #futuredate: "20551231"
     cert_renew_required: false
   run_once: true
 
