@@ -45,9 +45,7 @@
   no_log: true
   when: 
      - splunk_state.rc == 0
-     - splpeernode.stdout == "slave"
-        #("'peernode' in group_names" or splpeernode.stdout == "slave" ) 
-        #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
+     - splpeernode.stdout == "peer"
 
 # to catch the job id we need to become the same user than the offline cmd uses
 - name: ... is Splunk offline (indexer cluster peer)?
@@ -61,7 +59,5 @@
   when:
      - splunk_state.rc == 0
      - splunk_ix_is_stopped is defined
-     - splpeernode.stdout == "slave"
-        #("'peernode' in group_names" or splpeernode.stdout == "slave" )
-        #or splpeernode.stdout == "searchhead") # TESTING/DEBUG
+     - splpeernode.stdout == "peer"
 

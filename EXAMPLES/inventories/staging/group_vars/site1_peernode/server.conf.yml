@@ -13,7 +13,7 @@ splunk_server_conf:
   license:
     master_uri: dynamic
   clustering:
-    mode: slave
+    mode: peer
     master_uri: dynamic
     pass4SymmKey: "{{ vault_idxclustering_pass4SymmKey }}"
     multisite: true

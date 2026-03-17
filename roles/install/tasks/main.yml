@@ -28,7 +28,7 @@
 - include: splunk_stop_peernode.yml
   when:
      - splunk_state.rc == 0
-     - splpeernode.stdout == "slave"
+     - splpeernode.stdout == "peer"
 
 - include: splunk_stop.yml
   # this condition will fail on half-installed splunk re-installs
