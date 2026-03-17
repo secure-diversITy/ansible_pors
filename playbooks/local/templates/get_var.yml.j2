@@ -1,0 +1,7 @@
+---
+
+- name: "Get variable"
+  ansible.builtin.debug:
+    var: "{{ item }}"
+  loop: "{{ varname.split(':') if varname is defined and ':' in varname else [varname] }}"
+  register: parsed_var

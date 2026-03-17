@@ -1,15 +1,18 @@
-- name: Renew splunk SSL certificates
+---
+
+- name: "Renew splunk SSL certificates"
   hosts: all
   remote_user: "{{ pors_ssh_user }}"
   become: yes
   become_user: "{{ splunk_install_user }}"
 
   vars:
-    splunk_restart: True
+    splunk_restart: true
 
   tasks:
     - include_role:
-        name: system_splunkcert
+        name: splunk_default_certs
+      when: splunk_upgrade_manage_default_certs
 
   handlers:
     - include: ../../roles/common/handlers/splunkd.yml

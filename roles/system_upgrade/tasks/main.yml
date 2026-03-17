@@ -1,4 +1,5 @@
 ---
 
 - include: update.yml
+  when: system.upgrade_os
 

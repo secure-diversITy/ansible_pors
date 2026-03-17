@@ -1,6 +1,6 @@
 ---
 - name: Get a configured ansible variable
-  hosts: "pors_server"
+  hosts: localhost
   gather_facts: false
   connection: local
 

@@ -1,0 +1,12 @@
+---
+
+- name: "SERVER: backup certificate"
+  ansible.builtin.shell: >-
+    cp "{{ splunk_installation.splunk_home_path }}/etc/auth/{{ item }}" "{{ splunk_installation.splunk_home_path }}/etc/auth/{{ item }}-bak-$(date +%F_%s)"
+  loop:
+    - server.pem
+
+- name: "SERVER: renew certificate"
+  ansible.builtin.shell: >-
+    {{ splunk_installation.splunk_home_path }}/bin/splunk createssl server-cert -d {{ splunk_installation.splunk_home_path }}/etc/auth -n server -c $(hostname -f) -l 4096
+  notify: splunk restart

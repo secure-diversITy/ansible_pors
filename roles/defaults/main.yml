@@ -176,6 +176,9 @@ splunk_upgrade_backup_kvstore_delay: 15
 splunk_upgrade_backup_kvstore_retries: 30
 splunk_upgrade_backup_upload: false
 splunk_upgrade_backup_upload_timeout: 3600 # timeout in seconds
+splunk_upgrade_proxy_workaround: false
+
+splunk_upgrade_manage_default_certs: false
 
 ####### system_base.yml ########
 

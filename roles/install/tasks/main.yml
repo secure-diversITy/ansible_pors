@@ -41,9 +41,19 @@
 - include: set_splunk_secret.yml
   when: splunk_upgrade == False
 
+- include: splunk_proxy_disable.yml
+  when:
+    - splunk_upgrade
+    - splunk_upgrade_proxy_workaround
+
 - include: enable_boot_start_splunk.yml
   become: yes
   become_user: root
+
+- include: splunk_proxy_enable.yml
+  when:
+    - splunk_upgrade
+    - splunk_upgrade_proxy_workaround
 
 - include: add_authorized_key.yml
   when: splunk_upgrade == False

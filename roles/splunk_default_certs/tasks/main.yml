@@ -1,0 +1,38 @@
+---
+
+- name: "CA certificate"
+  block:
+
+    - ansible.builtin.set_fact:
+        openssl_cert_path: "{{ splunk_installation.splunk_home_path }}/etc/auth/ca.pem"
+
+    - include: check_certage.yml
+
+    - include: renew_ca_cert.yml
+      when: cert_renew_required
+
+- name: "Server certificate"
+  block:
+
+    - ansible.builtin.set_fact:
+        openssl_cert_path: "{{ splunk_installation.splunk_home_path }}/etc/auth/server.pem"
+
+    - include: check_certage.yml
+
+    - include: renew_server_cert.yml
+      when: cert_renew_required or ca_renew.changed
+
+- include: check_web_enabled.yml
+
+- name: "Web certificate"
+  when: web_ssl_on.changed
+  block:
+
+    - ansible.builtin.set_fact:
+        openssl_cert_path: "{{ splunk_installation.splunk_home_path }}/etc/auth/splunkweb/cert.pem"
+
+    - include: check_certage.yml
+
+    - include: renew_web_cert.yml
+      when: cert_renew_required
+

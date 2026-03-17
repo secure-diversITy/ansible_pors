@@ -31,6 +31,21 @@ tgzname: "splunk-{{ globversion }}-{{ globhash }}-linux-amd64.tgz"
 #splunk_ulimit_data_soft: unlimited
 #splunk_ulimit_data_hard: unlimited
 
+# splunkd might fail coming up when proxyConfig is configured
+# the following setting will disable http_proxy and proxy_rules during an upgrade
+# allowing to bypass a splunk issue "Assertion `_poolp->hasSslContext()' failed. Dying on signal"
+# details:
+# https://splunk.my.site.com/customer/s/article/After-upgrading-Splunk-does-not-start-and-fails-with-handleProxyConnect-Assertion-error
+# (default is false)
+#splunk_upgrade_proxy_workaround: true
+
+# if your environment uses default splunk certificates (not recommended but often in dev environments the case)
+# you can let PORS check, validate and - if required - renew the following certs:
+# - etc/auth/ca.pem + cacert.pem
+# - etc/auth/server.pem
+# - etc/auth/splunkweb/cert.pem
+#splunk_upgrade_manage_default_certs: true
+
 splunk_installation:
   splunk_home_path: /opt/splunk
   version: "{{ globversion }}"

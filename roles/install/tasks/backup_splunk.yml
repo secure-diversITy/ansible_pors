@@ -31,8 +31,9 @@
   register: _splunk_backup_kvstore_status
   until: >-
     _splunk_backup_kvstore_status.status == 200 and
-    _splunk_backup_kvstore_status.json.entry[0].content.current.backupRestoreStatus == "Ready" and
-    _splunk_backup_kvstore_status.json.entry[0].content.current.status == "ready"
+    ((_splunk_backup_kvstore_status.json.entry[0].content.current.backupRestoreStatus == "Ready" and
+    _splunk_backup_kvstore_status.json.entry[0].content.current.status == "ready") or
+    _splunk_backup_kvstore_status.json.entry[0].content.current.status == "disabled")
   delay: "{{ splunk_installation.backup_kvstore_delay }}"
   retries: "{{ splunk_installation.backup_kvstore_retries }}"
   when: splunk_installation.backup_kvstore
@@ -99,6 +100,7 @@
       when: splunk_installation.backup_upload
   when:
     - splunk_installation.backup_kvstore
+    - _splunk_backup_kvstore_status.json.entry[0].content.current.status != "disabled"
     - _splunk_backup_kvstore_status.json.entry[0].content.current.replicationStatus == "KV store captain"
 
 - name: "Set backup file name"

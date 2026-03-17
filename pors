@@ -36,7 +36,7 @@
 ##<br>
 ###############################################################################################################
 VERSIONTYPE=STREAM
-VERSIONNUM="4.2-1"
+VERSIONNUM="4.2-7"
 VERSION="${VERSIONNUM}_${VERSIONTYPE}"
 ###############################################################################################################
 #
@@ -137,8 +137,9 @@ fi
 ## @showinitializer
 declare WORKDIR="$MYHOME"
 [ ! -d "$WORKDIR" ] && mkdir -p $WORKDIR
-chown ${USER} $WORKDIR
-chmod 700 $WORKDIR  
+MYGRP=$(id -g $AEUSER)
+chown ${AEUSER}:${MYGRP} $WORKDIR
+chmod 770 $WORKDIR
 
 ## @var ADIR
 ## @brief auto generate the path name of the bin
@@ -349,6 +350,11 @@ declare PBGETTARGETS=${PBDIRSPLUNK}/ae_get_targets.yml
 ## @showinitializer
 declare PBUPGRADE=${PBDIRSPLUNK}/ae_upgrade_splunk.yml
 
+## @var PBSPLBACKUP
+## @brief Initiating a splunk backup, manually and during a splunk upgrade
+## @showinitializer
+declare PBSPLBACKUP=${PBDIRSPLUNK}/backup_splunk.yml
+
 ## @var  PBSHINSTALL
 ## @brief Install/Upgrade the splunk helper
 ## @details https://github.com/secure-diversITy/splunk/tree/master/splunkhelper
@@ -499,7 +505,8 @@ declare PBGLFETCHREPOS="${PBDIRSPLUNK}/gitlab_get_repos.yml"
 ## @brief Fetch all accessible ansible groups for the current environment
 ## @details Fetch all accessible ansible groups for the current environment
 ## @showinitializer
-declare PBGETGROUPS="${PBDIRSPLUNK}/get_groups.yml"
+#declare PBGETGROUPS="${PBDIRSPLUNK}/get_groups.yml"
+declare PBGETGROUPS="${PBDIRLOCAL}/get_inventory_groups.yml"
 
 ## @var PBVCINFO
 ## @brief Collecting vCenter information
@@ -891,6 +898,7 @@ fi
 ## @param 5 (optional) a YAML or json formatted filename containing extra vars
 ## @details Main function for all ansible-playbook commands (previously 'F_A2BIN')
 ## example args: F_ABIN hosts myplaybook myboxtitle "-e {'var1':'moo','var2':'cow'}"
+## if started with RUNMODE=batch it will not print dialogs at all
 F_ABIN(){
         F_LOG "$FUNCNAME started ($@)"
 	# returns error code of the playbook run
@@ -1253,6 +1261,7 @@ F_HOSTFILE(){
 	F_LOG $FUNCNAME finished
 }
 
+
 ## @fn F_TARGETS()
 ## @brief identify targets/hosts of a group
 ## @param 1 required: dialog option (checklist/radiolist)
@@ -1282,7 +1291,7 @@ F_TARGETS(){
 	NIGRP="$2"
 	
 	#OPTIONS=($(for i in $(egrep -v "(:vars|:children)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i $i off; done | sort))
-	OPTIONS=($(for i in $(egrep -v "(:vars|^#)" "$HOSTFILE" | egrep --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g;s/:children//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | egrep ",\w+" | cut -d "," -f1);do echo $i "#" off; done | sort -u ))
+	OPTIONS=($(for i in $(grep -E -v "(:vars|^#)" "$HOSTFILE" | grep -E --group-separator="/" -A1 "^\[.*\]"| tr "[" "\n" |sed -e 's/\]$/,/g;s/^$/\//g;s/:children//g'| tr -d "\n" | sed 's#//#/#g' | tr "/" "\n" | grep -E ",\w+" | cut -d "," -f1);do echo $i "#" off; done | sort -u ))
 	# OPTIONS EXPLANATION ABOVE
 
         F_LOG $FUNCNAME "${OPTIONS[@]}"
@@ -1847,7 +1856,7 @@ F_FETCHGITREPOS(){
 
     unset STYPE PLAYBOOK
     STYPE="$1"
-    REPOFILE="/tmp/pors/${STYPE}.repos"
+    REPOFILE="$WORKDIR/${STYPE}.repos"
 
     case $STYPE in
         github) PLAYBOOK="$PBGHFETCHREPOS" ;;
@@ -2059,7 +2068,7 @@ F_PULLSYSC(){
 					echo "$FUNCNAME: aborted!" >> $LOG
 					ABORTED=1
 				    else
-					    SELDIR="/tmp/$host"
+					    SELDIR="$WORKDIR/$host"
                                             [ -d "$SELDIR" ] && rm -rf $SELDIR
 					    F_DIMPORT $host "$REMDIR" "$SELDIR"
                                             SCPERR=$?
@@ -2515,7 +2524,7 @@ F_SPLACT(){
         done
         PBARGS="--limit $PBH"
  
-        EVARFILE=/tmp/pors_${FUNCNAME}
+        EVARFILE=$WORKDIR/pors_${FUNCNAME}
         echo -e "splunk_action: \"$SPLEXE\"\nsplunk_cmdparams: \"$ECUST\"\n" > $EVARFILE
 
         F_ABIN "$ITMPGRP" "$PBSPLACT" "running splunk $SPLEXE on $SELHOSTS ..." "$PBARGS" "$EVARFILE"
@@ -4214,8 +4223,8 @@ F_GETSITES(){
 ## @return a list of all groups found
 F_GETGROUPS(){
     F_LOG $FUNCNAME started
-    F_ABIN "$HOSTFILE" "$PBGETGROUPS" "\Za\Z1Grabbing ansible groups ...\Z\n" "-e expandfile='$MYHOME/${TARGETENV}.groups'"
-    cat "$MYHOME/${TARGETENV}.groups"
+    RUNMODE=batch F_ABIN "$HOSTFILE" "$PBGETGROUPS" "\Za\Z1Grabbing ansible groups ...\Z\n" "-e expandfile='$WORKDIR/${TARGETENV}.groups'" >> $LOG 2>&1
+    cat "$WORKDIR/${TARGETENV}.groups"
     F_LOG $FUNCNAME ended
 }
 
@@ -6192,15 +6201,15 @@ F_GETANSIBLEVAR(){
     F_HOSTFILE
 
     REQVAR="$1"
-    VARTMP="/tmp/pors/ansible_${REQVAR}.var"
+    VARTMP="$WORKDIR/ansible_${REQVAR}.var"
 
     F_LOG $FUNCNAME "REQVAR=$REQVAR, VARTMP=$VARTMP"
     [ -z "$REQVAR" ] && F_LOG $FUNCNAME "ERROR: missing required arg REQVAR" && return 3
-    F_ABIN $HOSTFILE $PBLOCGETVAR "requesting ansible variable ($REQVAR)" "-e {'varname':'$REQVAR'}" 2>> $LOG 1>> /dev/null
+    F_ABIN $HOSTFILE $PBLOCGETVAR "requesting ansible variable ($REQVAR)" "-e {'varname':'$REQVAR','pors_temp_dir':'$WORKDIR'}" 2>> $LOG 1>> /dev/null
     ERR=$?
 
     F_LOG $FUNCNAME "ended with $ERR"
-    [ "$ERR" -eq 0 ] && echo "$(cat $VARTMP)"
+    [ "$ERR" -eq 0 ] && echo "$(cat $VARTMP)" 2>> $LOG
     return $ERR
 }
 
@@ -6371,7 +6380,114 @@ F_PING(){
     return $RET
 }
 
+## @fn F_BACKUP_SPLUNK()
+## @brief start a splunk backup
+## @details added: 2026-03-16
+F_BACKUP_SPLUNK(){
+    echo "$FUNCNAME started" >> $LOG
+    unset SHOSTS SHOSTST LIMITLIST MODE HOSTSELEXPANDED HOSTSELECTION SELECTMADE
 
+    # force cleaning the temp hosts file in F_EXPANDHOSTS()
+    # must be explicitly unset for any subsequent tasks
+    export CLEANHOSTFILE=yes
+
+    F_WAITBOX "... parsing groups"
+    local _ASKGRPS=$(F_GETGROUPS)
+    OPTIONS=($(for i in $(echo "$_ASKGRPS");do echo "${i}" "#" off;done))
+
+    unset SELECTMADE
+    while [ -z "$SELECTMADE" ];do
+        ASKGRPS=$(F_DIALOG --checklist "\nPlease use the space-bar to make your selection:" 50 80 70 "${OPTIONS[@]}" 2>&1 >/dev/tty)
+        [ $? -ne 0 ] && F_LOG $FUNCNAME "aborted by user" && ABORTED=1 && return 4
+        if [ -z "$ASKGRPS" ];then
+            F_DIALOG --yesno "\n\nNo selection made! Retry?" 10 70 2>&1 >/dev/tty
+            [ $? -ne 0 ] && return $?
+        else
+            SELECTMADE=1; ABORTED=0
+        fi
+    done
+    if [ "$ABORTED" -ne 0 ];then
+        F_LOG $FUNCNAME "DEBUG: aborted by user."; return 4
+    fi
+
+    unset SELECTMADE
+    while [ -z "$SELECTMADE" ];do
+        local MODE=$(F_DIALOG --radiolist "\nChoose selection mode:" 10 80 70 "GROUP" "Backup ALL hosts from selected group(s)" off "HOST" "Select specific host(s) from selected group(s)" off 2>&1 >/dev/tty)
+        if [ -z "$MODE" ];then
+            F_LOG $FUNCNAME "Mode selection empty"
+            F_DIALOG --yesno "\n\nNo selection made! Retry?" 10 70 2>&1 >/dev/tty
+            [ $? -ne 0 ] && return $?
+        else
+            SELECTMADE=1; ABORTED=0
+        fi
+    done
+    if [ "$ABORTED" -ne 0 ];then
+        F_LOG $FUNCNAME "DEBUG: aborted by user."; return 4
+    fi
+    F_LOG "$FUNCNAME" "Select mode: $MODE"
+
+    if [ "$MODE" == "HOST" ];then
+        # create a temporary ansible group (must be in the correct env path! otherwise variables cant be found)
+        ITMPGRP=$WORKDIR/${TARGETENV}_${FUNCNAME}_hosts
+        > $ITMPGRP
+        F_WAITBOX "... parsing selected group(s)"
+        HOSTSELEXPANDED=$(for g in $ASKGRPS; do F_EXPANDHOSTS "$g" $ITMPGRP clean;done)
+        HOSTSELECTION="$ASKGRPS"
+        unset SELECTMADE
+        while [ -z "$SELECTMADE" ];do
+            SHOSTS=$(F_SHOWHOSTS checklist "$HOSTSELEXPANDED")
+            if [ -z "$SHOSTS" ];then
+                F_LOG $FUNCNAME "Mode selection empty"
+                F_DIALOG --yesno "\n\nNo selection made! Retry?" 10 70 2>&1 >/dev/tty
+                [ $? -ne 0 ] && return $?
+            else
+                SELECTMADE=1; ABORTED=0
+            fi
+        done
+        if [ "$ABORTED" -ne 0 ];then
+            F_LOG $FUNCNAME "DEBUG: aborted by user."; return 4
+        fi
+        MODETXT="host(s)"
+    else
+        SHOSTS="$ASKGRPS"
+        MODETXT="group(s)"
+    fi
+    SHOSTST="$(echo "$SHOSTS" | sed 's/ /\\n/g' | cut -d ':' -f 1)"
+
+    if  [ -z "$SHOSTS" ] || [ -z "$SHOSTST" ];then
+        F_LOG $FUNCNAME "SHOSTS ($SHOSTS) or SHOSTST ($SHOSTST) empty"
+        F_ERRLOG "3" "INTERNAL ERROR OCCURED in $FUNCNAME" "$LOG"
+    else
+        F_LOG $FUNCNAME "SHOSTS ($SHOSTS) and SHOSTST ($SHOSTST) are both set"
+    fi
+
+    # define a valid limit group depending on the user's selection
+    LIMITLIST=$(echo "$SHOSTST" | sed 's/\\n/:/g' | sed 's/:$//g' )
+    [ -z "$LIMITLIST" ] && F_ERRLOG 3 "empty LIMITLIST in $FUNCNAME" $LOG && return 3
+
+    F_WAITBOX "... parsing backup config"
+    local backup_paths=$(F_GETANSIBLEVAR "splunk_upgrade_backup_path" | sed 's/|/\\n- /g')
+    local exclusion_patterns=$(F_GETANSIBLEVAR "splunk_upgrade_backup_exclusion_patterns" | sed 's/|/\\n- /g')
+    local backup_kvstore=$(F_GETANSIBLEVAR "splunk_upgrade_backup_kvstore")
+    local backup_kvstore_upload=$(F_GETANSIBLEVAR "splunk_upgrade_backup_upload")
+    if [ "$backup_kvstore" == "true" -o "$backup_kvstore" == "True" ];then
+        local backup_kvstore_info="$backup_kvstore (upload: $backup_kvstore_upload)"
+    else
+        local backup_kvstore_info="$backup_kvstore"
+    fi
+
+    F_LOG "$FUNCNAME" "Will backup: <$SHOSTS> backup_kvstore: $backup_kvstore, backup_kvstore_upload: $backup_kvstore_upload, backup_paths: $backup_paths, exclusion_patterns: $exclusion_patterns"
+    F_DIALOG --scrollbar --colors --yesno "\n\n\ZbWill backup these \Zu$MODETXT\ZU:\ZB\n$SHOSTST\n\n\ZbBackup path(s):\ZB\n- $backup_paths\n\n\ZbExclusion pattern(s):\ZB\n- $exclusion_patterns\n\n\ZbKVstore backup:\ZB $backup_kvstore_info" 30 100
+    [ $? -ne 0 ] && return $?
+
+    # doit
+    F_ABIN "$HOSTFILE" "$PBSPLBACKUP" "\Za\Z1Backup running ...\Z\n" "--limit $LIMITLIST -e {'target':'$LIMITLIST'}"
+    F_ERRLOG $? "Backing up splunk on:\n\n$SHOSTST" "$LOG"
+    F_PORSACTION "nogit" "$FUNCNAME | backed up splunk on $SHOSTS"
+
+    # cleanup
+    [ -f $ITMPGRP ] && F_LOG $FUNCNAME "deleting temp hosts file: $(rm -vf $ITMPGRP 2>&1)"
+}
 
 ########################################################################################################################################
 ########################################################################################################################################
@@ -6413,6 +6529,7 @@ F_MENUMAIN(){
 			"Upgrade/install splunkhelper"	"Upgrade or install splunkhelper" \
 			'Upgrade/stage splunkforwarder'      "Download, upgrade, stage splunk> Universal forwarder" \
 			"Upgrade/stage logstream"	"Download, upgrade, stage cribl logstream" \
+                        "Backup splunk" "Backup defined splunk path(s)" \
                         "Upgrade System" "the operating system of an ansible managed system" \
 			"" "" \
 			'' '\Zb\Zusystem/local/*.conf\ZB\ZU'\
@@ -6510,6 +6627,10 @@ F_MENUMAIN(){
                         VM-Management)
                         F_DEPLOYVM
                         F_LOG $FUNCNAME "F_VMMENU ended with $?"
+                        ;;
+                        "Backup splunk")
+                        F_BACKUP_SPLUNK
+                        UERR=$?; [ $UERR -ne 0 ] && F_ERRLOG $UERR "Backing up splunk"
                         ;;
                         "Upgrade System")
                         F_SYSUPGRADE
@@ -6712,7 +6833,7 @@ if [ $? -eq 0 ];then
 
     # detect running session and kill/ask
     [ -f $EXECBIT ] && echo -e "\n\nWARNING: It seems PORS is already running by user: $(cat $EXECBIT)! ABORTED!" && F_LOG "$BIN" "PORS is already running by $(cat $EXECBIT). ABORTED!" && F_EXIT 4
-    echo "$CALLUSR" > $EXECBIT && chmod o+w $EXECBIT
+    printf "$CALLUSR (since: $(date '+%F %T - %Z'))" > $EXECBIT && chmod 644 $EXECBIT
 
     ## @var PORS_TEMPDIR
     ## @brief Temporary directory defined within ansible config
@@ -6841,7 +6962,7 @@ else
         [ -f "$EXECBIT" ] && echo -e "\n\t${RED}WARNING - WARNING\n\t-----------------------${NONE}\n\n\tIt seems PORS is already opened by \n\n${RED}\t\t>  $(cat $EXECBIT)  <${NONE}\n\n\tBEFORE you choose overwriting the lock ${RED}contact the above user!${NONE}\n\tPORS does not support working in parallel so this WILL break things if you try to proceed while another user is actively working!\n\n" && read -p "....... do you want ME to override, delete the execbit and continue anyways (no risk no fun heh?)? (y/N)" KICKUSER
         echo KICK: $KICKUSER
         [ -f "$EXECBIT" ]&&[ "$KICKUSER" != "y" ] && F_EXITUNCLEAN
-        echo "$CALLUSR" > $EXECBIT && chmod 777 $EXECBIT
+        printf "$CALLUSR (since: $(date '+%F %T - %Z'))" > $EXECBIT && chmod 644 $EXECBIT
         # check uncommitted changes & commit if needed
         F_DATACOMMIT "manual changes" "data directory has been altered outside of PORS - committed the current state before actually starting.."
     else

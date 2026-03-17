@@ -1,0 +1,15 @@
+---
+
+- name: "CA: backup certificate"
+  ansible.builtin.shell: >-
+    cp "{{ splunk_installation.splunk_home_path }}/etc/auth/{{ item }}" "{{ splunk_installation.splunk_home_path }}/etc/auth/{{ item }}-bak-$(date +%F_%s)"
+  loop:
+    - ca.pem
+    - cacert.pem
+
+- name: "CA: renew certificate"
+  ansible.builtin.shell: >-
+    yes y | {{ splunk_installation.splunk_home_path }}/bin/genRootCA.sh -d "{{ splunk_installation.splunk_home_path }}/etc/auth" -l 4096
+  register: ca_renew
+  notify: splunk restart
+

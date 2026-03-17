@@ -1,27 +1,40 @@
 ---
 
+- name: "Set var filename"
+  ansible.builtin.set_fact:
+    output_file: "{{ pors_temp_dir }}/ansible.var"
+
 - name: Ensure temp dir is there
-  file:
+  ansible.builtin.file:
     path: "{{ pors_temp_dir }}"
     state: directory
 
 - name: Clean old var file
-  file:
+  ansible.builtin.file:
     path: "{{ pors_temp_dir }}/ansible_{{ varname }}.var"
     state: absent
 
+- name: Get variable
+  ansible.builtin.debug:
+    var: "{{ item }}"
+  loop: "{{ varname.split(',') if varname is defined and ',' in varname else [varname] }}"
+  register: parsed_var
+
 - name: Fill template
-  template:
+  ansible.builtin.template:
     src: getvar.yml.j2
+    #src: get_var.yml.j2
     dest: "{{ pors_temp_dir }}/getvar.yml"
     mode: 0640
 
 - include: "{{ pors_temp_dir }}/getvar.yml"
 
 - name: Write variable
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pors_temp_dir }}/ansible_{{ varname }}.var"
-    line: "{{ item.value }}"
+    #path: "{{ output_file }}"
+    line: >-
+      {% if item.value is boolean %}{{ item.value}}{% else %}{{ item.value | join('|') }}{% endif %}
     create: yes
   loop: "{{ lookup('dict',parsed_var) }}"
   when:

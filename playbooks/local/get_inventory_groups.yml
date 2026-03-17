@@ -1,0 +1,25 @@
+---
+
+- name: "Get inventory group names"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    clean_tmp: true
+
+  tasks:
+
+    - name: "Clean any previous tmp file"
+      ansible.builtin.file:
+          path: "{{ expandfile }}"
+          state: absent
+      when: clean_tmp
+
+    - name: "Write {{ expandfile }} file"
+      ansible.builtin.lineinfile:
+        create: true
+        path: "{{ expandfile }}"
+        line: "{{ item }}"
+        state: present
+      loop: "{{ groups.keys() | list }}"

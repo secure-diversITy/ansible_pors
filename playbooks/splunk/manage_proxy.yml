@@ -1,0 +1,23 @@
+---
+
+- name: "Configure splunk proxy"
+  hosts: "{{ target }}"
+  remote_user: "{{ pors_ssh_user }}"
+  become: yes
+  become_user: "{{ splunk_install_user }}"
+
+  vars:
+    splunk_restart: true
+
+  tasks:
+
+    - include_role:
+        name: install
+        tasks_from: splunk_proxy_disable.yml
+      when: splunk_proxy == "disable"
+
+    - include_role:
+        name: install
+        tasks_from: splunk_proxy_enable.yml
+      when: splunk_proxy == "enable"
+

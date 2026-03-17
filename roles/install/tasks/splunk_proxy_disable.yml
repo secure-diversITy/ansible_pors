@@ -1,0 +1,12 @@
+---
+
+- name: "Disable outcommented proxy settings [proxyConfig]"
+  ansible.builtin.lineinfile:
+    dest: "{{ splunk_conf_path }}/server.conf"
+    regexp: "{{ item }}"
+    line: '#\1'
+    backrefs: true
+  loop:
+    - '^(http_proxy.*)'
+    - '^(proxy_rules.*)'
+
